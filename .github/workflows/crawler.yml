@@ -21,10 +21,10 @@ jobs:
       - name: Checkout Mã nguồn
         uses: actions/checkout@v4
 
-      - name: Thiết lập môi trường Node.js
+      - name: Thiết lập môi trường Node.js (Node 22 LTS)
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: 'npm'
 
       - name: Cài đặt Dependencies
