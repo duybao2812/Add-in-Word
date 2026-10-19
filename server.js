@@ -360,13 +360,13 @@ function extractThuvienPhapLuat(url) {
     if (!lawId) return reject(new Error('Không tìm thấy mã LawID trong link Thư Viện Pháp Luật'));
 
     const apiUrl = `https://apimobile.thuvienphapluat.vn/Document/GetDocumentDetail?LawID=${lawId}&language=&token=`;
-    https.get(apiUrl, {
+    const req = https.get(apiUrl, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X)',
         'Referer': 'https://m.thuvienphapluat.vn/',
         'Accept': 'application/json, text/plain, */*'
       },
-      timeout: 30000
+      timeout: 25000
     }, res => {
       if (res.statusCode !== 200) {
         return reject(new Error(`API Thư Viện Pháp Luật trả về mã lỗi HTTP ${res.statusCode}`));
@@ -390,7 +390,13 @@ function extractThuvienPhapLuat(url) {
         }
       });
       res.on('error', reject);
-    }).on('error', reject);
+    });
+
+    req.on('error', reject);
+    req.on('timeout', () => {
+      req.destroy();
+      reject(new Error('Hết thời gian chờ kết nối Thư Viện Pháp Luật (Timeout 25s)'));
+    });
   });
 }
 

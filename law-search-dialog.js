@@ -701,10 +701,165 @@
     });
   }
 
+  /**
+   * Hàm thực hiện bóc tách 1 văn bản đơn lẻ, hỗ trợ báo tiến trình (onProgress),
+   * timeout 45s và cơ chế dự phòng tải trực tiếp từ Thư Viện Pháp Luật
+   */
+  async function executeExtractOneDoc(docId, soHieu, url, onProgress) {
+    const notify = (msg) => {
+      if (typeof onProgress === 'function') onProgress(msg);
+    };
+
+    notify('Đang kết nối...');
+
+    // Timeout 45s để không bao giờ bị treo vô hạn
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 45000);
+
+    try {
+      // 1. Thử gọi qua máy chủ Local (server.js có service key cập nhật trực tiếp)
+      let isServerAvailable = true;
+      let serverResult = null;
+
+      try {
+        notify('Đang gửi lệnh tới máy chủ local...');
+        const res = await fetch('/api/extract-external-law', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: docId, soHieu, url }),
+          signal: controller.signal
+        });
+
+        if (res.ok) {
+          serverResult = await res.json();
+        } else {
+          serverResult = { success: false, error: `Máy chủ local phản hồi mã lỗi HTTP ${res.status}` };
+        }
+      } catch (fetchErr) {
+        if (fetchErr.name === 'AbortError') {
+          throw new Error('Quá thời gian chờ máy chủ (Timeout 45s)');
+        }
+        isServerAvailable = false;
+        console.warn('Máy chủ local không phản hồi:', fetchErr.message);
+      }
+
+      // Nếu máy chủ local bóc tách thành công
+      if (serverResult && serverResult.success) {
+        clearTimeout(timeoutId);
+        return {
+          success: true,
+          textLength: serverResult.textLength,
+          snippet: serverResult.snippet
+        };
+      }
+
+      // Nếu máy chủ báo lỗi cụ thể (không phải lỗi mất kết nối máy chủ)
+      if (serverResult && !serverResult.success && isServerAvailable) {
+        clearTimeout(timeoutId);
+        return {
+          success: false,
+          error: serverResult.error || 'Máy chủ không bóc tách được văn bản'
+        };
+      }
+
+      // 2. CƠ CHẾ DỰ PHÒNG TRỰC TIẾP TỪ CLIENT NẾU SERVER LOCAL CHƯA BẬT
+      if (url.includes('thuvienphapluat.vn')) {
+        notify('Đang trích xuất qua TVPL API...');
+        let lawId = null;
+        const m = url.match(/[-_](\d+)\.aspx/i) || url.match(/[?&]LawID=(\d+)/i) || url.match(/\b(\d{5,8})\b/);
+        if (m) lawId = m[1];
+
+        if (!lawId) {
+          clearTimeout(timeoutId);
+          return { success: false, error: 'Không tìm thấy mã LawID trong link Thư Viện Pháp Luật' };
+        }
+
+        const tvplRes = await fetch(`https://apimobile.thuvienphapluat.vn/Document/GetDocumentDetail?LawID=${lawId}&language=&token=`, {
+          method: 'GET',
+          signal: controller.signal
+        });
+
+        if (!tvplRes.ok) {
+          clearTimeout(timeoutId);
+          return { success: false, error: `TVPL API phản hồi mã lỗi HTTP ${tvplRes.status}` };
+        }
+
+        const tvplJson = await tvplRes.json();
+        const html = tvplJson.ContentVN || '';
+        if (!html || html.length < 50) {
+          clearTimeout(timeoutId);
+          return { success: false, error: 'Văn bản trên TVPL chưa có nội dung chữ toàn văn' };
+        }
+
+        notify('Đang làm sạch văn bản...');
+        let cleanText = html
+          .replace(/<\/h[1-6]>/gi, '\n\n')
+          .replace(/<\/(p|div|tr|li)>/gi, '\n')
+          .replace(/<br\s*[\/]?>/gi, '\n')
+          .replace(/<[^>]+>/g, '')
+          .replace(/&nbsp;/g, ' ')
+          .replace(/&amp;/g, '&')
+          .replace(/&lt;/g, '<')
+          .replace(/&gt;/g, '>')
+          .replace(/&quot;/g, '"')
+          .replace(/&#039;/g, "'");
+
+        const lines = cleanText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+        cleanText = lines.join('\n\n');
+
+        // Lưu trực tiếp lên Supabase từ Client
+        const engine = window.LawSyncEngine;
+        if (engine && engine.config && engine.config.supabaseUrl && engine.config.anonKey) {
+          notify('Đang lưu lên Supabase Cloud...');
+          const sbUrl = `${engine.config.supabaseUrl.replace(/\/$/, '')}/rest/v1/van_ban_phap_luat?id=eq.${docId}`;
+          await fetch(sbUrl, {
+            method: 'PATCH',
+            headers: {
+              'apikey': engine.config.anonKey,
+              'Authorization': `Bearer ${engine.config.anonKey}`,
+              'Content-Type': 'application/json',
+              'Prefer': 'return=representation'
+            },
+            body: JSON.stringify({
+              duong_dan_gxd: url,
+              noi_dung_toan_van: cleanText,
+              co_toan_van_html: true,
+              updated_at: new Date().toISOString()
+            }),
+            signal: controller.signal
+          });
+        }
+
+        clearTimeout(timeoutId);
+        return {
+          success: true,
+          textLength: cleanText.length,
+          snippet: cleanText.slice(0, 500)
+        };
+      }
+
+      clearTimeout(timeoutId);
+      return {
+        success: false,
+        error: isServerAvailable 
+          ? (serverResult ? serverResult.error : 'Không bóc tách được dữ liệu')
+          : 'Không thể kết nối đến máy chủ local (server.js chưa chạy)'
+      };
+
+    } catch (err) {
+      clearTimeout(timeoutId);
+      const isTimeout = err.name === 'AbortError' || (err.message && err.message.includes('Timeout'));
+      return {
+        success: false,
+        error: isTimeout ? 'Hết thời gian chờ (Timeout 45s)' : `Lỗi: ${err.message}`
+      };
+    }
+  }
+
   async function handleExtractExternalRow(e) {
     const btn = e.currentTarget;
     const docId = parseInt(btn.getAttribute('data-id'), 10);
-    const soHieu = btn.getAttribute('data-sohieu');
+    const soHieu = btn.getAttribute('data-sohieu') || 'văn bản';
     const tr = btn.closest('tr');
     const input = tr ? tr.querySelector('.ext-url-input') : null;
     const url = input ? input.value.trim() : '';
@@ -715,49 +870,49 @@
       return;
     }
 
-    const originalBtnText = btn.textContent;
+    const colStatus = tr ? tr.querySelector('.col-status') : null;
     btn.disabled = true;
     btn.textContent = '⏳ Đang lấy...';
 
-    try {
-      const res = await fetch('/api/extract-external-law', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: docId, soHieu, url })
-      });
-
-      const data = await res.json();
-      if (data.success) {
-        // Cập nhật bộ nhớ cục bộ
-        const engine = window.LawSyncEngine;
-        if (engine && engine.laws) {
-          const doc = engine.laws.find(d => d.id === docId);
-          if (doc) {
-            doc.linkGoc = url;
-            doc.duong_dan_gxd = url;
-            doc.co_toan_van_html = true;
-            doc.is_external_managed = true;
-            doc.noi_dung_toan_van = data.snippet;
-            engine.saveLocalData();
-          }
-        }
-
-        const colStatus = tr.querySelector('.col-status');
-        if (colStatus) {
-          colStatus.innerHTML = `<span class="badge badge-success" style="font-size: 10px;">Đã có (${data.textLength.toLocaleString()} ký tự)</span>`;
-        }
-        btn.textContent = '🔄 Cập nhật';
-        alert(`✅ THÀNH CÔNG!\n\nĐã bóc tách được ${data.textLength.toLocaleString()} ký tự từ:\n${url}\nvà đã cập nhật lên Supabase Cloud Database!`);
-      } else {
-        alert(`❌ THẤT BẠI: ${data.error || 'Không rõ nguyên nhân'}`);
-        btn.textContent = originalBtnText;
+    const updateStatus = (msg) => {
+      if (colStatus) {
+        colStatus.innerHTML = `<span class="badge" style="background: #17a2b8; color: #fff; font-size: 10px;">⏳ ${escapeHtml(msg)}</span>`;
       }
-    } catch (err) {
-      alert(`❌ LỖI KẾT NỐI MÁY CHỦ LOCAL: ${err.message}\n\nHãy đảm bảo máy chủ Node.js cục bộ đang chạy.`);
-      btn.textContent = originalBtnText;
-    } finally {
-      btn.disabled = false;
+    };
+
+    updateStatus('Đang xử lý...');
+
+    const res = await executeExtractOneDoc(docId, soHieu, url, updateStatus);
+
+    if (res.success) {
+      // Cập nhật bộ nhớ cục bộ
+      const engine = window.LawSyncEngine;
+      if (engine && engine.laws) {
+        const doc = engine.laws.find(d => d.id === docId);
+        if (doc) {
+          doc.linkGoc = url;
+          doc.duong_dan_gxd = url;
+          doc.co_toan_van_html = true;
+          doc.is_external_managed = true;
+          doc.noi_dung_toan_van = res.snippet;
+          engine.saveLocalData();
+        }
+      }
+
+      if (colStatus) {
+        colStatus.innerHTML = `<span class="badge badge-success" style="font-size: 10px;">✅ Đã có (${res.textLength.toLocaleString()} ký tự)</span>`;
+      }
+      btn.textContent = '🔄 Cập nhật';
+      alert(`✅ THÀNH CÔNG!\n\nĐã bóc tách được ${res.textLength.toLocaleString()} ký tự cho văn bản "${soHieu}"!\nDữ liệu đã được lưu lên Supabase Cloud Database.`);
+    } else {
+      if (colStatus) {
+        colStatus.innerHTML = `<span class="badge badge-danger" style="background: #dc3545; color: #fff; font-size: 10px; cursor: help;" title="${escapeHtml(res.error)}">❌ Lỗi: ${escapeHtml(res.error.slice(0, 16))}...</span>`;
+      }
+      btn.textContent = 'Thử lại';
+      alert(`❌ BÓC TÁCH THẤT BẠI cho "${soHieu}":\n\n${res.error}\n\nĐường dẫn: ${url}`);
     }
+
+    btn.disabled = false;
   }
 
   async function handleBatchExtractExternal() {
@@ -789,6 +944,15 @@
     );
     if (!confirmed) return;
 
+    const pContainer = document.getElementById('extProgressContainer');
+    const pBar = document.getElementById('extProgressBar');
+    const pPercent = document.getElementById('extProgressPercent');
+    const pStatus = document.getElementById('extProgressStatus');
+
+    if (pContainer) pContainer.style.display = 'block';
+    if (pBar) pBar.style.width = '0%';
+    if (pPercent) pPercent.textContent = '0%';
+
     const btnBatch = document.getElementById('btnBatchExtractExternal');
     const oldBatchText = btnBatch ? btnBatch.textContent : '';
     if (btnBatch) {
@@ -797,9 +961,17 @@
 
     let successCount = 0;
     let failCount = 0;
+    const failedItems = [];
 
     for (let i = 0; i < itemsToProcess.length; i++) {
       const item = itemsToProcess[i];
+      const percent = Math.round((i / itemsToProcess.length) * 100);
+
+      if (pBar) pBar.style.width = percent + '%';
+      if (pPercent) pPercent.textContent = percent + '%';
+      if (pStatus) {
+        pStatus.textContent = `⏳ [${i + 1}/${itemsToProcess.length}] Đang xử lý: ${item.soHieu}...`;
+      }
       if (btnBatch) {
         btnBatch.textContent = `⏳ Đang lấy (${i + 1}/${itemsToProcess.length}): ${item.soHieu}...`;
       }
@@ -808,55 +980,56 @@
         item.btn.textContent = '⏳...';
       }
 
-      try {
-        const res = await fetch('/api/extract-external-law', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id: item.docId, soHieu: item.soHieu, url: item.url })
-        });
-
-        const data = await res.json();
-        if (data.success) {
-          successCount++;
-          // Cập nhật bộ nhớ cục bộ
-          const engine = window.LawSyncEngine;
-          if (engine && engine.laws) {
-            const doc = engine.laws.find(d => d.id === item.docId);
-            if (doc) {
-              doc.linkGoc = item.url;
-              doc.duong_dan_gxd = item.url;
-              doc.co_toan_van_html = true;
-              doc.is_external_managed = true;
-              doc.noi_dung_toan_van = data.snippet;
-            }
-          }
-
-          const colStatus = item.tr.querySelector('.col-status');
-          if (colStatus) {
-            colStatus.innerHTML = `<span class="badge badge-success" style="font-size: 10px;">Đã có (${data.textLength.toLocaleString()} ký tự)</span>`;
-          }
-          if (item.btn) {
-            item.btn.textContent = '🔄 Cập nhật';
-          }
-        } else {
-          failCount++;
-          if (item.btn) {
-            item.btn.textContent = '❌ Lỗi';
-          }
-          console.error(`Bóc tách thất bại cho ${item.soHieu}:`, data.error);
+      const colStatus = item.tr.querySelector('.col-status');
+      const updateRowStatus = (msg) => {
+        if (colStatus) {
+          colStatus.innerHTML = `<span class="badge" style="background: #17a2b8; color: #fff; font-size: 10px;">⏳ ${escapeHtml(msg)}</span>`;
         }
-      } catch (err) {
-        failCount++;
+      };
+
+      const res = await executeExtractOneDoc(item.docId, item.soHieu, item.url, updateRowStatus);
+
+      if (res.success) {
+        successCount++;
+        const engine = window.LawSyncEngine;
+        if (engine && engine.laws) {
+          const doc = engine.laws.find(d => d.id === item.docId);
+          if (doc) {
+            doc.linkGoc = item.url;
+            doc.duong_dan_gxd = item.url;
+            doc.co_toan_van_html = true;
+            doc.is_external_managed = true;
+            doc.noi_dung_toan_van = res.snippet;
+          }
+        }
+
+        if (colStatus) {
+          colStatus.innerHTML = `<span class="badge badge-success" style="font-size: 10px;">✅ Đã có (${res.textLength.toLocaleString()} ký tự)</span>`;
+        }
         if (item.btn) {
-          item.btn.textContent = '❌ Lỗi mạng';
+          item.btn.textContent = '🔄 Cập nhật';
         }
-        console.error(`Lỗi mạng khi bóc tách ${item.soHieu}:`, err);
-      } finally {
-        if (item.btn) item.btn.disabled = false;
+      } else {
+        failCount++;
+        failedItems.push({ soHieu: item.soHieu, error: res.error });
+        if (colStatus) {
+          colStatus.innerHTML = `<span class="badge badge-danger" style="background: #dc3545; color: #fff; font-size: 10px; cursor: help;" title="${escapeHtml(res.error)}">❌ Lỗi: ${escapeHtml(res.error.slice(0, 16))}...</span>`;
+        }
+        if (item.btn) {
+          item.btn.textContent = 'Thử lại';
+        }
       }
 
-      // Nghỉ nhẹ 300ms giữa các request để bảo đảm ổn định
-      await new Promise(r => setTimeout(r, 300));
+      if (item.btn) item.btn.disabled = false;
+
+      // Nghỉ nhẹ 250ms giữa các request để bảo đảm ổn định
+      await new Promise(r => setTimeout(r, 250));
+    }
+
+    if (pBar) pBar.style.width = '100%';
+    if (pPercent) pPercent.textContent = '100%';
+    if (pStatus) {
+      pStatus.innerHTML = `🏁 Hoàn thành: <b>${successCount}</b> thành công, <b>${failCount}</b> thất bại.`;
     }
 
     const engine = window.LawSyncEngine;
@@ -869,13 +1042,22 @@
       btnBatch.textContent = oldBatchText || '⚡ Lấy tất cả dữ liệu theo link đã dán';
     }
 
-    alert(
-      `🏁 HOÀN TẤT BÓC TÁCH HÀNG LOẠT!\n\n` +
+    let summaryMsg = `🏁 HOÀN TẤT BÓC TÁCH HÀNG LOẠT!\n\n` +
       `- Tổng số xử lý: ${itemsToProcess.length}\n` +
       `- Thành công: ${successCount}\n` +
-      `- Thất bại: ${failCount}\n\n` +
-      `Dữ liệu đã được cập nhật đồng bộ lên Supabase Cloud Database.`
-    );
+      `- Thất bại: ${failCount}\n`;
+
+    if (failedItems.length > 0) {
+      summaryMsg += `\nCác văn bản gặp lỗi:\n` +
+        failedItems.map(f => `• ${f.soHieu}: ${f.error}`).slice(0, 8).join('\n');
+      if (failedItems.length > 8) {
+        summaryMsg += `\n... và ${failedItems.length - 8} văn bản khác. (Di chuột vào nhãn 'Lỗi' để xem chi tiết)`;
+      }
+    } else {
+      summaryMsg += `\nToàn bộ văn bản đã được bóc tách và cập nhật thành công lên Supabase Cloud Database!`;
+    }
+
+    alert(summaryMsg);
   }
 
   function escapeHtml(str) {
