@@ -51,7 +51,7 @@
       try {
         const cached = localStorage.getItem(STORAGE_KEY_LAWS);
         if (cached) {
-          this.laws = JSON.parse(cached);
+          this.laws = this.deduplicateLaws(JSON.parse(cached));
         }
       } catch (e) {
         console.warn('Lỗi đọc cache văn bản cục bộ:', e);
@@ -84,11 +84,35 @@
     }
 
     /**
-     * Lấy toàn bộ danh sách văn bản hiện hành (bỏ qua bản ghi is_deleted = true)
+     * Khử trùng lặp danh sách văn bản theo số hiệu chuẩn hóa
+     */
+    deduplicateLaws(list) {
+      if (!list || !Array.isArray(list)) return [];
+      const map = new Map();
+      for (const item of list) {
+        const rawCode = item.code || item.so_hieu || '';
+        const key = rawCode.trim().toLowerCase().replace(/[-_.\s/]/g, '') || String(item.id);
+        if (!map.has(key)) {
+          map.set(key, item);
+        } else {
+          const existing = map.get(key);
+          const lenExist = (existing.noi_dung_toan_van || '').length;
+          const lenCur = (item.noi_dung_toan_van || '').length;
+          if (lenCur > lenExist || (!existing.co_toan_van_html && item.co_toan_van_html)) {
+            map.set(key, item);
+          }
+        }
+      }
+      return Array.from(map.values());
+    }
+
+    /**
+     * Lấy toàn bộ danh sách văn bản hiện hành (bỏ qua bản ghi is_deleted = true và khử trùng)
      */
     getAllActiveLaws() {
       if (!this.laws || !Array.isArray(this.laws)) return [];
-      return this.laws.filter(doc => !doc.is_deleted);
+      const active = this.laws.filter(doc => !doc.is_deleted);
+      return this.deduplicateLaws(active);
     }
 
     getAllDocuments() {

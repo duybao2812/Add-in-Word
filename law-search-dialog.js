@@ -92,6 +92,8 @@
     if (btnCloseExternal) btnCloseExternal.addEventListener('click', closeExternalManagerModal);
     const btnDoneExternal = document.getElementById('btnDoneExternalManager');
     if (btnDoneExternal) btnDoneExternal.addEventListener('click', closeExternalManagerModal);
+    const btnBatchExt = document.getElementById('btnBatchExtractExternal');
+    if (btnBatchExt) btnBatchExt.addEventListener('click', handleBatchExtractExternal);
 
     const txtSearchExt = document.getElementById('txtSearchExternal');
     if (txtSearchExt) {
@@ -756,6 +758,124 @@
     } finally {
       btn.disabled = false;
     }
+  }
+
+  async function handleBatchExtractExternal() {
+    const tbody = document.getElementById('tbodyExternalLaws');
+    if (!tbody) return;
+
+    const rows = Array.from(tbody.querySelectorAll('tr[data-doc-id]'));
+    const itemsToProcess = [];
+
+    rows.forEach(tr => {
+      const docId = parseInt(tr.getAttribute('data-doc-id'), 10);
+      const input = tr.querySelector('.ext-url-input');
+      const btn = tr.querySelector('.btn-extract-external');
+      const soHieu = btn ? btn.getAttribute('data-sohieu') : '';
+      const url = input ? input.value.trim() : '';
+      if (url && url.startsWith('http')) {
+        itemsToProcess.push({ docId, soHieu, url, tr, btn, input });
+      }
+    });
+
+    if (itemsToProcess.length === 0) {
+      alert('Không tìm thấy văn bản nào có link hợp lệ (bắt đầu bằng http:// hoặc https://) trong danh sách đang hiển thị.\n\nVui lòng dán link vào cột "Link chứa văn bản có thể trích xuất" trước khi thực hiện!');
+      return;
+    }
+
+    const confirmed = confirm(
+      `Hệ thống phát hiện ${itemsToProcess.length} văn bản có đường link ngoài hợp lệ.\n\n` +
+      `Bạn có muốn hệ thống tự động bóc tách tuần tự toàn bộ ${itemsToProcess.length} văn bản này và cập nhật lên Supabase Cloud Database không?`
+    );
+    if (!confirmed) return;
+
+    const btnBatch = document.getElementById('btnBatchExtractExternal');
+    const oldBatchText = btnBatch ? btnBatch.textContent : '';
+    if (btnBatch) {
+      btnBatch.disabled = true;
+    }
+
+    let successCount = 0;
+    let failCount = 0;
+
+    for (let i = 0; i < itemsToProcess.length; i++) {
+      const item = itemsToProcess[i];
+      if (btnBatch) {
+        btnBatch.textContent = `⏳ Đang lấy (${i + 1}/${itemsToProcess.length}): ${item.soHieu}...`;
+      }
+      if (item.btn) {
+        item.btn.disabled = true;
+        item.btn.textContent = '⏳...';
+      }
+
+      try {
+        const res = await fetch('/api/extract-external-law', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: item.docId, soHieu: item.soHieu, url: item.url })
+        });
+
+        const data = await res.json();
+        if (data.success) {
+          successCount++;
+          // Cập nhật bộ nhớ cục bộ
+          const engine = window.LawSyncEngine;
+          if (engine && engine.laws) {
+            const doc = engine.laws.find(d => d.id === item.docId);
+            if (doc) {
+              doc.linkGoc = item.url;
+              doc.duong_dan_gxd = item.url;
+              doc.co_toan_van_html = true;
+              doc.is_external_managed = true;
+              doc.noi_dung_toan_van = data.snippet;
+            }
+          }
+
+          const colStatus = item.tr.querySelector('.col-status');
+          if (colStatus) {
+            colStatus.innerHTML = `<span class="badge badge-success" style="font-size: 10px;">Đã có (${data.textLength.toLocaleString()} ký tự)</span>`;
+          }
+          if (item.btn) {
+            item.btn.textContent = '🔄 Cập nhật';
+          }
+        } else {
+          failCount++;
+          if (item.btn) {
+            item.btn.textContent = '❌ Lỗi';
+          }
+          console.error(`Bóc tách thất bại cho ${item.soHieu}:`, data.error);
+        }
+      } catch (err) {
+        failCount++;
+        if (item.btn) {
+          item.btn.textContent = '❌ Lỗi mạng';
+        }
+        console.error(`Lỗi mạng khi bóc tách ${item.soHieu}:`, err);
+      } finally {
+        if (item.btn) item.btn.disabled = false;
+      }
+
+      // Nghỉ nhẹ 300ms giữa các request để bảo đảm ổn định
+      await new Promise(r => setTimeout(r, 300));
+    }
+
+    const engine = window.LawSyncEngine;
+    if (engine && successCount > 0) {
+      engine.saveLocalData();
+    }
+
+    if (btnBatch) {
+      btnBatch.disabled = false;
+      btnBatch.textContent = oldBatchText || '⚡ Lấy tất cả dữ liệu theo link đã dán';
+    }
+
+    alert(
+      `🏁 HOÀN TẤT BÓC TÁCH HÀNG LOẠT!\n\n` +
+      `- Tổng số xử lý: ${itemsToProcess.length}\n` +
+      `- Thành công: ${successCount}\n` +
+      `- Thất bại: ${failCount}\n\n` +
+      `Dữ liệu đã được cập nhật đồng bộ lên Supabase Cloud Database.`
+    );
   }
 
   function escapeHtml(str) {

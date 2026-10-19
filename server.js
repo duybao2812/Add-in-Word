@@ -352,6 +352,48 @@ function patchSupabaseDoc(id, payload) {
   });
 }
 
+function extractThuvienPhapLuat(url) {
+  return new Promise((resolve, reject) => {
+    let lawId = null;
+    const m = url.match(/[-_](\d+)\.aspx/i) || url.match(/[?&]LawID=(\d+)/i) || url.match(/\b(\d{5,8})\b/);
+    if (m) lawId = m[1];
+    if (!lawId) return reject(new Error('Không tìm thấy mã LawID trong link Thư Viện Pháp Luật'));
+
+    const apiUrl = `https://apimobile.thuvienphapluat.vn/Document/GetDocumentDetail?LawID=${lawId}&language=&token=`;
+    https.get(apiUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X)',
+        'Referer': 'https://m.thuvienphapluat.vn/',
+        'Accept': 'application/json, text/plain, */*'
+      },
+      timeout: 30000
+    }, res => {
+      if (res.statusCode !== 200) {
+        return reject(new Error(`API Thư Viện Pháp Luật trả về mã lỗi HTTP ${res.statusCode}`));
+      }
+      const chunks = [];
+      res.on('data', c => chunks.push(c));
+      res.on('end', () => {
+        try {
+          const json = JSON.parse(Buffer.concat(chunks).toString('utf8'));
+          if (json && json.ContentVN && json.ContentVN.length > 50) {
+            resolve({
+              html: json.ContentVN,
+              title: json.Document ? json.Document.News_Subject : '',
+              code: json.Document ? json.Document.News_Code : ''
+            });
+          } else {
+            reject(new Error('Văn bản này trên Thư Viện Pháp Luật chưa có nội dung toàn văn chữ'));
+          }
+        } catch (e) {
+          reject(new Error('Lỗi giải mã JSON từ Thư Viện Pháp Luật: ' + e.message));
+        }
+      });
+      res.on('error', reject);
+    }).on('error', reject);
+  });
+}
+
 async function handleApiExtractExternalLaw(req, res, body) {
   res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
   try {
@@ -361,12 +403,28 @@ async function handleApiExtractExternalLaw(req, res, body) {
     }
 
     console.log(`[Trích xuất Link ngoài] Đang tải: ${soHieu || id} -> ${url}`);
-    const fetchRes = await fetchUrlContent(url);
-    if (fetchRes.statusCode !== 200) {
-      return res.end(JSON.stringify({ success: false, error: `Trang web phản hồi mã lỗi HTTP ${fetchRes.statusCode}` }));
+    let cleanText = '';
+    const isTvpl = url.includes('thuvienphapluat.vn');
+
+    if (isTvpl) {
+      console.log(`[Trích xuất Link ngoài] Phát hiện Thư Viện Pháp Luật -> Đang bóc tách qua API Mobile...`);
+      try {
+        const tvplRes = await extractThuvienPhapLuat(url);
+        cleanText = extractCleanTextFromHtml(tvplRes.html);
+        console.log(`[Trích xuất Link ngoài] ✅ Bóc tách TVPL thành công: ${cleanText.length} ký tự`);
+      } catch (tvplErr) {
+        console.warn(`[Trích xuất Link ngoài] TVPL API gặp lỗi (${tvplErr.message}), thử tải web thông thường...`);
+      }
     }
 
-    const cleanText = extractCleanTextFromHtml(fetchRes.html);
+    if (!cleanText) {
+      const fetchRes = await fetchUrlContent(url);
+      if (fetchRes.statusCode !== 200) {
+        return res.end(JSON.stringify({ success: false, error: `Trang web phản hồi mã lỗi HTTP ${fetchRes.statusCode}` }));
+      }
+      cleanText = extractCleanTextFromHtml(fetchRes.html);
+    }
+
     if (!cleanText || cleanText.length < 50) {
       return res.end(JSON.stringify({ success: false, error: 'Không trích xuất được khối văn bản hợp lệ từ URL này (nội dung chữ quá ngắn)' }));
     }

@@ -204,7 +204,12 @@
         <div style="font-size: 11px; color: #666; display: flex; align-items: center;">
           <span id="lblExternalCount">Đang tải danh sách...</span>
         </div>
-        <button class="win-btn win-btn-primary" id="btnDoneExternalManager" onclick="window.closeExternalManagerModal && window.closeExternalManagerModal()">Đóng cửa sổ</button>
+        <div style="display: flex; gap: 8px;">
+          <button class="win-btn win-btn-primary" id="btnBatchExtractExternal" style="background-color: #007ACC; font-weight: bold;" title="Bóc tách tuần tự toàn bộ các văn bản có link trong danh sách">
+            ⚡ Lấy tất cả dữ liệu theo link đã dán
+          </button>
+          <button class="win-btn" id="btnDoneExternalManager" onclick="window.closeExternalManagerModal && window.closeExternalManagerModal()">Đóng cửa sổ</button>
+        </div>
       </div>
     </div>
   </div>
