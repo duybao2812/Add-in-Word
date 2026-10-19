@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Thư viện Mẫu Văn bản Chuẩn NĐ 30/2020/NĐ-CP - [WinForms Form]</title>
+
+  <!-- Nạp thư viện Office.js nếu chạy trong môi trường Office Dialog -->
+  <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+
+  <style>
+    /* Reset triệt để: Tuyệt đối không bo góc (0px radius) chuẩn WinForms */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      border-radius: 0px !important;
+      -webkit-border-radius: 0px !important;
+      -moz-border-radius: 0px !important;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      font-family: "Segoe UI", Tahoma, "MS Shell Dlg 2", "Microsoft Sans Serif", sans-serif;
+      font-size: 12px;
+      line-height: 1.35;
+      color: #000000;
+      background-color: #F0F0F0;
+      user-select: none;
+    }
+
+    button, input, select, textarea {
+      font-family: "Segoe UI", Tahoma, "MS Shell Dlg 2", "Microsoft Sans Serif", sans-serif;
+      font-size: 12px;
+    }
+
+    #window-root {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      width: 100vw;
+      background-color: #F0F0F0;
+      border: 1px solid #707070;
+    }
+
+    /* 1. MenuStrip Cổ điển */
+    .win-menustrip {
+      display: flex;
+      background-color: #F0F0F0;
+      border-bottom: 1px solid #D0D0D0;
+      padding: 2px 4px;
+      font-size: 12px;
+      flex-shrink: 0;
+    }
+
+    .win-menu-item {
+      padding: 3px 8px;
+      cursor: default;
+      color: #000000;
+    }
+
+    .win-menu-item:hover {
+      background-color: #E5F1FB;
+      outline: 1px solid #0078D7;
+    }
+
+    /* 2. ToolStrip */
+    .win-toolstrip {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      background: linear-gradient(to bottom, #FAFAFA, #EAEAEA);
+      border-bottom: 1px solid #B5B5B5;
+      padding: 3px 6px;
+      flex-shrink: 0;
+    }
+
+    .win-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      background-color: #E1E1E1;
+      border: 1px solid #707070;
+      color: #000000;
+      font-family: inherit;
+      font-size: 11px;
+      padding: 3px 8px;
+      height: 24px;
+      cursor: default;
+      outline: none;
+      white-space: nowrap;
+    }
+
+    .win-btn:hover {
+      background-color: #E5F1FB;
+      border-color: #0078D7;
+    }
+
+    .win-btn:active {
+      background-color: #CCE4F7;
+      border-color: #005499;
+    }
+
+    .win-btn-primary {
+      background-color: #0078D7;
+      border-color: #005499;
+      color: #FFFFFF;
+      font-weight: 600;
+    }
+
+    .win-btn-primary:hover {
+      background-color: #1A8AD9;
+      border-color: #004D99;
+    }
+
+    .win-separator {
+      width: 1px;
+      height: 18px;
+      background-color: #C0C0C0;
+      margin: 0 4px;
+    }
+
+    /* 3. Vùng làm việc chính: 2 cột (SplitContainer kiểu WinForms) */
+    .win-workspace {
+      display: flex;
+      flex: 1 1 auto;
+      overflow: hidden;
+      padding: 6px;
+      gap: 6px;
+    }
+
+    /* Panel trái: ListBox danh sách mẫu */
+    .win-left-panel {
+      flex: 0 0 280px;
+      display: flex;
+      flex-direction: column;
+      border: 1px solid #7F9DB9;
+      background-color: #FFFFFF;
+    }
+
+    .win-panel-header {
+      background-color: #E6E6E6;
+      border-bottom: 1px solid #B5B5B5;
+      padding: 4px 8px;
+      font-weight: 600;
+      color: #003399;
+      font-size: 11px;
+    }
+
+    .win-listbox {
+      flex: 1 1 auto;
+      overflow-y: auto;
+      list-style: none;
+      padding: 2px 0;
+    }
+
+    .win-list-item {
+      padding: 6px 10px;
+      cursor: default;
+      font-size: 11.5px;
+      border-bottom: 1px solid #F0F0F0;
+      color: #222222;
+    }
+
+    .win-list-item:hover {
+      background-color: #E5F1FB;
+    }
+
+    .win-list-item.selected {
+      background-color: #0078D7;
+      color: #FFFFFF;
+    }
+
+    /* Panel phải: Khung xem trước mẫu văn bản */
+    .win-right-panel {
+      flex: 1 1 0;
+      display: flex;
+      flex-direction: column;
+      border: 1px solid #7F9DB9;
+      background-color: #FFFFFF;
+      overflow: hidden;
+    }
+
+    .win-preview-scroll {
+      flex: 1 1 auto;
+      overflow-y: auto;
+      padding: 16px 20px;
+      background-color: #555555;
+      display: flex;
+      justify-content: center;
+    }
+
+    .win-paper {
+      width: 100%;
+      max-width: 680px;
+      background-color: #FFFFFF;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+      padding: 30px 35px;
+      font-family: "Times New Roman", Times, serif;
+      font-size: 13px;
+      line-height: 1.35;
+      color: #000000;
+      user-select: text;
+    }
+
+    /* Các thành phần văn bản NĐ 30 */
+    .tbl-header {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 12px;
+    }
+    .tbl-header td {
+      vertical-align: top;
+      padding: 0 4px;
+    }
+    .text-center { text-align: center; }
+    .text-right { text-align: right; }
+    .text-justify { text-align: justify; }
+    .font-bold { font-weight: bold; }
+    .font-italic { font-style: italic; }
+    .line-solid {
+      border-bottom: 1.5px solid #000000;
+      display: inline-block;
+      width: 40%;
+      margin: 2px auto 6px auto;
+    }
+
+    /* 4. Footer */
+    .win-bottom-bar {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 8px;
+      background-color: #E6E6E6;
+      border-top: 1px solid #C0C0C0;
+      flex-shrink: 0;
+    }
+
+    .win-statusstrip {
+      display: flex;
+      align-items: center;
+      height: 22px;
+      background-color: #F0F0F0;
+      border-top: 1px solid #D0D0D0;
+      font-size: 11px;
+      color: #333333;
+      padding: 0 4px;
+      flex-shrink: 0;
+    }
+
+    .win-status-panel {
+      padding: 1px 6px;
+      border-right: 1px solid #D0D0D0;
+      white-space: nowrap;
+    }
+
+    .status-main { flex: 1 1 auto; }
+  </style>
+</head>
+<body>
+  <div id="window-root">
+
+    <!-- 1. MenuStrip -->
+    <nav class="win-menustrip">
+      <div class="win-menu-item">Hệ thống</div>
+      <div class="win-menu-item">Danh mục mẫu</div>
+      <div class="win-menu-item">Xem trước</div>
+      <div class="win-menu-item">Đóng</div>
+    </nav>
+
+    <!-- 2. ToolStrip (Đánh số thứ tự) -->
+    <header class="win-toolstrip" role="toolbar">
+      <button class="win-btn win-btn-primary" id="btnToolInsert" title="Chèn mẫu được chọn trực tiếp vào Microsoft Word">
+        1. Chèn mẫu vào Word
+      </button>
+
+      <button class="win-btn" id="btnToolCopy" title="Sao chép văn bản mẫu vào Clipboard">
+        2. Sao chép nội dung
+      </button>
+
+      <div class="win-separator"></div>
+
+      <button class="win-btn" id="btnToolClose" title="Đóng cửa sổ">
+        3. Đóng
+      </button>
+    </header>
+
+    <!-- 3. Khu vực 2 cột -->
+    <div class="win-workspace">
+      <!-- Cột trái: Danh sách mẫu -->
+      <aside class="win-left-panel">
+        <div class="win-panel-header">DANH MỤC MẪU VĂN BẢN (NĐ 30)</div>
+        <ul class="win-listbox" id="templateList">
+          <li class="win-list-item selected" data-id="cv-trien-khai">1. Công văn: Phối hợp triển khai công việc</li>
+          <li class="win-list-item" data-id="cv-de-nghi">2. Công văn: Đề nghị cung cấp hồ sơ / tài liệu</li>
+          <li class="win-list-item" data-id="hd-thi-cong">3. Hợp đồng: Thi công xây dựng công trình</li>
+          <li class="win-list-item" data-id="hd-kinh-te">4. Hợp đồng: Kinh tế / Cung ứng hàng hóa</li>
+          <li class="win-list-item" data-id="hd-dich-vu">5. Hợp đồng: Dịch vụ bảo trì và tư vấn</li>
+          <li class="win-list-item" data-id="bb-nghiem-thu">6. Biên bản: Nghiệm thu và bàn giao công việc</li>
+          <li class="win-list-item" data-id="bb-lam-viec">7. Biên bản: Làm việc / Họp giải quyết công việc</li>
+          <li class="win-list-item" data-id="ttr-du-toan">8. Tờ trình: Phê duyệt kế hoạch và dự toán</li>
+          <li class="win-list-item" data-id="bc-dinh-ky">9. Báo cáo: Báo cáo công tác chuyên môn định kỳ</li>
+          <li class="win-list-item" data-id="tb-ket-luan">10. Thông báo: Kết luận cuộc họp giao ban</li>
+        </ul>
+      </aside>
+
+      <!-- Cột phải: Xem trước tờ giấy A4 -->
+      <main class="win-right-panel">
+        <div class="win-panel-header" id="previewTitle">XEM TRƯỚC MẪU: CÔNG VĂN TRIỂN KHAI CÔNG VIỆC</div>
+        <div class="win-preview-scroll">
+          <div class="win-paper" id="paperContent">
+            <!-- Nội dung nạp động bằng JavaScript -->
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <!-- 4. Thanh nút đáy -->
+    <div class="win-bottom-bar">
+      <button class="win-btn win-btn-primary" id="btnBottomInsert">
+        1. Chèn mẫu vào Word
+      </button>
+      <button class="win-btn" id="btnBottomClose">
+        2. Đóng
+      </button>
+    </div>
+
+    <!-- 5. StatusStrip -->
+    <footer class="win-statusstrip">
+      <div class="win-status-panel status-main" id="statusMessage">
+        Sẵn sàng | Đang chọn: 1. Công văn: Phối hợp triển khai công việc
+      </div>
+      <div class="win-status-panel" style="font-weight: 600; color: #003399;">
+        10 Mẫu Văn Bản
+      </div>
+      <div class="win-status-panel">
+        NĐ 30/2020/NĐ-CP
+      </div>
+    </footer>
+
+  </div>
+
+  <script>
+    const broadcast = (typeof BroadcastChannel !== "undefined") ? new BroadcastChannel("WordAddin_WinForms_Channel") : null;
+
+    const TEMPLATES_DATA = {
+      "cv-trien-khai": {
+        title: "CÔNG VĂN: PHỐI HỢP TRIỂN KHAI CÔNG VIỆC",
+        docType: "cong-van",
+        html: `
+          <table class="tbl-header">
+            <tr>
+              <td class="text-center" style="width: 45%;">
+                <div style="font-size: 12px;">CƠ QUAN CHỦ QUẢN CẤP TRÊN</div>
+                <div class="font-bold" style="font-size: 12px;">TÊN CƠ QUAN BAN HÀNH</div>
+                <div class="line-solid"></div>
+                <div style="font-size: 12px;">Số: 001/CV-CQ</div>
+              </td>
+              <td class="text-center" style="width: 55%;">
+                <div class="font-bold" style="font-size: 12px;">CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</div>
+                <div class="font-bold" style="font-size: 13px;">Độc lập - Tự do - Hạnh phúc</div>
+                <div class="line-solid"></div>
+                <div class="font-italic" style="font-size: 13px;">TP. Hồ Chí Minh, ngày 19 tháng 10 năm 2026</div>
+              </td>
+            </tr>
+          </table>
+
+          <div style="margin-bottom: 14px;">
+            <div style="font-size: 12px; font-weight: bold;">V/v: phối hợp triển khai công tác sản xuất kinh doanh và chuyển đổi số năm 2026</div>
+          </div>
+
+          <div style="margin-bottom: 14px; text-indent: 36pt;">
+            <span class="font-bold">Kính gửi:</span> Tên cơ quan, đơn vị phối hợp công tác
+          </div>
+
+          <div class="text-justify" style="text-indent: 36pt; margin-bottom: 8px;">
+            Thực hiện Kế hoạch công tác năm 2026 của Ban Lãnh đạo về việc tăng cường hiệu quả quản lý, chuẩn hóa quy trình và ứng dụng công nghệ thông tin trong hoạt động nghiệp vụ;
+          </div>
+          <div class="text-justify" style="text-indent: 36pt; margin-bottom: 8px;">
+            Để công tác triển khai đạt hiệu quả cao, đúng tiến độ và đảm bảo tuân thủ các quy định hiện hành, đơn vị chúng tôi kính đề nghị Quý cơ quan phối hợp thực hiện một số nội dung sau:
+          </div>
+          <div class="text-justify" style="text-indent: 36pt; margin-bottom: 8px;">
+            1. Cử cán bộ đầu mối phụ trách kỹ thuật và nghiệp vụ để phối hợp trao đổi thông tin thường xuyên giữa hai đơn vị.
+          </div>
+          <div class="text-justify" style="text-indent: 36pt; margin-bottom: 8px;">
+            2. Cung cấp các biểu mẫu, danh mục hồ sơ và tài liệu liên quan trước ngày 30 tháng 10 năm 2026 để tổng hợp xây dựng phương án chi tiết.
+          </div>
+          <div class="text-justify" style="text-indent: 36pt; margin-bottom: 16px;">
+            Rất mong nhận được sự quan tâm, phối hợp chặt chẽ từ Quý đơn vị./.
+          </div>
+
+          <table style="width: 100%; border-collapse: collapse; margin-top: 14px;">
+            <tr>
+              <td style="width: 50%; vertical-align: top;">
+                <div class="font-bold font-italic" style="font-size: 12px;">Nơi nhận:</div>
+                <div style="font-size: 11px;">- Như kính gửi;</div>
+                <div style="font-size: 11px;">- Ban Giám đốc (để b/c);</div>
+                <div style="font-size: 11px;">- Lưu: VT, ĐV.</div>
+              </td>
+              <td class="text-center" style="width: 50%; vertical-align: top;">
+                <div class="font-bold" style="font-size: 13px;">QUYỀN HẠN, CHỨC VỤ NGƯỜI KÝ</div>
+                <div class="font-italic" style="font-size: 12px; margin-bottom: 45px;">(Ký, ghi rõ họ tên và đóng dấu)</div>
+                <div class="font-bold" style="font-size: 13px;">Họ và tên người ký</div>
+              </td>
+            </tr>
+          </table>
+        `
+      },
+
+      "cv-de-nghi": {
+        title: "CÔNG VĂN: ĐỀ NGHỊ CUNG CẤP HỒ SƠ / TÀI LIỆU",
+        docType: "cong-van",
+        html: `
+          <table class="tbl-header">
+            <tr>
+              <td class="text-center" style="width: 45%;">
+                <div class="font-bold" style="font-size: 12px;">TÊN ĐƠN VỊ BAN HÀNH</div>
+                <div class="line-solid"></div>
+                <div style="font-size: 12px;">Số: 002/CV-CQ</div>
+              </td>
+              <td class="text-center" style="width: 55%;">
+                <div class="font-bold" style="font-size: 12px;">CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</div>
+                <div class="font-bold" style="font-size: 13px;">Độc lập - Tự do - Hạnh phúc</div>
+                <div class="line-solid"></div>
+                <div class="font-italic" style="font-size: 13px;">TP. Hồ Chí Minh, ngày 19 tháng 10 năm 2026</div>
+              </td>
+            </tr>
+          </table>
+
+          <div style="margin-bottom: 14px;">
+            <div style="font-size: 12px; font-weight: bold;">V/v: đề nghị cung cấp hồ sơ, tài liệu phục vụ công tác thẩm định</div>
+          </div>
+
+          <div style="margin-bottom: 14px; text-indent: 36pt;">
+            <span class="font-bold">Kính gửi:</span> Ban Quản lý Dự án / Đơn vị cung cấp
+          </div>
+
+          <div class="text-justify" style="text-indent: 36pt; margin-bottom: 8px;">
+            Để có đầy đủ căn cứ pháp lý và cơ sở dữ liệu phục vụ công tác lập dự toán, chuẩn bị kế hoạch đấu thầu và ký kết hợp đồng;
+          </div>
+          <div class="text-justify" style="text-indent: 36pt; margin-bottom: 8px;">
+            Đơn vị chúng tôi trân trọng đề nghị Quý cơ quan hỗ trợ cung cấp toàn bộ hồ sơ kỹ thuật, các biên bản khảo sát hiện trường và danh mục định mức liên quan.
+          </div>
+          <div class="text-justify" style="text-indent: 36pt; margin-bottom: 16px;">
+            Trân trọng cảm ơn sự hợp tác của Quý cơ quan./.
+          </div>
+
+          <table style="width: 100%; border-collapse: collapse; margin-top: 14px;">
+            <tr>
+              <td style="width: 50%; vertical-align: top;">
+                <div class="font-bold font-italic" style="font-size: 12px;">Nơi nhận:</div>
+                <div style="font-size: 11px;">- Như trên;</div>
+                <div style="font-size: 11px;">- Lưu: VT.</div>
+              </td>
+              <td class="text-center" style="width: 50%; vertical-align: top;">
+                <div class="font-bold" style="font-size: 13px;">GIÁM ĐỐC</div>
+                <div class="font-italic" style="font-size: 12px; margin-bottom: 45px;">(Ký, đóng dấu)</div>
+                <div class="font-bold" style="font-size: 13px;">Nguyễn Văn A</div>
+              </td>
+            </tr>
+          </table>
+        `
+      },
+
+      "hd-thi-cong": {
+        title: "HỢP ĐỒNG: THI CÔNG XÂY DỰNG CÔNG TRÌNH",
+        docType: "hop-dong",
+        html: `
+          <div class="text-center font-bold" style="font-size: 13px;">CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</div>
+          <div class="text-center font-bold" style="font-size: 13px;">Độc lập - Tự do - Hạnh phúc</div>
+          <div class="text-center"><span class="line-solid" style="width: 35%;"></span></div>
+
+          <div class="text-center font-bold" style="font-size: 15px; margin-top: 10px; margin-bottom: 4px;">
+            HỢP ĐỒNG THI CÔNG XÂY DỰNG CÔNG TRÌNH
+          </div>
+          <div class="text-center font-italic" style="font-size: 12px; margin-bottom: 14px;">
+            Số: 01/2026/HĐ-TC | Công trình: Tòa nhà Văn phòng TechCenter - Gói thầu số 02
+          </div>
+
+          <div class="text-justify font-italic" style="text-indent: 36pt; margin-bottom: 6px;">
+            - Căn cứ Bộ luật Dân sự số 91/2015/QH13 ngày 24/11/2015 của Quốc hội;
+          </div>
+          <div class="text-justify font-italic" style="text-indent: 36pt; margin-bottom: 6px;">
+            - Căn cứ Luật Xây dựng số 50/2014/QH13 và các văn bản hướng dẫn thi hành;
+          </div>
+          <div class="text-justify font-italic" style="text-indent: 36pt; margin-bottom: 12px;">
+            - Căn cứ khả năng, nhu cầu và sự thỏa thuận tự nguyện giữa hai bên.
+          </div>
+
+          <div class="text-justify" style="margin-bottom: 8px;">
+            Hôm nay, ngày 19 tháng 10 năm 2026, tại văn phòng Ban Quản lý, chúng tôi gồm có:
+          </div>
+
+          <div class="font-bold" style="margin-bottom: 4px;">BÊN A (CHỦ ĐẦU TƯ / BÊN GIAO THẦU):</div>
+          <div style="margin-left: 20px; margin-bottom: 4px;">• Tên đơn vị: CÔNG TY CỔ PHẦN ĐẦU TƯ BẤT ĐỘNG SẢN AN GIA</div>
+          <div style="margin-left: 20px; margin-bottom: 4px;">• Đại diện: Ông Nguyễn Văn A - Chức vụ: Tổng Giám đốc</div>
+          <div style="margin-left: 20px; margin-bottom: 8px;">• Địa chỉ: Lô E2, Khu Công nghệ cao, TP. Thủ Đức, TP. Hồ Chí Minh</div>
+
+          <div class="font-bold" style="margin-bottom: 4px;">BÊN B (NHÀ THẦU THI CÔNG):</div>
+          <div style="margin-left: 20px; margin-bottom: 4px;">• Tên đơn vị: CÔNG TY TNHH XÂY DỰNG &amp; THƯƠNG MẠI HƯNG PHÁT</div>
+          <div style="margin-left: 20px; margin-bottom: 4px;">• Đại diện: Ông Huỳnh Bảo - Chức vụ: Giám đốc</div>
+          <div style="margin-left: 20px; margin-bottom: 12px;">• Địa chỉ: Quận 1, TP. Hồ Chí Minh</div>
+
+          <div class="font-bold" style="margin-bottom: 4px;">ĐIỀU 1: PHẠM VI CÔNG VIỆC VÀ ĐỊA ĐIỂM THI CÔNG</div>
+          <div class="text-justify" style="text-indent: 36pt; margin-bottom: 6px;">
+            Bên A giao và Bên B nhận thi công xây dựng hoàn thiện gói thầu số 02 thuộc công trình Tòa nhà Văn phòng TechCenter. Địa điểm thực hiện tại Lô E2, Khu Công nghệ cao, TP. Thủ Đức.
+          </div>
+
+          <div class="font-bold" style="margin-bottom: 4px;">ĐIỀU 2: GIÁ TRỊ HỢP ĐỒNG VÀ PHƯƠNG THỨC THANH TOÁN</div>
+          <div class="text-justify" style="text-indent: 36pt; margin-bottom: 6px;">
+            Tổng giá trị ký hợp đồng là: <span class="font-bold">1.850.000.000 VNĐ</span> (Bằng chữ: Một tỷ tám trăm năm mươi triệu đồng chẵn). Đã bao gồm thuế giá trị gia tăng GTGT theo quy định.
+          </div>
+
+          <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+            <tr>
+              <td class="text-center" style="width: 50%; vertical-align: top;">
+                <div class="font-bold" style="font-size: 13px;">ĐẠI DIỆN BÊN A</div>
+                <div class="font-italic" style="font-size: 12px; margin-bottom: 45px;">(Ký, đóng dấu)</div>
+                <div class="font-bold" style="font-size: 13px;">Nguyễn Văn A</div>
+              </td>
+              <td class="text-center" style="width: 50%; vertical-align: top;">
+                <div class="font-bold" style="font-size: 13px;">ĐẠI DIỆN BÊN B</div>
+                <div class="font-italic" style="font-size: 12px; margin-bottom: 45px;">(Ký, đóng dấu)</div>
+                <div class="font-bold" style="font-size: 13px;">Huỳnh Bảo</div>
+              </td>
+            </tr>
+          </table>
+        `
+      },
+
+      "hd-kinh-te": {
+        title: "HỢP ĐỒNG: KINH TẾ / CUNG ỨNG HÀNG HÓA",
+        docType: "hop-dong",
+        html: `
+          <div class="text-center font-bold" style="font-size: 13px;">CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</div>
+          <div class="text-center font-bold" style="font-size: 13px;">Độc lập - Tự do - Hạnh phúc</div>
+          <div class="text-center"><span class="line-solid" style="width: 35%;"></span></div>
+
+          <div class="text-center font-bold" style="font-size: 15px; margin-top: 10px; margin-bottom: 4px;">
+            HỢP ĐỒNG MUA BÁN HÀNG HÓA VÀ VẬT TƯ
+          </div>
+          <div class="text-center font-italic" style="font-size: 12px; margin-bottom: 14px;">
+            Số: 08/2026/HĐ-MB | Cung cấp vật tư thiết bị xây dựng
+          </div>
+
+          <div class="text-justify" style="margin-bottom: 8px;">
+            Hai bên thống nhất ký kết hợp đồng mua bán với các điều khoản tiêu chuẩn về danh mục hàng hóa, số lượng, quy cách phẩm chất, bảo hành và thanh toán theo quy định pháp luật.
+          </div>
+
+          <table style="width: 100%; border-collapse: collapse; margin-top: 25px;">
+            <tr>
+              <td class="text-center" style="width: 50%;">
+                <div class="font-bold">ĐẠI DIỆN BÊN MUA</div>
+                <div class="font-italic" style="margin-bottom: 40px;">(Ký, đóng dấu)</div>
+                <div class="font-bold">Bên A</div>
+              </td>
+              <td class="text-center" style="width: 50%;">
+                <div class="font-bold">ĐẠI DIỆN BÊN BÁN</div>
+                <div class="font-italic" style="margin-bottom: 40px;">(Ký, đóng dấu)</div>
+                <div class="font-bold">Bên B</div>
+              </td>
+            </tr>
+          </table>
+        `
+      },
+
+      "bb-nghiem-thu": {
+        title: "BIÊN BẢN: NGHIỆM THU VÀ BÀN GIAO CÔNG VIỆC",
+        docType: "bien-ban",
+        html: `
+          <div class="text-center font-bold" style="font-size: 13px;">CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</div>
+          <div class="text-center font-bold" style="font-size: 13px;">Độc lập - Tự do - Hạnh phúc</div>
+          <div class="text-center"><span class="line-solid" style="width: 35%;"></span></div>
+
+          <div class="text-center font-bold" style="font-size: 14px; margin-top: 10px; margin-bottom: 4px;">
+            BIÊN BẢN NGHIỆM THU VÀ BÀN GIAO HẠNG MỤC THI CÔNG
+          </div>
+          <div class="text-center font-italic" style="font-size: 12px; margin-bottom: 14px;">
+            Số: 01/BB-NT | Công trình: Tòa nhà Văn phòng TechCenter
+          </div>
+
+          <div class="text-justify" style="margin-bottom: 8px;">
+            <span class="font-bold">1. Thời gian bắt đầu:</span> 09 giờ 00 phút ngày 19 tháng 10 năm 2026.
+          </div>
+          <div class="text-justify" style="margin-bottom: 8px;">
+            <span class="font-bold">2. Địa điểm thực hiện:</span> Tại hiện trường công trình xây dựng.
+          </div>
+          <div class="text-justify" style="margin-bottom: 8px;">
+            <span class="font-bold">3. Thành phần tham dự:</span> Đại diện Chủ đầu tư, Tư vấn giám sát và Nhà thầu thi công.
+          </div>
+          <div class="text-justify" style="margin-bottom: 8px;">
+            <span class="font-bold">4. Đánh giá chất lượng:</span> Các hạng mục được thi công đúng bản vẽ thiết kế, đạt yêu cầu kỹ thuật.
+          </div>
+          <div class="text-justify" style="margin-bottom: 16px;">
+            <span class="font-bold">5. Kết luận:</span> Đồng ý nghiệm thu và bàn giao đưa vào khai thác sử dụng.
+          </div>
+
+          <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+            <tr>
+              <td class="text-center" style="width: 50%;">
+                <div class="font-bold">ĐẠI DIỆN CHỦ ĐẦU TƯ</div>
+                <div class="font-italic" style="margin-bottom: 40px;">(Ký, họ tên)</div>
+                <div class="font-bold">Nguyễn Văn A</div>
+              </td>
+              <td class="text-center" style="width: 50%;">
+                <div class="font-bold">ĐẠI DIỆN NHÀ THẦU</div>
+                <div class="font-italic" style="margin-bottom: 40px;">(Ký, họ tên)</div>
+                <div class="font-bold">Huỳnh Bảo</div>
+              </td>
+            </tr>
+          </table>
+        `
+      },
+
+      "ttr-du-toan": {
+        title: "TỜ TRÌNH: PHÊ DUYỆT KẾ HOẠCH VÀ DỰ TOÁN",
+        docType: "to-trinh",
+        html: `
+          <table class="tbl-header">
+            <tr>
+              <td class="text-center" style="width: 45%;">
+                <div class="font-bold" style="font-size: 12px;">ĐƠN VỊ TRÌNH</div>
+                <div class="line-solid"></div>
+                <div style="font-size: 12px;">Số: 01/TTr-ĐV</div>
+              </td>
+              <td class="text-center" style="width: 55%;">
+                <div class="font-bold" style="font-size: 12px;">CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</div>
+                <div class="font-bold" style="font-size: 13px;">Độc lập - Tự do - Hạnh phúc</div>
+                <div class="line-solid"></div>
+                <div class="font-italic" style="font-size: 13px;">TP. Hồ Chí Minh, ngày 19 tháng 10 năm 2026</div>
+              </td>
+            </tr>
+          </table>
+
+          <div class="text-center font-bold" style="font-size: 14px; margin-top: 8px; margin-bottom: 4px;">
+            TỜ TRÌNH
+          </div>
+          <div class="text-center font-bold" style="font-size: 12px; margin-bottom: 12px;">
+            V/v xin phê duyệt kế hoạch thi công và dự toán kinh phí công trình năm 2026
+          </div>
+
+          <div style="margin-bottom: 12px; text-indent: 36pt;">
+            <span class="font-bold">Kính gửi:</span> Ban Giám đốc Công ty
+          </div>
+
+          <div class="text-justify font-italic" style="text-indent: 36pt; margin-bottom: 6px;">
+            Căn cứ Kế hoạch sản xuất kinh doanh năm 2026; Căn cứ nhu cầu thực tế của đơn vị;
+          </div>
+          <div class="text-justify" style="text-indent: 36pt; margin-bottom: 6px;">
+            1. Sự cần thiết đầu tư và triển khai thi công.
+          </div>
+          <div class="text-justify" style="text-indent: 36pt; margin-bottom: 6px;">
+            2. Nội dung chi tiết các hạng mục và dự toán kinh phí dự kiến.
+          </div>
+          <div class="text-justify" style="text-indent: 36pt; margin-bottom: 14px;">
+            Kính trình Ban Giám đốc xem xét phê duyệt để đơn vị có cơ sở tổ chức thực hiện.
+          </div>
+
+          <table style="width: 100%; border-collapse: collapse; margin-top: 14px;">
+            <tr>
+              <td style="width: 50%;">
+                <div class="font-bold font-italic" style="font-size: 12px;">Nơi nhận:</div>
+                <div style="font-size: 11px;">- Như trên;</div>
+                <div style="font-size: 11px;">- Lưu: VT, ĐV.</div>
+              </td>
+              <td class="text-center" style="width: 50%;">
+                <div class="font-bold" style="font-size: 13px;">THỦ TRƯỞNG ĐƠN VỊ TRÌNH</div>
+                <div class="font-italic" style="font-size: 12px; margin-bottom: 45px;">(Ký, họ tên)</div>
+                <div class="font-bold" style="font-size: 13px;">Trưởng phòng</div>
+              </td>
+            </tr>
+          </table>
+        `
+      }
+    };
+
+    let selectedTemplateKey = "cv-trien-khai";
+
+    function setStatus(msg) {
+      const el = document.getElementById("statusMessage");
+      if (el) el.textContent = msg;
+    }
+
+    function renderPreview(key) {
+      const item = TEMPLATES_DATA[key] || TEMPLATES_DATA["cv-trien-khai"];
+      selectedTemplateKey = key;
+
+      const pTitle = document.getElementById("previewTitle");
+      if (pTitle) pTitle.textContent = `XEM TRƯỚC MẪU: ${item.title}`;
+
+      const pContent = document.getElementById("paperContent");
+      if (pContent) pContent.innerHTML = item.html;
+
+      setStatus(`Sẵn sàng | Đang chọn: ${item.title}`);
+    }
+
+    function sendInsertToWord() {
+      const item = TEMPLATES_DATA[selectedTemplateKey];
+      if (!item) return;
+
+      const payload = {
+        action: "INSERT_SELECTED_TEMPLATE",
+        templateKey: selectedTemplateKey,
+        title: item.title,
+        docType: item.docType
+      };
+
+      if (broadcast) broadcast.postMessage(payload);
+      if (window.opener && !window.opener.closed) {
+        window.opener.postMessage(payload, "*");
+        if (typeof window.opener.onReceiveTemplateFromDialog === "function") {
+          window.opener.onReceiveTemplateFromDialog(payload);
+        }
+      }
+
+      setStatus("Đã gửi yêu cầu Chèn mẫu văn bản sang Microsoft Word!");
+      alert(`Đã gửi yêu cầu chèn [${item.title}] vào Word thành công!`);
+    }
+
+    function copyToClipboard() {
+      const pContent = document.getElementById("paperContent");
+      if (!pContent) return;
+      const text = pContent.innerText || pContent.textContent;
+      navigator.clipboard.writeText(text).then(() => {
+        setStatus("Đã sao chép nội dung mẫu vào bộ nhớ tạm (Clipboard).");
+        alert("Đã sao chép nội dung văn bản mẫu!");
+      }).catch(err => {
+        alert("Không thể sao chép: " + err);
+      });
+    }
+
+    window.addEventListener("DOMContentLoaded", () => {
+      const items = document.querySelectorAll("#templateList .win-list-item");
+      items.forEach(li => {
+        li.addEventListener("click", () => {
+          items.forEach(i => i.classList.remove("selected"));
+          li.classList.add("selected");
+          const key = li.dataset.id;
+          renderPreview(key);
+        });
+      });
+
+      document.getElementById("btnToolInsert")?.addEventListener("click", sendInsertToWord);
+      document.getElementById("btnBottomInsert")?.addEventListener("click", sendInsertToWord);
+      document.getElementById("btnToolCopy")?.addEventListener("click", copyToClipboard);
+      document.getElementById("btnToolClose")?.addEventListener("click", () => window.close());
+      document.getElementById("btnBottomClose")?.addEventListener("click", () => window.close());
+
+      // Mặc định nạp mẫu đầu tiên
+      renderPreview("cv-trien-khai");
+    });
+  </script>
+</body>
+</html>

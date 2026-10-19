@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sổ tay Quy chuẩn Thể thức Văn bản (NĐ 30/2020/NĐ-CP) - [WinForms Form]</title>
+
+  <!-- Nạp thư viện Office.js nếu chạy trong môi trường Office Dialog -->
+  <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+
+  <style>
+    /* Reset triệt để: Tuyệt đối không bo góc (0px radius) chuẩn WinForms */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      border-radius: 0px !important;
+      -webkit-border-radius: 0px !important;
+      -moz-border-radius: 0px !important;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      font-family: "Segoe UI", Tahoma, "MS Shell Dlg 2", "Microsoft Sans Serif", sans-serif;
+      font-size: 12px;
+      line-height: 1.35;
+      color: #000000;
+      background-color: #F0F0F0;
+      user-select: none;
+    }
+
+    button, input, select {
+      font-family: "Segoe UI", Tahoma, "MS Shell Dlg 2", "Microsoft Sans Serif", sans-serif;
+      font-size: 12px;
+    }
+
+    #window-root {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      width: 100vw;
+      background-color: #F0F0F0;
+      border: 1px solid #707070;
+    }
+
+    /* 1. MenuStrip */
+    .win-menustrip {
+      display: flex;
+      background-color: #F0F0F0;
+      border-bottom: 1px solid #D0D0D0;
+      padding: 2px 4px;
+      font-size: 12px;
+      flex-shrink: 0;
+    }
+
+    .win-menu-item {
+      padding: 3px 8px;
+      cursor: default;
+      color: #000000;
+    }
+
+    .win-menu-item:hover {
+      background-color: #E5F1FB;
+      outline: 1px solid #0078D7;
+    }
+
+    /* 2. ToolStrip */
+    .win-toolstrip {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      background: linear-gradient(to bottom, #FAFAFA, #EAEAEA);
+      border-bottom: 1px solid #B5B5B5;
+      padding: 3px 6px;
+      flex-shrink: 0;
+    }
+
+    .win-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      background-color: #E1E1E1;
+      border: 1px solid #707070;
+      color: #000000;
+      font-family: inherit;
+      font-size: 11px;
+      padding: 3px 8px;
+      height: 24px;
+      cursor: default;
+      outline: none;
+      white-space: nowrap;
+    }
+
+    .win-btn:hover {
+      background-color: #E5F1FB;
+      border-color: #0078D7;
+    }
+
+    .win-btn:active {
+      background-color: #CCE4F7;
+      border-color: #005499;
+    }
+
+    .win-btn-primary {
+      background-color: #0078D7;
+      border-color: #005499;
+      color: #FFFFFF;
+      font-weight: 600;
+    }
+
+    .win-btn-primary:hover {
+      background-color: #1A8AD9;
+      border-color: #004D99;
+    }
+
+    .win-separator {
+      width: 1px;
+      height: 18px;
+      background-color: #C0C0C0;
+      margin: 0 4px;
+    }
+
+    /* 3. Vùng cuộn nội dung bảng tra cứu */
+    .win-main-body {
+      flex: 1 1 auto;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: 8px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .win-groupbox {
+      border: 1px solid #A0A0A0;
+      background-color: #FFFFFF;
+      padding: 10px 12px;
+      width: 100%;
+    }
+
+    .win-legend {
+      padding: 0 5px;
+      margin-left: 6px;
+      color: #003399;
+      font-weight: 600;
+      font-size: 11px;
+    }
+
+    /* Bảng tra cứu WinForms DataGridView */
+    .win-grid {
+      width: 100%;
+      border-collapse: collapse;
+      border: 1px solid #7F9DB9;
+      font-size: 11.5px;
+      background-color: #FFFFFF;
+    }
+
+    .win-grid th {
+      background: linear-gradient(to bottom, #F4F4F4, #E5E5E5);
+      border: 1px solid #C0C0C0;
+      color: #000000;
+      font-weight: 600;
+      padding: 6px 8px;
+      text-align: left;
+    }
+
+    .win-grid td {
+      border: 1px solid #E0E0E0;
+      padding: 5px 8px;
+      vertical-align: middle;
+      color: #222222;
+    }
+
+    .win-grid tr:nth-child(even) {
+      background-color: #F9FBFD;
+    }
+
+    .win-grid tr:hover {
+      background-color: #EBF4FC;
+    }
+
+    .badge-std {
+      display: inline-block;
+      padding: 1px 6px;
+      background-color: #E1F0FF;
+      color: #005499;
+      font-weight: 600;
+      font-size: 10.5px;
+      border: 1px solid #B8D6F5;
+    }
+
+    /* 4. Footer */
+    .win-bottom-bar {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 8px;
+      background-color: #E6E6E6;
+      border-top: 1px solid #C0C0C0;
+      flex-shrink: 0;
+    }
+
+    .win-statusstrip {
+      display: flex;
+      align-items: center;
+      height: 22px;
+      background-color: #F0F0F0;
+      border-top: 1px solid #D0D0D0;
+      font-size: 11px;
+      color: #333333;
+      padding: 0 4px;
+      flex-shrink: 0;
+    }
+
+    .win-status-panel {
+      padding: 1px 6px;
+      border-right: 1px solid #D0D0D0;
+      white-space: nowrap;
+    }
+
+    .status-main { flex: 1 1 auto; }
+  </style>
+</head>
+<body>
+  <div id="window-root">
+
+    <!-- 1. MenuStrip -->
+    <nav class="win-menustrip">
+      <div class="win-menu-item">Hệ thống</div>
+      <div class="win-menu-item">Quy chuẩn thể thức</div>
+      <div class="win-menu-item">Áp dụng Word</div>
+      <div class="win-menu-item">Đóng</div>
+    </nav>
+
+    <!-- 2. ToolStrip (Đánh số thứ tự) -->
+    <header class="win-toolstrip" role="toolbar">
+      <button class="win-btn win-btn-primary" id="btnToolApplyMargin" title="Áp dụng căn lề trang chuẩn A4 theo Nghị định 30 vào Microsoft Word">
+        1. Căn lề chuẩn A4 vào Word
+      </button>
+
+      <button class="win-btn" id="btnToolApplyFont" title="Chuẩn hóa toàn bộ văn bản về font Times New Roman size 13">
+        2. Chuẩn hóa Font Times New Roman
+      </button>
+
+      <div class="win-separator"></div>
+
+      <button class="win-btn" id="btnToolClose" title="Đóng cửa sổ">
+        3. Đóng
+      </button>
+    </header>
+
+    <!-- 3. Bảng tra cứu quy chuẩn thể thức -->
+    <main class="win-main-body">
+
+      <!-- GROUPBOX 1: CÁC THÀNH PHẦN THỂ THỨC CHÍNH -->
+      <fieldset class="win-groupbox">
+        <legend class="win-legend">BẢNG TRA CỨU QUY CHUẨN THỂ THỨC CHUẨN NGHỊ ĐỊNH 30/2020/NĐ-CP</legend>
+
+        <table class="win-grid">
+          <thead>
+            <tr>
+              <th style="width: 40px; text-align: center;">STT</th>
+              <th style="width: 170px;">Thành phần thể thức</th>
+              <th style="width: 150px;">Phông chữ &amp; Cỡ chữ</th>
+              <th style="width: 140px;">Kiểu chữ (Định dạng)</th>
+              <th>Quy cách bố trí &amp; Minh họa chuẩn NĐ 30</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="text-align: center; font-weight: 600;">1</td>
+              <td><b>Khổ giấy &amp; Định lề trang</b></td>
+              <td>Khổ giấy chuẩn A4</td>
+              <td><span class="badge-std">Trên: 20-25mm | Dưới: 20-25mm</span></td>
+              <td>Lề trái: <b>30 - 35 mm</b> (để đóng gáy tài liệu), Lề phải: <b>15 - 20 mm</b>, định hướng trang đứng.</td>
+            </tr>
+
+            <tr>
+              <td style="text-align: center; font-weight: 600;">2</td>
+              <td><b>Quốc hiệu</b></td>
+              <td>Times New Roman, <b>12 - 13</b></td>
+              <td>In hoa, <b>Đứng, Đậm</b></td>
+              <td>CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM (Đặt tại ô bên phải phía trên).</td>
+            </tr>
+
+            <tr>
+              <td style="text-align: center; font-weight: 600;">3</td>
+              <td><b>Tiêu ngữ</b></td>
+              <td>Times New Roman, <b>13 - 14</b></td>
+              <td>Chữ đầu in hoa, <b>Đứng, Đậm</b></td>
+              <td>Độc lập - Tự do - Hạnh phúc (Có gạch ngang liền dưới bằng độ dài dòng chữ).</td>
+            </tr>
+
+            <tr>
+              <td style="text-align: center; font-weight: 600;">4</td>
+              <td><b>Tên cơ quan cấp trên</b></td>
+              <td>Times New Roman, <b>12 - 13</b></td>
+              <td>In hoa, Đứng, Bình thường</td>
+              <td>Đặt tại ô bên trái, phía trên tên cơ quan ban hành trực tiếp (nếu có).</td>
+            </tr>
+
+            <tr>
+              <td style="text-align: center; font-weight: 600;">5</td>
+              <td><b>Tên cơ quan ban hành</b></td>
+              <td>Times New Roman, <b>12 - 13</b></td>
+              <td>In hoa, <b>Đứng, Đậm</b></td>
+              <td>Đặt tại ô bên trái, có đường kẻ ngang bằng 1/3 đến 1/2 độ dài dòng chữ.</td>
+            </tr>
+
+            <tr>
+              <td style="text-align: center; font-weight: 600;">6</td>
+              <td><b>Số, ký hiệu văn bản</b></td>
+              <td>Times New Roman, <b>13</b></td>
+              <td>Chữ đứng, bình thường</td>
+              <td>Ví dụ: <i>Số: 001/CV-HB</i> hoặc <i>Số: 125/QĐ-UBND</i>. Đặt cân đối dưới tên cơ quan ban hành.</td>
+            </tr>
+
+            <tr>
+              <td style="text-align: center; font-weight: 600;">7</td>
+              <td><b>Địa danh &amp; Ngày tháng</b></td>
+              <td>Times New Roman, <b>13 - 14</b></td>
+              <td>Chữ <i>Nghiêng</i>, bình thường</td>
+              <td>Ví dụ: <i>TP. Hồ Chí Minh, ngày 19 tháng 10 năm 2026</i> (Căn giữa dưới Tiêu ngữ).</td>
+            </tr>
+
+            <tr>
+              <td style="text-align: center; font-weight: 600;">8</td>
+              <td><b>Tên loại văn bản</b></td>
+              <td>Times New Roman, <b>14 - 15</b></td>
+              <td>In hoa, <b>Đứng, Đậm</b></td>
+              <td>Căn giữa trang (VD: NGHỊ QUYẾT, QUYẾT ĐỊNH, HỢP ĐỒNG, BIÊN BẢN, TỜ TRÌNH).</td>
+            </tr>
+
+            <tr>
+              <td style="text-align: center; font-weight: 600;">9</td>
+              <td><b>Trích yếu nội dung</b></td>
+              <td>Times New Roman, <b>11 - 12</b></td>
+              <td>Đứng, Đậm (Công văn: Thường)</td>
+              <td>Công văn: đặt dưới số ký hiệu có <i>V/v: ...</i>; Văn bản có tên loại: đặt dưới tên loại văn bản.</td>
+            </tr>
+
+            <tr>
+              <td style="text-align: center; font-weight: 600;">10</td>
+              <td><b>Nội dung văn bản</b></td>
+              <td>Times New Roman, <b>13 - 14</b></td>
+              <td>Đứng, Căn đều 2 lề (Justify)</td>
+              <td>Thụt đầu dòng đoạn văn: <b>1.0 - 1.27 cm</b>; Giãn dòng tối thiểu 1.15; giãn đoạn 6pt.</td>
+            </tr>
+
+            <tr>
+              <td style="text-align: center; font-weight: 600;">11</td>
+              <td><b>Chức vụ &amp; Thẩm quyền ký</b></td>
+              <td>Times New Roman, <b>13 - 14</b></td>
+              <td>In hoa, <b>Đứng, Đậm</b></td>
+              <td>Ví dụ: GIÁM ĐỐC, TỔNG GIÁM ĐỐC, TM. ỦY BAN NHÂN DÂN, CHỦ TỊCH.</td>
+            </tr>
+
+            <tr>
+              <td style="text-align: center; font-weight: 600;">12</td>
+              <td><b>Họ và tên người ký</b></td>
+              <td>Times New Roman, <b>13 - 14</b></td>
+              <td>Chữ đầu in hoa, <b>Đứng, Đậm</b></td>
+              <td>Đặt cân đối dưới quyền hạn, chức vụ và ghi chú ký tên đóng dấu.</td>
+            </tr>
+
+            <tr>
+              <td style="text-align: center; font-weight: 600;">13</td>
+              <td><b>Nơi nhận văn bản</b></td>
+              <td>Times New Roman, <b>11 - 12</b></td>
+              <td><i>Nơi nhận:</i> Nghiêng, Đậm (12)</td>
+              <td>Tên cơ quan nhận: Chữ đứng (11), kết thúc bằng dấu chấm phẩy (;), dòng cuối dấu chấm (.).</td>
+            </tr>
+          </tbody>
+        </table>
+
+      </fieldset>
+    </main>
+
+    <!-- 4. Bottom bar -->
+    <div class="win-bottom-bar">
+      <button class="win-btn win-btn-primary" id="btnBottomApplyMargin">
+        1. Căn lề chuẩn A4 vào Word
+      </button>
+      <button class="win-btn" id="btnBottomApplyFont">
+        2. Chuẩn hóa Font Times New Roman
+      </button>
+      <button class="win-btn" id="btnBottomClose">
+        3. Đóng
+      </button>
+    </div>
+
+    <!-- 5. StatusStrip -->
+    <footer class="win-statusstrip">
+      <div class="win-status-panel status-main" id="statusMessage">
+        Sẵn sàng | Quy chuẩn Thể thức Văn bản Hành chính theo Nghị định 30/2020/NĐ-CP của Chính phủ
+      </div>
+      <div class="win-status-panel" style="font-weight: 600; color: #003399;">
+        13 Thành Phần Quy Chuẩn
+      </div>
+    </footer>
+
+  </div>
+
+  <script>
+    const broadcast = (typeof BroadcastChannel !== "undefined") ? new BroadcastChannel("WordAddin_WinForms_Channel") : null;
+
+    function setStatus(msg) {
+      const el = document.getElementById("statusMessage");
+      if (el) el.textContent = msg;
+    }
+
+    function sendApplyMarginsToWord() {
+      const payload = {
+        action: "APPLY_A4_MARGINS"
+      };
+
+      if (broadcast) broadcast.postMessage(payload);
+      if (window.opener && !window.opener.closed) {
+        window.opener.postMessage(payload, "*");
+        if (typeof window.opener.onReceiveApplyMarginsFromDialog === "function") {
+          window.opener.onReceiveApplyMarginsFromDialog(payload);
+        }
+      }
+
+      setStatus("Đã gửi lệnh căn lề trang chuẩn A4 sang Word (Trên 20mm, Dưới 20mm, Trái 30mm, Phải 15mm)!");
+      alert("Đã gửi yêu cầu căn lề chuẩn A4 theo Nghị định 30 sang Microsoft Word!");
+    }
+
+    function sendApplyFontToWord() {
+      const payload = {
+        action: "APPLY_TIMES_FONT"
+      };
+
+      if (broadcast) broadcast.postMessage(payload);
+      if (window.opener && !window.opener.closed) {
+        window.opener.postMessage(payload, "*");
+        if (typeof window.opener.onReceiveApplyFontFromDialog === "function") {
+          window.opener.onReceiveApplyFontFromDialog(payload);
+        }
+      }
+
+      setStatus("Đã gửi lệnh chuẩn hóa phông chữ Times New Roman (size 13) sang Microsoft Word!");
+      alert("Đã gửi yêu cầu chuẩn hóa Font Times New Roman sang Microsoft Word!");
+    }
+
+    window.addEventListener("DOMContentLoaded", () => {
+      document.getElementById("btnToolApplyMargin")?.addEventListener("click", sendApplyMarginsToWord);
+      document.getElementById("btnBottomApplyMargin")?.addEventListener("click", sendApplyMarginsToWord);
+      document.getElementById("btnToolApplyFont")?.addEventListener("click", sendApplyFontToWord);
+      document.getElementById("btnBottomApplyFont")?.addEventListener("click", sendApplyFontToWord);
+      document.getElementById("btnToolClose")?.addEventListener("click", () => window.close());
+      document.getElementById("btnBottomClose")?.addEventListener("click", () => window.close());
+    });
+  </script>
+</body>
+</html>

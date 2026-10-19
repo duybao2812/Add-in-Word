@@ -709,11 +709,11 @@ function initUIEvents() {
     btnHelp.addEventListener("click", showND30Help);
   }
 
-  // --- ĐIỀU HƯỚNG VIEW MENU CHÍNH & QUY CHUẨN NĐ 30 ---
+  // --- ĐIỀU HƯỚNG CÁC NÚT MENU CHÍNH: MỞ CỬA SỔ CHỨC NĂNG TƯƠNG ỨNG ---
   const btnNavStandardize = document.getElementById("btnNavStandardize");
   if (btnNavStandardize) {
     btnNavStandardize.addEventListener("click", () => {
-      switchToView("standardize");
+      openStandardizeDialogWindow();
     });
   }
 
@@ -733,12 +733,16 @@ function initUIEvents() {
 
   const btnMenuHelp = document.getElementById("btnMenuHelp");
   if (btnMenuHelp) {
-    btnMenuHelp.addEventListener("click", showND30Help);
+    btnMenuHelp.addEventListener("click", () => {
+      openHelpDialogWindow();
+    });
   }
 
   const btnNavHelpND30 = document.getElementById("btnNavHelpND30");
   if (btnNavHelpND30) {
-    btnNavHelpND30.addEventListener("click", showND30Help);
+    btnNavHelpND30.addEventListener("click", () => {
+      openHelpDialogWindow();
+    });
   }
 
   const btnMenuOpenDialog = document.getElementById("btnMenuOpenDialog");
@@ -765,9 +769,7 @@ function initUIEvents() {
   const btnNavInsertTemplate = document.getElementById("btnNavInsertTemplate");
   if (btnNavInsertTemplate) {
     btnNavInsertTemplate.addEventListener("click", () => {
-      switchToView("standardize");
-      const btnInsert = document.getElementById("btnInsertTemplate");
-      if (btnInsert) btnInsert.click();
+      openTemplateDialogWindow();
     });
   }
 
@@ -2063,6 +2065,151 @@ function openOcrDialogWindow() {
 }
 
 /**
+ * Mở Cửa sổ Chuẩn hóa Thể thức Văn bản (NĐ 30/2020/NĐ-CP) song song với Word
+ */
+function openStandardizeDialogWindow() {
+  const docType = document.getElementById("cboDocType")?.value || "cong-van";
+  const supOrg = document.getElementById("txtSuperiorOrg")?.value.trim() || "";
+  const pubOrg = document.getElementById("txtPublishingOrg")?.value.trim() || "";
+  const seqNum = document.getElementById("txtDocSeqNumber")?.value.trim() || "001";
+  const proj = document.getElementById("txtProjectName")?.value.trim() || "";
+  const pack = document.getElementById("txtBiddingPackage")?.value.trim() || "";
+  const loc = document.getElementById("txtProjectLocation")?.value.trim() || "";
+
+  const queryParams = new URLSearchParams({
+    v: "2.7.0",
+    docType: docType,
+    superiorOrg: supOrg,
+    publishingOrg: pubOrg,
+    docSeqNumber: seqNum,
+    project: proj,
+    package: pack,
+    location: loc
+  });
+  const dialogUrl = new URL(`standardize-dialog.html?${queryParams.toString()}`, window.location.href).href;
+  const width = 1060;
+  const height = 760;
+  const left = Math.max(0, Math.round((window.screen.availWidth - width) / 2));
+  const top = Math.max(0, Math.round((window.screen.availHeight - height) / 2));
+  const features = `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes,status=no,toolbar=no,menubar=no,location=no`;
+
+  let win = null;
+  try {
+    win = window.open(dialogUrl, "WinForms_FormStandardizeND30", features);
+  } catch (e) {
+    console.warn("window.open standardize dialog thất bại:", e);
+  }
+
+  if (!win || win.closed || typeof win.closed === "undefined") {
+    if (Office && Office.context && Office.context.ui && Office.context.ui.displayDialogAsync) {
+      Office.context.ui.displayDialogAsync(dialogUrl, { height: 85, width: 75, displayInIframe: false }, (asyncResult) => {
+        if (asyncResult.status === Office.AsyncResultStatus.Failed) {
+          switchToView("standardize");
+          setStatus("Đã chuyển sang Form chuẩn hóa nội bộ trong Taskpane.");
+        } else {
+          const dialog = asyncResult.value;
+          dialog.addEventHandler(Office.EventType.DialogMessageReceived, async (arg) => {
+            try {
+              const data = JSON.parse(arg.message);
+              await handleDialogMessage(data);
+            } catch (err) {}
+          });
+          setStatus("Đã mở cửa sổ Chuẩn hóa NĐ 30 qua Office Dialog API.");
+        }
+      });
+    } else {
+      switchToView("standardize");
+    }
+  } else {
+    win.focus();
+    setStatus("Đã mở Cửa sổ Chuẩn hóa Thể thức Văn bản (NĐ 30).");
+  }
+}
+
+/**
+ * Mở Cửa sổ Thư viện Mẫu Văn bản Chuẩn NĐ 30 song song với Word
+ */
+function openTemplateDialogWindow() {
+  const dialogUrl = new URL("template-dialog.html?v=" + Date.now(), window.location.href).href;
+  const width = 1040;
+  const height = 740;
+  const left = Math.max(0, Math.round((window.screen.availWidth - width) / 2));
+  const top = Math.max(0, Math.round((window.screen.availHeight - height) / 2));
+  const features = `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes,status=no,toolbar=no,menubar=no,location=no`;
+
+  let win = null;
+  try {
+    win = window.open(dialogUrl, "WinForms_FormTemplateLibrary", features);
+  } catch (e) {
+    console.warn("window.open template dialog thất bại:", e);
+  }
+
+  if (!win || win.closed || typeof win.closed === "undefined") {
+    if (Office && Office.context && Office.context.ui && Office.context.ui.displayDialogAsync) {
+      Office.context.ui.displayDialogAsync(dialogUrl, { height: 80, width: 75, displayInIframe: false }, (asyncResult) => {
+        if (asyncResult.status === Office.AsyncResultStatus.Failed) {
+          switchToView("standardize");
+          const btnInsert = document.getElementById("btnInsertTemplate");
+          if (btnInsert) btnInsert.click();
+        } else {
+          const dialog = asyncResult.value;
+          dialog.addEventHandler(Office.EventType.DialogMessageReceived, async (arg) => {
+            try {
+              const data = JSON.parse(arg.message);
+              await handleDialogMessage(data);
+            } catch (err) {}
+          });
+          setStatus("Đã mở Thư viện Mẫu Văn bản qua Office Dialog API.");
+        }
+      });
+    } else {
+      switchToView("standardize");
+      const btnInsert = document.getElementById("btnInsertTemplate");
+      if (btnInsert) btnInsert.click();
+    }
+  } else {
+    win.focus();
+    setStatus("Đã mở Cửa sổ Thư viện Mẫu Văn bản Chuẩn NĐ 30.");
+  }
+}
+
+/**
+ * Mở Cửa sổ Sổ tay Quy chuẩn Thể thức NĐ 30 song song với Word
+ */
+function openHelpDialogWindow() {
+  const dialogUrl = new URL("help-dialog.html?v=" + Date.now(), window.location.href).href;
+  const width = 1020;
+  const height = 700;
+  const left = Math.max(0, Math.round((window.screen.availWidth - width) / 2));
+  const top = Math.max(0, Math.round((window.screen.availHeight - height) / 2));
+  const features = `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes,status=no,toolbar=no,menubar=no,location=no`;
+
+  let win = null;
+  try {
+    win = window.open(dialogUrl, "WinForms_FormHelpND30", features);
+  } catch (e) {
+    console.warn("window.open help dialog thất bại:", e);
+  }
+
+  if (!win || win.closed || typeof win.closed === "undefined") {
+    if (Office && Office.context && Office.context.ui && Office.context.ui.displayDialogAsync) {
+      Office.context.ui.displayDialogAsync(dialogUrl, { height: 75, width: 70, displayInIframe: false }, (asyncResult) => {
+        if (asyncResult.status === Office.AsyncResultStatus.Failed) {
+          showND30Help();
+        } else {
+          setStatus("Đã mở Sổ tay Quy chuẩn NĐ 30 qua Office Dialog API.");
+        }
+      });
+    } else {
+      showND30Help();
+    }
+  } else {
+    win.focus();
+    setStatus("Đã mở Cửa sổ Sổ tay Quy chuẩn Thể thức NĐ 30.");
+  }
+}
+
+/**
  * Khởi tạo kênh lắng nghe BroadcastChannel từ Cửa sổ OCR
  */
 function initOcrBroadcastReceiver() {
@@ -2145,7 +2292,141 @@ async function insertOcrBlocksToWord(blocks) {
 }
 
 /**
- * Xử lý dữ liệu nhận được từ Cửa sổ phần mềm độc lập
+ * Đồng bộ dữ liệu nhận từ cửa sổ Chuẩn hóa sang Form Taskpane
+ */
+function syncDataToTaskpaneForm(d) {
+  if (!d) return;
+
+  const setVal = (id, val) => {
+    if (val === undefined || val === null) return;
+    const el = document.getElementById(id);
+    if (el) el.value = val;
+  };
+
+  const setChk = (id, val) => {
+    if (val === undefined || val === null) return;
+    const el = document.getElementById(id);
+    if (el) el.checked = Boolean(val);
+  };
+
+  if (d.docType) {
+    setVal("cboDocType", d.docType);
+    switchDocTypePanels(d.docType);
+  }
+
+  setVal("txtSuperiorOrg", d.superiorOrg);
+  setVal("txtPublishingOrg", d.publishingOrg);
+  setVal("txtDocSeqNumber", d.docSeqNumber);
+  setVal("txtDocSymbol", d.docSymbol);
+  setVal("txtLocation", d.location);
+  setVal("txtDocDate", d.docDate);
+
+  // Công văn
+  setVal("txtDocTitle", d.docTitle);
+  setVal("txtDearCongVan", d.dearCongVan);
+
+  // Hợp đồng
+  if (d.contractType) setVal("cboContractType", d.contractType);
+  setVal("txtContractTitle", d.contractTitle);
+  setVal("txtProjectName", d.projectName);
+  setVal("txtBiddingPackage", d.biddingPackage);
+  setVal("txtProjectLocation", d.projectLocation);
+  setVal("txtContractValue", d.contractValue);
+  setVal("txtPartyAName", d.partyAName);
+  setVal("txtPartyARep", d.partyARep);
+  setVal("txtPartyBName", d.partyBName);
+  setVal("txtPartyBRep", d.partyBRep);
+
+  // Biên bản
+  if (d.minuteType) setVal("cboMinuteType", d.minuteType);
+  setVal("txtMinuteTitle", d.minuteTitle);
+  setVal("txtMinuteSubject", d.minuteSubject);
+  setVal("txtMinuteTime", d.minuteTime);
+  setVal("txtMinuteLocation", d.minuteLocation);
+  setVal("txtMinuteChair", d.minuteChair);
+  setVal("txtMinuteSecretary", d.minuteSecretary);
+  setVal("txtMinuteAttendees", d.minuteAttendees);
+
+  // Tờ trình
+  if (d.reportType) setVal("cboReportType", d.reportType);
+  setVal("txtReportTitle", d.reportTitle);
+  setVal("txtReportDear", d.reportDear);
+  setVal("txtReportBasis", d.reportBasis);
+
+  // Checkboxes
+  setChk("chkSmartParse", d.chkSmartParse);
+  setChk("chkHeaderTable", d.chkHeaderTable);
+  setChk("chkFooterTable", d.chkFooterTable);
+  setChk("chkMarginA4", d.chkMarginA4);
+  setChk("chkIndentSpacing", d.chkIndentSpacing);
+  setChk("chkFontTimes", d.chkFontTimes);
+}
+
+/**
+ * Xử lý yêu cầu chèn mẫu được chọn từ Thư viện mẫu vào Word
+ */
+async function handleInsertSelectedTemplate(data) {
+  const cbo = document.getElementById("cboDocType");
+  if (data.docType && cbo) {
+    cbo.value = data.docType;
+    switchDocTypePanels(data.docType);
+    updateDocSymbolString();
+  }
+  await insertFullTemplate();
+  setStatus(`Đã chèn mẫu [${data.title}] vào Microsoft Word thành công.`);
+}
+
+/**
+ * Áp dụng căn lề trang chuẩn A4 theo Nghị định 30/2020/NĐ-CP vào Word
+ */
+async function applyA4MarginsToWord() {
+  if (!window.Word || !Office.context || !Office.context.document) {
+    setStatus("Cảnh báo: Microsoft Word API không sẵn sàng.");
+    return;
+  }
+  try {
+    await Word.run(async (context) => {
+      const section = context.document.sections.getFirst();
+      // 1 mm = 72 / 25.4 pt = 2.8346 pt
+      section.pageSetup.topMargin = 56.7;    // 20 mm
+      section.pageSetup.bottomMargin = 56.7; // 20 mm
+      section.pageSetup.leftMargin = 85.05;  // 30 mm
+      section.pageSetup.rightMargin = 42.52; // 15 mm
+      await context.sync();
+      setStatus("Đã thiết lập căn lề A4 NĐ 30: Trên 20mm, Dưới 20mm, Trái 30mm, Phải 15mm thành công.");
+      alert("Đã thiết lập căn lề chuẩn A4 theo Nghị định 30 vào Word thành công!\n(Trên 20mm, Dưới 20mm, Trái 30mm, Phải 15mm)");
+    });
+  } catch (err) {
+    console.error("Lỗi căn lề:", err);
+    setStatus("Lỗi căn lề: " + err.message);
+  }
+}
+
+/**
+ * Chuẩn hóa Font chữ toàn bộ văn bản về Times New Roman size 13
+ */
+async function applyTimesFontToWord() {
+  if (!window.Word || !Office.context || !Office.context.document) {
+    setStatus("Cảnh báo: Microsoft Word API không sẵn sàng.");
+    return;
+  }
+  try {
+    await Word.run(async (context) => {
+      const body = context.document.body;
+      body.font.name = "Times New Roman";
+      body.font.size = 13;
+      await context.sync();
+      setStatus("Đã chuẩn hóa toàn bộ văn bản về font Times New Roman size 13.");
+      alert("Đã chuẩn hóa toàn bộ văn bản về Font Times New Roman (size 13) thành công!");
+    });
+  } catch (err) {
+    console.error("Lỗi chuẩn hóa font:", err);
+    setStatus("Lỗi font: " + err.message);
+  }
+}
+
+/**
+ * Xử lý dữ liệu nhận được từ tất cả các Cửa sổ phần mềm độc lập
  */
 async function handleDialogMessage(data) {
   if (!data || !data.action) return;
@@ -2170,17 +2451,33 @@ async function handleDialogMessage(data) {
     setStatus(`Đã nhận tổng giá trị từ Bảng giá: ${data.formattedString}`);
   } else if (data.action === "INSERT_WORD_TABLE") {
     await insertPriceTableToWordFromData(data);
+  } else if (data.action === "STANDARDIZE_WORD") {
+    if (data.data) syncDataToTaskpaneForm(data.data);
+    await standardizeDocument();
+  } else if (data.action === "INSERT_TEMPLATE_WORD") {
+    if (data.data) syncDataToTaskpaneForm(data.data);
+    await insertFullTemplate();
+  } else if (data.action === "SYNC_STANDARDIZE_FORM") {
+    if (data.data) syncDataToTaskpaneForm(data.data);
+    setStatus("Đã đồng bộ thông tin thể thức từ Cửa sổ độc lập về Add-in Word.");
+  } else if (data.action === "INSERT_SELECTED_TEMPLATE") {
+    await handleInsertSelectedTemplate(data);
+  } else if (data.action === "APPLY_A4_MARGINS") {
+    await applyA4MarginsToWord();
+  } else if (data.action === "APPLY_TIMES_FONT") {
+    await applyTimesFontToWord();
   }
 }
 
-// Hàm toàn cục cho gọi trực tiếp qua window.opener
-window.onReceiveSyncFromDialog = (payload) => {
-  handleDialogMessage(payload);
-};
-
-window.onReceiveWordTableFromDialog = async (payload) => {
-  await handleDialogMessage(payload);
-};
+// Các hàm toàn cục cho gọi trực tiếp qua window.opener
+window.onReceiveSyncFromDialog = (payload) => { handleDialogMessage(payload); };
+window.onReceiveWordTableFromDialog = async (payload) => { await handleDialogMessage(payload); };
+window.onReceiveStandardizeFromDialog = async (payload) => { await handleDialogMessage(payload); };
+window.onReceiveInsertTemplateFromDialog = async (payload) => { await handleDialogMessage(payload); };
+window.onReceiveSyncStandardizeFromDialog = (payload) => { handleDialogMessage(payload); };
+window.onReceiveTemplateFromDialog = async (payload) => { await handleDialogMessage(payload); };
+window.onReceiveApplyMarginsFromDialog = async (payload) => { await handleDialogMessage(payload); };
+window.onReceiveApplyFontFromDialog = async (payload) => { await handleDialogMessage(payload); };
 
 // Kênh BroadcastChannel nhận thông điệp qua các cửa sổ song song
 if (typeof BroadcastChannel !== "undefined") {
