@@ -2585,6 +2585,105 @@ function syncDataToTaskpaneForm(d) {
 }
 
 /**
+ * Chèn các khối điều khoản chữ hoặc khối bảng giá động vào tài liệu Word
+ */
+function insertArticlesOrTablesToWordBody(body, articles, bodyLines) {
+  if (articles && articles.length > 0) {
+    for (const art of articles) {
+      if (art.type === "table" || Array.isArray(art.data)) {
+        // 1. Tiêu đề bảng giá
+        const tableTitle = (art.title || art.tieuDe || "BẢNG DỰ TOÁN / GIÁ TRỊ HỢP ĐỒNG").toUpperCase();
+        const pTableTitle = body.insertParagraph(tableTitle, Word.InsertLocation.end);
+        pTableTitle.font.name = "Times New Roman";
+        pTableTitle.font.size = 12.5;
+        pTableTitle.font.bold = true;
+        pTableTitle.alignment = Word.Alignment.centered;
+        pTableTitle.spaceBefore = 10;
+        pTableTitle.spaceAfter = 4;
+
+        // 2. Dữ liệu bảng
+        const rows = art.data || [];
+        const headerRow = ["STT", "Tên hạng mục / công việc / vật tư", "ĐVT", "Số lượng", "Đơn giá (đ)", "Thành tiền (đ)", "Ghi chú"];
+        const dataRows = rows.map(r => [
+          String(r.stt || ""),
+          String(r.tenHangMuc || ""),
+          String(r.donViTinh || ""),
+          String(r.soLuong !== undefined ? r.soLuong : ""),
+          formatDots(r.donGia),
+          formatDots(r.thanhTien),
+          String(r.ghiChu || "")
+        ]);
+        const sumVal = art.tongCong !== undefined ? art.tongCong : rows.reduce((s, r) => s + (Number(r.thanhTien) || 0), 0);
+        const footerRow = ["", "TỔNG CỘNG:", "", "", "", formatDots(sumVal) + " đ", ""];
+
+        const tableValues = [headerRow, ...dataRows, footerRow];
+        const docTable = body.insertTable(tableValues.length, 7, Word.InsertLocation.end, tableValues);
+        docTable.styleBuiltIn = "TableGrid";
+        docTable.alignment = Word.Alignment.centered;
+        docTable.font.name = "Times New Roman";
+        docTable.font.size = 11;
+
+        const hRow = docTable.rows.getFirst();
+        hRow.font.bold = true;
+
+        const fRow = docTable.rows.getLast();
+        fRow.font.bold = true;
+
+        const pSpacer = body.insertParagraph("", Word.InsertLocation.end);
+        pSpacer.spaceBefore = 0;
+        pSpacer.spaceAfter = 6;
+      } else {
+        // 2. Khối điều khoản chữ
+        const title = art.title || art.tieuDe || "";
+        if (title) {
+          const pArtTitle = body.insertParagraph(title, Word.InsertLocation.end);
+          pArtTitle.font.name = "Times New Roman";
+          pArtTitle.font.size = 13;
+          pArtTitle.font.bold = true;
+          pArtTitle.font.italic = false;
+          pArtTitle.firstLineIndent = 0;
+          pArtTitle.spaceBefore = 6;
+          pArtTitle.spaceAfter = 2;
+        }
+
+        const content = art.content || art.noiDungChitiet || "";
+        if (content) {
+          const subLines = String(content).split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+          for (const sl of subLines) {
+            const pArtContent = body.insertParagraph(sl, Word.InsertLocation.end);
+            pArtContent.font.name = "Times New Roman";
+            pArtContent.font.size = 13;
+            pArtContent.font.bold = false;
+            pArtContent.font.italic = false;
+            pArtContent.alignment = Word.Alignment.justified || "Justified";
+            pArtContent.firstLineIndent = 36;
+            pArtContent.lineSpacing = 16.25;
+            pArtContent.spaceAfter = 6;
+          }
+        }
+      }
+    }
+  } else if (bodyLines && bodyLines.length > 0) {
+    for (const rawLine of bodyLines) {
+      const subLines = String(rawLine).split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+      for (const line of subLines) {
+        const isHeader = /^(\b(Phần|Mục|Điều|Khoản)\b|\d+\.)/i.test(line);
+        const p = body.insertParagraph(line, Word.InsertLocation.end);
+        p.font.name = "Times New Roman";
+        p.font.size = 13;
+        p.font.bold = isHeader;
+        p.font.italic = false;
+        p.alignment = isHeader ? Word.Alignment.left : (Word.Alignment.justified || "Justified");
+        p.firstLineIndent = isHeader ? 0 : 36;
+        p.lineSpacing = 16.25;
+        p.spaceBefore = isHeader ? 4 : 0;
+        p.spaceAfter = isHeader ? 2 : 6;
+      }
+    }
+  }
+}
+
+/**
  * Chèn mẫu văn bản có cấu trúc chuẩn xác 100% giống hệt cửa sổ Xem trước vào Word
  */
 async function insertStructuredTemplateToWord(tpl, tplTitle) {
@@ -2703,32 +2802,8 @@ async function insertStructuredTemplateToWord(tpl, tplTitle) {
         pLead.font.name = "Times New Roman"; pLead.font.italic = true; pLead.font.bold = false; pLead.font.size = 13;
         pLead.firstLineIndent = 36; pLead.spaceBefore = 6; pLead.spaceAfter = 8;
 
-        // Các Điều khoản hợp đồng
-        if (tpl.articles && tpl.articles.length > 0) {
-          for (const art of tpl.articles) {
-            const pArtTitle = body.insertParagraph(art.title, Word.InsertLocation.end);
-            pArtTitle.font.name = "Times New Roman"; pArtTitle.font.size = 13; pArtTitle.font.bold = true;
-            pArtTitle.font.italic = false; pArtTitle.firstLineIndent = 0; pArtTitle.spaceBefore = 6; pArtTitle.spaceAfter = 2;
-
-            if (art.content) {
-              const subLines = String(art.content).split(/\r?\n/).map(s => s.trim()).filter(Boolean);
-              for (const sl of subLines) {
-                const pArtContent = body.insertParagraph(sl, Word.InsertLocation.end);
-                pArtContent.font.name = "Times New Roman"; pArtContent.font.size = 13; pArtContent.font.bold = false;
-                pArtContent.font.italic = false; pArtContent.alignment = Word.Alignment.justified || "Justified";
-                pArtContent.firstLineIndent = 36; pArtContent.lineSpacing = 16.25; pArtContent.spaceAfter = 6;
-              }
-            }
-          }
-        } else if (tpl.bodyLines && tpl.bodyLines.length > 0) {
-          for (const l of tpl.bodyLines) {
-            const isHeader = /^(ĐIỀU\s*\d+|Khoản\s*\d+|\d+\.)/i.test(l);
-            const p = body.insertParagraph(l, Word.InsertLocation.end);
-            p.font.name = "Times New Roman"; p.font.size = 13; p.font.bold = isHeader;
-            p.alignment = isHeader ? Word.Alignment.left : (Word.Alignment.justified || "Justified");
-            p.firstLineIndent = isHeader ? 0 : 36; p.lineSpacing = 16.25; p.spaceAfter = 6;
-          }
-        }
+        // Các Điều khoản hợp đồng & Bảng giá động
+        insertArticlesOrTablesToWordBody(body, tpl.articles, tpl.bodyLines);
 
         // Bảng chữ ký 2 bên
         const signTable = body.insertTable(1, 2, Word.InsertLocation.end, [["", ""]]);
@@ -2811,37 +2886,8 @@ async function insertStructuredTemplateToWord(tpl, tplTitle) {
           }
         }
 
-        // Nội dung thân bài / Các điều khoản
-        if (tpl.articles && tpl.articles.length > 0) {
-          for (const art of tpl.articles) {
-            const pArtTitle = body.insertParagraph(art.title, Word.InsertLocation.end);
-            pArtTitle.font.name = "Times New Roman"; pArtTitle.font.size = 13; pArtTitle.font.bold = true;
-            pArtTitle.font.italic = false; pArtTitle.firstLineIndent = 0; pArtTitle.spaceBefore = 6; pArtTitle.spaceAfter = 2;
-
-            if (art.content) {
-              const subLines = String(art.content).split(/\r?\n/).map(s => s.trim()).filter(Boolean);
-              for (const sl of subLines) {
-                const pArtContent = body.insertParagraph(sl, Word.InsertLocation.end);
-                pArtContent.font.name = "Times New Roman"; pArtContent.font.size = 13; pArtContent.font.bold = false;
-                pArtContent.font.italic = false; pArtContent.alignment = Word.Alignment.justified || "Justified";
-                pArtContent.firstLineIndent = 36; pArtContent.lineSpacing = 16.25; pArtContent.spaceAfter = 6;
-              }
-            }
-          }
-        } else if (tpl.bodyLines && tpl.bodyLines.length > 0) {
-          for (const rawLine of tpl.bodyLines) {
-            const subLines = String(rawLine).split(/\r?\n/).map(s => s.trim()).filter(Boolean);
-            for (const line of subLines) {
-              const isHeader = /^(\b(Phần|Mục|Điều|Khoản)\b|\d+\.)/i.test(line);
-              const p = body.insertParagraph(line, Word.InsertLocation.end);
-              p.font.name = "Times New Roman"; p.font.size = 13;
-              p.font.bold = isHeader; p.font.italic = false;
-              p.alignment = isHeader ? Word.Alignment.left : (Word.Alignment.justified || "Justified");
-              p.firstLineIndent = isHeader ? 0 : 36; p.lineSpacing = 16.25;
-              p.spaceBefore = isHeader ? 4 : 0; p.spaceAfter = isHeader ? 2 : 6;
-            }
-          }
-        }
+        // Nội dung thân bài / Các điều khoản & Bảng giá động
+        insertArticlesOrTablesToWordBody(body, tpl.articles, tpl.bodyLines);
 
         // Bảng Nơi nhận & Chữ ký Footer
         const signTable = body.insertTable(1, 2, Word.InsertLocation.end, [["", ""]]);
