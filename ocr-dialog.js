@@ -935,6 +935,30 @@ function initEvents() {
   // Nút nạp lại
   btnReload.addEventListener('click', () => window.location.reload());
 
+  // Nút trợ giúp
+  const btnOcrHelp = document.getElementById('btnOcrHelp');
+  if (btnOcrHelp) {
+    btnOcrHelp.addEventListener('click', () => {
+      alert(
+        "HƯỚNG DẪN TÍNH NĂNG CÁC NÚT TRÊN CỬA SỔ BÓC TÁCH OCR AI:\n\n" +
+        "1. Nút [1. Chọn file]:\n" +
+        "   - Mở hộp thoại để chọn tệp tin PDF, hình ảnh (PNG, JPG, WEBP) tài liệu, hợp đồng cần trích xuất.\n\n" +
+        "2. Nút [2. Bật AI / Tắt AI]:\n" +
+        "   - Bật hoặc Tắt tiến trình AI Local (Qwen2.5-VL-3B) trên máy tính để tiết kiệm tài nguyên RAM/VRAM khi không dùng.\n\n" +
+        "3. Nút [3. Trích xuất]:\n" +
+        "   - AI tiến hành đọc và quét tài liệu, trích xuất chính xác văn bản, chữ ký, bảng biểu sang định dạng chuẩn.\n\n" +
+        "4. Nút [4. Chèn vào Word]:\n" +
+        "   - Tự động chuyển các khối văn bản và bảng biểu đã bóc tách sang tài liệu Microsoft Word đang mở.\n\n" +
+        "5. Nút [5. Sao chép]:\n" +
+        "   - Sao chép toàn bộ kết quả bóc tách dạng Markdown/Text vào Clipboard.\n\n" +
+        "6. Nút [6. Làm mới]:\n" +
+        "   - Nạp lại giao diện và xóa dữ liệu phiên làm việc hiện tại.\n\n" +
+        "7. Nút [7. Trợ giúp]:\n" +
+        "   - Mở bảng hướng dẫn tính năng chi tiết này."
+      );
+    });
+  }
+
   // Nút đóng cửa sổ
   btnCloseWindow.addEventListener('click', () => window.close());
   btnMinWindow.addEventListener('click', () => {

@@ -1124,7 +1124,7 @@ async function insertHeaderTable(context, body, superiorOrg, publishingOrg, docN
    4. LOGIC CHUẨN HÓA THEO TỪNG LOẠI VĂN BẢN (ROUTING CHÍNH)
    ========================================================================== */
 
-async function standardizeDocument() {
+async function standardizeDocument(isInsertNewTemplate = false) {
   if (!window.Word || !Office.context || !Office.context.document) {
     setStatus("Cảnh báo: Chỉ chạy được trong Microsoft Word Desktop.");
     alert("Chức năng chỉ hoạt động bên trong Microsoft Word!");
@@ -1145,25 +1145,27 @@ async function standardizeDocument() {
     document.getElementById("txtDocSeqNumber").value = formSeq;
   }
 
-  setStatus(`Đang đọc và chuẩn hóa thể thức: ${docType.toUpperCase()}...`);
+  const actionName = isInsertNewTemplate ? "Chèn mẫu văn bản mới" : "Chuẩn hóa thể thức";
+  setStatus(`Đang ${actionName}: ${docType.toUpperCase()}...`);
 
   try {
     await Word.run(async (context) => {
       const wordDoc = context.document;
       const body = wordDoc.body;
 
-      // 1. Quét nội dung văn bản hiện tại
-      const rawLines = await extractDocumentRawLines(context);
-      if (rawLines.length === 0) {
-        await insertFullTemplate();
-        return;
+      let rawLines = [];
+      let parsed = { bodyLines: [] };
+
+      // Nếu không phải ép chèn mẫu mới thì quét nội dung văn bản hiện tại
+      if (!isInsertNewTemplate) {
+        rawLines = await extractDocumentRawLines(context);
+        if (rawLines.length > 0) {
+          parsed = parseAdministrativeDoc(rawLines);
+        }
       }
 
-      // 2. Bóc tách nội dung
-      const parsed = parseAdministrativeDoc(rawLines);
-
       // Xác định tên cơ quan và ngày tháng cuối cùng
-      let finalPub = formPub && !isPlaceholderText(formPub) ? formPub : (parsed.publishingOrg && !isPlaceholderText(parsed.publishingOrg) ? parsed.publishingOrg : (formPub || "TÊN CƠ QUAN, ĐƠN VỊ"));
+      let finalPub = formPub && !isPlaceholderText(formPub) ? formPub : (parsed.publishingOrg && !isPlaceholderText(parsed.publishingOrg) ? parsed.publishingOrg : (formPub || "TÊN CƠ QUAN, ĐƠN VỊ BAN HÀNH"));
       let finalSup = formSup && !isPlaceholderText(formSup) ? formSup : (parsed.superiorOrg && !isPlaceholderText(parsed.superiorOrg) ? parsed.superiorOrg : formSup);
       let finalDate = formDate && !isPlaceholderText(formDate) ? formDate : (parsed.docDate && !isPlaceholderText(parsed.docDate) ? parsed.docDate : generateCurrentDateString(formLoc));
 
@@ -1183,7 +1185,7 @@ async function standardizeDocument() {
       const finalNum = `Số: ${formSeq}${formSymbol}`;
 
       // 3. Cấu hình khổ giấy A4
-      if (document.getElementById("chkMarginA4").checked) {
+      if (document.getElementById("chkMarginA4")?.checked) {
         try {
           const sections = wordDoc.sections;
           sections.load("items");
@@ -1191,8 +1193,8 @@ async function standardizeDocument() {
           if (sections.items.length > 0 && sections.items[0].pageSetup) {
             sections.items[0].pageSetup.topMargin = 56.7;    // 20mm
             sections.items[0].pageSetup.bottomMargin = 56.7; // 20mm
-            sections.items[0].pageSetup.leftMargin = 85.0;   // 30mm
-            sections.items[0].pageSetup.rightMargin = 42.5;  // 15mm
+            sections.items[0].pageSetup.leftMargin = 85.05;  // 30mm
+            sections.items[0].pageSetup.rightMargin = 42.52; // 15mm
           }
         } catch (e) {}
       }
@@ -1203,7 +1205,7 @@ async function standardizeDocument() {
       body.font.size = 13;
       body.font.color = "#000000";
 
-      const cleanedBody = parsed.bodyLines.filter(line => line.trim().length > 0 && !/^[\s\-_—–=]{3,}$/.test(line.trim()));
+      const cleanedBody = (parsed.bodyLines || []).filter(line => line.trim().length > 0 && !/^[\s\-_—–=]{3,}$/.test(line.trim()));
 
       // 5. Chuẩn hóa theo từng loại văn bản được chọn
       switch (docType) {
@@ -1223,10 +1225,12 @@ async function standardizeDocument() {
       }
 
       await context.sync();
-      setStatus(`Chuẩn hóa hoàn tất cho thể thức: ${docType.toUpperCase()}`);
+      const doneMsg = isInsertNewTemplate ? `Đã chèn mẫu văn bản [${docType.toUpperCase()}] vào Word thành công!` : `Chuẩn hóa hoàn tất cho thể thức: ${docType.toUpperCase()}`;
+      setStatus(doneMsg);
+      alert(doneMsg);
     });
   } catch (error) {
-    console.error("Lỗi chuẩn hóa văn bản:", error);
+    console.error("Lỗi thực thi Word API:", error);
     setStatus(`Lỗi xử lý: ${error.message}`);
     alert(`Lỗi thực thi Word API: ${error.message}`);
   }
@@ -1842,8 +1846,8 @@ async function insertFullTemplate() {
     return;
   }
 
-  // Gọi chuẩn hóa với danh sách đoạn trống để chèn mẫu tương ứng
-  await standardizeDocument();
+  // Gọi chuẩn hóa ở chế độ chèn mẫu văn bản mới
+  await standardizeDocument(true);
 }
 
 /* ==========================================================================

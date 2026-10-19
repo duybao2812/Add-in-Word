@@ -285,8 +285,12 @@
 
       <div class="win-separator"></div>
 
+      <button class="win-btn" id="btnToolHelp" title="Xem hướng dẫn tính năng các nút">
+        3. Trợ giúp
+      </button>
+
       <button class="win-btn" id="btnToolClose" title="Đóng cửa sổ">
-        3. Đóng
+        4. Đóng
       </button>
     </header>
 
@@ -320,17 +324,7 @@
       </main>
     </div>
 
-    <!-- 4. Thanh nút đáy -->
-    <div class="win-bottom-bar">
-      <button class="win-btn win-btn-primary" id="btnBottomInsert">
-        1. Chèn mẫu vào Word
-      </button>
-      <button class="win-btn" id="btnBottomClose">
-        2. Đóng
-      </button>
-    </div>
-
-    <!-- 5. StatusStrip -->
+    <!-- 4. StatusStrip -->
     <footer class="win-statusstrip">
       <div class="win-status-panel status-main" id="statusMessage">
         Sẵn sàng | Đang chọn: 1. Công văn: Phối hợp triển khai công việc
@@ -734,6 +728,22 @@
       });
     }
 
+    function showHelpGuide() {
+      alert(
+        "HƯỚNG DẪN TÍNH NĂNG CÁC NÚT TRÊN THƯ VIỆN MẪU VĂN BẢN (NĐ 30):\n\n" +
+        "1. Nút [1. Chèn mẫu vào Word]:\n" +
+        "   - Tự động chèn toàn bộ khung mẫu văn bản đang xem trước (Quốc hiệu, Tiêu ngữ, Cơ quan, Số hiệu, Trích yếu, Thân bài, Nơi nhận & Chữ ký) vào tài liệu Word đang mở.\n\n" +
+        "2. Nút [2. Sao chép nội dung]:\n" +
+        "   - Sao chép toàn bộ nội dung mẫu đang xem vào bộ nhớ tạm (Clipboard) để bạn có thể dán (Paste) vào bất kỳ đâu.\n\n" +
+        "3. Nút [3. Trợ giúp]:\n" +
+        "   - Mở bảng hướng dẫn tính năng chi tiết này.\n\n" +
+        "4. Nút [4. Đóng]:\n" +
+        "   - Đóng cửa sổ thư viện mẫu.\n\n" +
+        "* Cách chọn mẫu:\n" +
+        "- Nhấp chuột vào bất kỳ tên mẫu nào ở danh sách bên trái (Công văn, Hợp đồng thi công, HĐ kinh tế, Biên bản nghiệm thu, Tờ trình...) để xem trước trực quan trên khổ giấy A4 ở bên phải."
+      );
+    }
+
     window.addEventListener("DOMContentLoaded", () => {
       const items = document.querySelectorAll("#templateList .win-list-item");
       items.forEach(li => {
@@ -746,10 +756,9 @@
       });
 
       document.getElementById("btnToolInsert")?.addEventListener("click", sendInsertToWord);
-      document.getElementById("btnBottomInsert")?.addEventListener("click", sendInsertToWord);
       document.getElementById("btnToolCopy")?.addEventListener("click", copyToClipboard);
+      document.getElementById("btnToolHelp")?.addEventListener("click", showHelpGuide);
       document.getElementById("btnToolClose")?.addEventListener("click", () => window.close());
-      document.getElementById("btnBottomClose")?.addEventListener("click", () => window.close());
 
       // Mặc định nạp mẫu đầu tiên
       renderPreview("cv-trien-khai");

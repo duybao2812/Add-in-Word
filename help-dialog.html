@@ -249,8 +249,12 @@
 
       <div class="win-separator"></div>
 
+      <button class="win-btn" id="btnToolHelp" title="Xem hướng dẫn tính năng các nút">
+        3. Trợ giúp
+      </button>
+
       <button class="win-btn" id="btnToolClose" title="Đóng cửa sổ">
-        3. Đóng
+        4. Đóng
       </button>
     </header>
 
@@ -381,20 +385,7 @@
       </fieldset>
     </main>
 
-    <!-- 4. Bottom bar -->
-    <div class="win-bottom-bar">
-      <button class="win-btn win-btn-primary" id="btnBottomApplyMargin">
-        1. Căn lề chuẩn A4 vào Word
-      </button>
-      <button class="win-btn" id="btnBottomApplyFont">
-        2. Chuẩn hóa Font Times New Roman
-      </button>
-      <button class="win-btn" id="btnBottomClose">
-        3. Đóng
-      </button>
-    </div>
-
-    <!-- 5. StatusStrip -->
+    <!-- 4. StatusStrip -->
     <footer class="win-statusstrip">
       <div class="win-status-panel status-main" id="statusMessage">
         Sẵn sàng | Quy chuẩn Thể thức Văn bản Hành chính theo Nghị định 30/2020/NĐ-CP của Chính phủ
@@ -448,13 +439,31 @@
       alert("Đã gửi yêu cầu chuẩn hóa Font Times New Roman sang Microsoft Word!");
     }
 
+    function showHelpGuide() {
+      alert(
+        "HƯỚNG DẪN TÍNH NĂNG CÁC NÚT TRÊN SỔ TAY QUY CHUẨN THỂ THỨC (NĐ 30):\n\n" +
+        "1. Nút [1. Căn lề chuẩn A4 vào Word]:\n" +
+        "   - Tự động thiết lập định dạng lề trang chuẩn khổ A4 theo Nghị định 30/2020/NĐ-CP vào văn bản Word:\n" +
+        "     • Lề trên: 20 mm (56.7 pt)\n" +
+        "     • Lề dưới: 20 mm (56.7 pt)\n" +
+        "     • Lề trái: 30 mm (85.05 pt - chừa lề đóng gáy hồ sơ)\n" +
+        "     • Lề phải: 15 mm (42.52 pt)\n\n" +
+        "2. Nút [2. Chuẩn hóa Font Times New Roman]:\n" +
+        "   - Quét và chuyển đổi toàn bộ phông chữ của tài liệu Word về đúng phông Times New Roman chuẩn Unicode TCVN 6909:2001, cỡ chữ 13pt.\n\n" +
+        "3. Nút [3. Trợ giúp]:\n" +
+        "   - Mở bảng hướng dẫn tính năng chi tiết này.\n\n" +
+        "4. Nút [4. Đóng]:\n" +
+        "   - Đóng cửa sổ sổ tay tra cứu thể thức.\n\n" +
+        "* Bảng tra cứu trực quan bên dưới:\n" +
+        "- Hiển thị chi tiết 13 thành phần thể thức quy định trong NĐ 30: Vị trí, Font chữ, Cỡ chữ, Kiểu chữ in hoa/đậm/nghiêng giúp bạn dễ dàng đối chiếu khi soạn thảo."
+      );
+    }
+
     window.addEventListener("DOMContentLoaded", () => {
       document.getElementById("btnToolApplyMargin")?.addEventListener("click", sendApplyMarginsToWord);
-      document.getElementById("btnBottomApplyMargin")?.addEventListener("click", sendApplyMarginsToWord);
       document.getElementById("btnToolApplyFont")?.addEventListener("click", sendApplyFontToWord);
-      document.getElementById("btnBottomApplyFont")?.addEventListener("click", sendApplyFontToWord);
+      document.getElementById("btnToolHelp")?.addEventListener("click", showHelpGuide);
       document.getElementById("btnToolClose")?.addEventListener("click", () => window.close());
-      document.getElementById("btnBottomClose")?.addEventListener("click", () => window.close());
     });
   </script>
 </body>

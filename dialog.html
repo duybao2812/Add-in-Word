@@ -359,7 +359,8 @@
       <button class="win-btn" id="btnToolSyncForm">5. Lấy về Form</button>
       <div class="win-separator"></div>
       <button class="win-btn" id="btnToolExportCsv">6. Xuất CSV</button>
-      <button class="win-btn" id="btnToolClose">7. Đóng</button>
+      <button class="win-btn" id="btnToolHelp">7. Trợ giúp</button>
+      <button class="win-btn" id="btnToolClose">8. Đóng</button>
     </div>
 
     <!-- 3. Nội dung Form -->
@@ -491,25 +492,7 @@
 
     </main>
 
-    <!-- 4. Thanh nút bấm đáy -->
-    <div class="win-bottom-bar">
-      <div style="color: #005499; font-weight: 500; font-size: 11px;">
-        Cửa sổ độc lập chạy song song với Microsoft Word
-      </div>
-      <div style="display: flex; gap: 6px;">
-        <button class="win-btn win-btn-primary" id="btnBottomInsertWord">
-          1. Chèn vào Word
-        </button>
-        <button class="win-btn" id="btnBottomSyncForm">
-          2. Lấy về Form
-        </button>
-        <button class="win-btn" id="btnBottomClose">
-          3. Đóng cửa sổ
-        </button>
-      </div>
-    </div>
-
-    <!-- 5. StatusStrip -->
+    <!-- 4. StatusStrip -->
     <footer class="win-statusstrip">
       <div class="win-status-panel status-fill" id="statusMessage">
         Sẵn sàng | Đang liên kết với Microsoft Word Add-in
@@ -836,18 +819,41 @@
       setStatus("Đã xuất file CSV thành công.");
     }
 
+    function showHelpGuide() {
+      alert(
+        "HƯỚNG DẪN TÍNH NĂNG CÁC NÚT TRÊN CỬA SỔ BẢNG GIÁ DỰ TOÁN:\n\n" +
+        "1. Nút [1. Thêm dòng]:\n" +
+        "   - Thêm một hàng mới vào cuối bảng dự toán để nhập công việc, thiết bị hoặc vật tư.\n\n" +
+        "2. Nút [2. Xóa dòng]:\n" +
+        "   - Xóa dòng đang được nhấp chọn trong bảng dự toán.\n\n" +
+        "3. Nút [3. Nạp lại mẫu]:\n" +
+        "   - Nạp lại bộ dữ liệu mẫu định sẵn theo Loại mẫu bảng giá bạn chọn (Thi công xây dựng, Mua bán vật tư, hoặc Cung ứng dịch vụ).\n\n" +
+        "4. Nút [4. Chèn vào Word]:\n" +
+        "   - Tự động tạo và chèn bảng biểu dự toán hoàn chỉnh vào tài liệu Microsoft Word kèm Tên công trình, Gói thầu, Địa điểm, tính tổng tiền trước thuế, thuế GTGT và tổng cộng bằng số & chữ.\n\n" +
+        "5. Nút [5. Lấy về Form]:\n" +
+        "   - Đồng bộ tổng giá trị thanh toán và 3 ô thông tin công trình về Form chính của Add-in Word.\n\n" +
+        "6. Nút [6. Xuất CSV]:\n" +
+        "   - Xuất dữ liệu bảng dự toán ra tệp tin CSV/Excel có dấu tiếng Việt (UTF-8 BOM).\n\n" +
+        "7. Nút [7. Trợ giúp]:\n" +
+        "   - Mở bảng hướng dẫn tính năng chi tiết này.\n\n" +
+        "8. Nút [8. Đóng]:\n" +
+        "   - Đóng cửa sổ bảng giá dự toán.\n\n" +
+        "* Tính năng tự động thông minh:\n" +
+        "- Ô Đơn giá: Nhập tới đâu tự động nhảy dấu chấm phân cách hàng nghìn (VD: 10.000.000) tức thì và tự tính lại Thành tiền.\n" +
+        "- Ô ĐVT: Hỗ trợ chọn nhanh danh mục đơn vị thường dùng hoặc gõ tay tùy ý."
+      );
+    }
+
     // Gắn sự kiện
     window.addEventListener("DOMContentLoaded", () => {
       document.getElementById("btnToolAdd")?.addEventListener("click", addRow);
       document.getElementById("btnToolDelete")?.addEventListener("click", deleteRow);
       document.getElementById("btnToolReset")?.addEventListener("click", () => loadTemplate(document.getElementById("cboTemplateType").value));
       document.getElementById("btnToolInsertWord")?.addEventListener("click", sendInsertToWord);
-      document.getElementById("btnBottomInsertWord")?.addEventListener("click", sendInsertToWord);
       document.getElementById("btnToolSyncForm")?.addEventListener("click", sendSyncToTaskpane);
-      document.getElementById("btnBottomSyncForm")?.addEventListener("click", sendSyncToTaskpane);
       document.getElementById("btnToolExportCsv")?.addEventListener("click", exportToCsv);
+      document.getElementById("btnToolHelp")?.addEventListener("click", showHelpGuide);
       document.getElementById("btnToolClose")?.addEventListener("click", () => window.close());
-      document.getElementById("btnBottomClose")?.addEventListener("click", () => window.close());
 
       document.getElementById("cboTemplateType")?.addEventListener("change", (e) => loadTemplate(e.target.value));
       document.getElementById("cboVatRate")?.addEventListener("change", recalculate);

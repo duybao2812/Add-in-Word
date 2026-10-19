@@ -342,7 +342,7 @@
       <div class="win-menu-item">Hệ thống</div>
       <div class="win-menu-item">Chuẩn hóa NĐ 30</div>
       <div class="win-menu-item">Thư viện mẫu</div>
-      <div class="win-menu-item">Trợ giúp</div>
+      <div class="win-menu-item" id="menuItemHelp" style="cursor: pointer;">Trợ giúp</div>
     </nav>
 
     <!-- 2. ToolStrip (Đánh số thứ tự 1. 2. 3...) -->
@@ -367,8 +367,12 @@
 
       <div class="win-separator"></div>
 
-      <button class="win-btn" id="btnToolClose" title="Đóng cửa sổ chuẩn hóa">
-        5. Đóng
+      <button class="win-btn" id="btnToolHelp" title="Xem hướng dẫn tính năng các nút bấm">
+        5. Trợ giúp
+      </button>
+
+      <button class="win-btn" id="btnToolClose" title="Đóng cửa sổ">
+        6. Đóng
       </button>
     </header>
 
@@ -708,23 +712,7 @@
       </fieldset>
     </main>
 
-    <!-- 4. Thanh nút bấm chân Form (Bottom Bar) -->
-    <div class="win-bottom-bar">
-      <button class="win-btn win-btn-primary" id="btnBottomStandardize">
-        1. Chuẩn hóa vào Word
-      </button>
-      <button class="win-btn" id="btnBottomInsertTemplate">
-        2. Chèn mẫu vào Word
-      </button>
-      <button class="win-btn" id="btnBottomSync">
-        3. Đồng bộ về Taskpane
-      </button>
-      <button class="win-btn" id="btnBottomClose">
-        4. Đóng
-      </button>
-    </div>
-
-    <!-- 5. StatusStrip -->
+    <!-- 4. StatusStrip -->
     <footer class="win-statusstrip">
       <div class="win-status-panel status-main" id="statusMessage">
         Sẵn sàng | Quy chuẩn Thể thức Nghị định 30/2020/NĐ-CP
@@ -954,6 +942,26 @@
       setStatus("Đã xóa trắng form về mặc định.");
     }
 
+    function showHelpGuide() {
+      alert(
+        "HƯỚNG DẪN TÍNH NĂNG CÁC NÚT TRÊN CỬA SỔ CHUẨN HÓA THỂ THỨC (NĐ 30):\n\n" +
+        "1. Nút [1. Chuẩn hóa vào Word]:\n" +
+        "   - Quét toàn bộ nội dung văn bản trong tài liệu Word đang mở.\n" +
+        "   - Tự động nhận diện Quốc hiệu, Tiêu ngữ, Cơ quan, Số hiệu, Trích yếu, Thân bài, Nơi nhận và Chữ ký.\n" +
+        "   - Tái cấu trúc chuẩn 100% theo Nghị định 30/2020/NĐ-CP: Bảng tiêu ngữ 2 cột không viền có gạch ngang, số ký hiệu tự động, trích yếu, căn lề trang A4 (Trên 20, Dưới 20, Trái 30, Phải 15mm), phông Times New Roman 13pt, bảng Nơi nhận & Chữ ký 2 bên cân đối.\n\n" +
+        "2. Nút [2. Chèn mẫu vào Word]:\n" +
+        "   - Chèn ngay một bộ khung mẫu văn bản hoàn chỉnh theo đúng Loại văn bản đang chọn (Công văn, Hợp đồng, Biên bản, Tờ trình) vào tài liệu Word để bạn bắt đầu soạn thảo ngay mà không phải thiết lập thủ công.\n\n" +
+        "3. Nút [3. Đồng bộ về Taskpane]:\n" +
+        "   - Lưu và chuyển toàn bộ thông tin bạn vừa nhập trên cửa sổ này (Tên công trình, Gói thầu, Địa điểm, Cơ quan ban hành, Đại diện Bên A/B...) về Form của Add-in Word.\n\n" +
+        "4. Nút [4. Xóa trắng Form]:\n" +
+        "   - Đặt lại tất cả các ô nhập liệu về trạng thái ban đầu mặc định.\n\n" +
+        "5. Nút [5. Trợ giúp]:\n" +
+        "   - Mở bảng hướng dẫn chi tiết tính năng của từng nút bấm.\n\n" +
+        "6. Nút [6. Đóng]:\n" +
+        "   - Đóng cửa sổ chuẩn hóa thể thức."
+      );
+    }
+
     window.addEventListener("DOMContentLoaded", () => {
       // Đọc query parameters nếu có
       try {
@@ -1004,14 +1012,12 @@
 
       // Gắn sự kiện các nút
       document.getElementById("btnToolStandardize")?.addEventListener("click", sendStandardizeToWord);
-      document.getElementById("btnBottomStandardize")?.addEventListener("click", sendStandardizeToWord);
       document.getElementById("btnToolInsertTemplate")?.addEventListener("click", sendInsertTemplateToWord);
-      document.getElementById("btnBottomInsertTemplate")?.addEventListener("click", sendInsertTemplateToWord);
       document.getElementById("btnToolSyncToTaskpane")?.addEventListener("click", sendSyncToTaskpane);
-      document.getElementById("btnBottomSync")?.addEventListener("click", sendSyncToTaskpane);
       document.getElementById("btnToolClear")?.addEventListener("click", clearForm);
+      document.getElementById("btnToolHelp")?.addEventListener("click", showHelpGuide);
+      document.getElementById("menuItemHelp")?.addEventListener("click", showHelpGuide);
       document.getElementById("btnToolClose")?.addEventListener("click", () => window.close());
-      document.getElementById("btnBottomClose")?.addEventListener("click", () => window.close());
     });
   </script>
 </body>
