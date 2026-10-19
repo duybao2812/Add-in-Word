@@ -1483,10 +1483,9 @@ function formatGroundsList(raw) {
   return lines.map((line, idx) => {
     let clean = line.replace(/^[-•*–—]\s*/, '').trim();
     clean = clean.replace(/[;.]+$/, '').trim();
+    clean = clean.replace(/^(căn cứ\s*)+/i, '').trim();
     if (!clean) return "";
-    if (!/^căn cứ\b/i.test(clean)) {
-      clean = "Căn cứ " + clean;
-    }
+    clean = "Căn cứ " + clean;
     const isLast = (idx === lines.length - 1);
     const endChar = isLast ? "." : ";";
     return `- ${clean}${endChar}`;
