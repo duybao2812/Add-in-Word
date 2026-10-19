@@ -165,6 +165,10 @@ CREATE TRIGGER trg_bump_law_revision
 BEFORE INSERT OR UPDATE ON public.van_ban_phap_luat
 FOR EACH ROW EXECUTE FUNCTION public.fn_bump_sync_revision();
 
+-- Thu hồi quyền gọi hàm trực tiếp từ REST API (chỉ cho phép Trigger nội bộ thực thi)
+REVOKE EXECUTE ON FUNCTION public.fn_bump_sync_revision() FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.fn_bump_sync_revision() TO service_role;
+
 -- ==============================================================================
 -- 10. THIẾT LẬP BẢO MẬT ROW LEVEL SECURITY (RLS)
 -- ==============================================================================
