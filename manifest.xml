@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<OfficeApp 
+          xmlns="http://schemas.microsoft.com/office/appforoffice/1.1" 
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+          xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0" 
+          xmlns:ov="http://schemas.microsoft.com/office/taskpaneappversionoverrides"
+          xsi:type="TaskPaneApp">
+
+  <!-- Định danh duy nhất cho Add-in (GUID v4) -->
+  <Id>67e1a3bc-1478-4395-885e-fb854cf71391</Id>
+  <Version>1.0.0.0</Version>
+  <ProviderName>WinForms Classic Studio</ProviderName>
+  <DefaultLocale>vi-VN</DefaultLocale>
+  
+  <!-- Tên và mô tả hiển thị của Add-in -->
+  <DisplayName DefaultValue="Trợ lý Word WinForms" />
+  <Description DefaultValue="Taskpane tiện ích Word phong cách WinForms Classic - Soạn thảo hợp đồng, AI OCR, công cụ văn bản nhanh" />
+
+  <!-- Biểu tượng Add-in -->
+  <IconUrl DefaultValue="https://localhost:3000/assets/icon-32.png" />
+  <HighResolutionIconUrl DefaultValue="https://localhost:3000/assets/icon-64.png" />
+  <SupportUrl DefaultValue="https://localhost:3000" />
+  
+  <!-- Danh sách tên miền được phép điều hướng -->
+  <AppDomains>
+    <AppDomain>https://localhost:3000</AppDomain>
+  </AppDomains>
+
+  <!-- Ứng dụng Office mục tiêu: Microsoft Word -->
+  <Hosts>
+    <Host Name="Document" />
+  </Hosts>
+  
+  <!-- Yêu cầu phiên bản WordApi -->
+  <Requirements>
+    <Sets DefaultMinVersion="1.3">
+      <Set Name="WordApi" MinVersion="1.3"/>
+    </Sets>
+  </Requirements>
+
+  <!-- Vị trí nạp giao diện HTML mặc định -->
+  <DefaultSettings>
+    <SourceLocation DefaultValue="https://localhost:3000/taskpane.html" />
+  </DefaultSettings>
+
+  <!-- Quyền truy cập: Đọc và ghi văn bản -->
+  <Permissions>ReadWriteDocument</Permissions>
+
+  <!-- Cấu hình Ribbon thanh công cụ trên Word Desktop (VersionOverrides) -->
+  <VersionOverrides xmlns="http://schemas.microsoft.com/office/taskpaneappversionoverrides" xsi:type="VersionOverridesV1_0">
+    <Hosts>
+      <Host xsi:type="Document">
+        <DesktopFormFactor>
+          <GetStarted>
+            <Title resid="GetStarted.Title"/>
+            <Description resid="GetStarted.Description"/>
+            <LearnMoreUrl resid="GetStarted.LearnMoreUrl"/>
+          </GetStarted>
+          
+          <FunctionFile resid="Taskpane.Url" />
+
+          <!-- Tích hợp nút bấm mở Taskpane vào Tab Trang đầu (Home Tab) -->
+          <ExtensionPoint xsi:type="PrimaryCommandSurface">
+            <OfficeTab id="TabHome">
+              <Group id="WinFormsGroup">
+                <Label resid="GroupLabel" />
+                <Icon>
+                  <bt:Image size="16" resid="Icon.16" />
+                  <bt:Image size="32" resid="Icon.32" />
+                  <bt:Image size="80" resid="Icon.80" />
+                </Icon>
+                <Control xsi:type="Button" id="TaskpaneButton">
+                  <Label resid="ButtonLabel" />
+                  <Supertip>
+                    <Title resid="ButtonTitle" />
+                    <Description resid="ButtonDescription" />
+                  </Supertip>
+                  <Icon>
+                    <bt:Image size="16" resid="Icon.16" />
+                    <bt:Image size="32" resid="Icon.32" />
+                    <bt:Image size="80" resid="Icon.80" />
+                  </Icon>
+                  <Action xsi:type="ShowTaskpane">
+                    <TaskpaneId>Office.AutoShowTaskpaneWithDocument</TaskpaneId>
+                    <SourceLocation resid="Taskpane.Url" />
+                  </Action>
+                </Control>
+              </Group>
+            </OfficeTab>
+          </ExtensionPoint>
+        </DesktopFormFactor>
+      </Host>
+    </Hosts>
+    
+    <!-- Định nghĩa tài nguyên hình ảnh, URL và chuỗi văn bản -->
+    <Resources>
+      <bt:Images>
+        <bt:Image id="Icon.16" DefaultValue="https://localhost:3000/assets/icon-16.png" />
+        <bt:Image id="Icon.32" DefaultValue="https://localhost:3000/assets/icon-32.png" />
+        <bt:Image id="Icon.80" DefaultValue="https://localhost:3000/assets/icon-80.png" />
+      </bt:Images>
+      <bt:Urls>
+        <bt:Url id="GetStarted.LearnMoreUrl" DefaultValue="https://localhost:3000" />
+        <bt:Url id="Taskpane.Url" DefaultValue="https://localhost:3000/taskpane.html" />
+      </bt:Urls>
+      <bt:ShortStrings>
+        <bt:String id="GetStarted.Title" DefaultValue="Khởi động Tiện ích WinForms" />
+        <bt:String id="GroupLabel" DefaultValue="Tiện ích WinForms" />
+        <bt:String id="ButtonLabel" DefaultValue="Mở Taskpane" />
+        <bt:String id="ButtonTitle" DefaultValue="Mở Trợ lý Word WinForms" />
+      </bt:ShortStrings>
+      <bt:LongStrings>
+        <bt:String id="GetStarted.Description" DefaultValue="Bấm nút Mở Taskpane để kích hoạt thanh công cụ giao diện phong cách WinForms." />
+        <bt:String id="ButtonDescription" DefaultValue="Mở Taskpane cổ điển WinForms để quản lý hợp đồng, AI OCR và công cụ định dạng văn bản nhanh." />
+      </bt:LongStrings>
+    </Resources>
+  </VersionOverrides>
+</OfficeApp>

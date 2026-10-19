@@ -1,0 +1,155 @@
+{
+  "$schemaVersion": "1.0",
+  "description": "Danh sách hồ sơ phần cứng các máy tính từng chạy dự án Add-in Word",
+  "lastActiveMachineId": "7CC0A566-B81A-9978-B6B7-48210B2E65CA",
+  "lastDetectedAt": "2026-10-19 06:12:58",
+  "machines": {
+    "7CC0A566-B81A-9978-B6B7-48210B2E65CA": {
+      "MachineId": "7CC0A566-B81A-9978-B6B7-48210B2E65CA",
+      "ComputerName": "DESKTOP-D7DEASF",
+      "UserName": "Admin",
+      "SystemUUID": "7CC0A566-B81A-9978-B6B7-48210B2E65CA",
+      "Timestamp": "2026-10-19 13:12:58",
+      "OperatingSystem": {
+        "Caption": "Microsoft Windows 11 Pro",
+        "Version": "10.0.26300",
+        "BuildNumber": "26300",
+        "Architecture": "64-bit"
+      },
+      "Motherboard": {
+        "Manufacturer": "Intel Corporation",
+        "Product": "NUC11TNBi5",
+        "SerialNumber": "BTTN211001HW"
+      },
+      "BIOS": {
+        "Manufacturer": "Intel Corp.",
+        "Version": "TNTGL357.0043.2020.1223.1022",
+        "SerialNumber": "BTTN211001HW"
+      },
+      "Processor": {
+        "Name": "11th Gen Intel(R) Core(TM) i5-1135G7 @ 2.40GHz",
+        "Manufacturer": "GenuineIntel",
+        "Architecture": "64-bit",
+        "NumberOfCores": 4,
+        "NumberOfLogicalProcessors": 8,
+        "MaxClockSpeedMHz": 2419,
+        "SocketDesignation": "U3E1"
+      },
+      "Memory": {
+        "TotalPhysicalRAM_GB": 15.63,
+        "SlotCount": 2,
+        "Modules": [
+          {
+            "Manufacturer": "Kingston",
+            "CapacityGB": 8,
+            "SpeedMHz": 3200,
+            "ConfiguredClockSpeedMHz": 3200,
+            "PartNumber": "9905700-118.A00G",
+            "BankLabel": "BANK 0",
+            "DeviceLocator": "Controller0-ChannelA-DIMM0"
+          },
+          {
+            "Manufacturer": "Kingston",
+            "CapacityGB": 8,
+            "SpeedMHz": 3200,
+            "ConfiguredClockSpeedMHz": 3200,
+            "PartNumber": "99U5700-031.A00G",
+            "BankLabel": "BANK 0",
+            "DeviceLocator": "Controller1-ChannelA-DIMM0"
+          }
+        ]
+      },
+      "Graphics": [
+        {
+          "Name": "Intel(R) Iris(R) Xe Graphics",
+          "DriverVersion": "32.0.101.7092",
+          "VideoProcessor": "Intel(R) Iris(R) Xe Graphics Family",
+          "AdapterRAM_GB": 2,
+          "CurrentResolution": "3440x1440 @ 99Hz"
+        }
+      ],
+      "PhysicalDisks": [
+        {
+          "Model": "GIGABYTE GP-GSM2NE3512GNTD",
+          "InterfaceType": "SCSI",
+          "SizeGB": 476.94,
+          "Partitions": 3,
+          "SerialNumber": "6479_A761_A0C0_13F3."
+        },
+        {
+          "Model": "KINGSTON SA400S37120G",
+          "InterfaceType": "IDE",
+          "SizeGB": 111.79,
+          "Partitions": 2,
+          "SerialNumber": "50026B738030F481"
+        }
+      ],
+      "LogicalVolumes": [
+        {
+          "DriveLetter": "C:",
+          "VolumeName": "",
+          "FileSystem": "NTFS",
+          "TotalSizeGB": 475.92,
+          "FreeSpaceGB": 182.91,
+          "FreePercent": 38.4
+        },
+        {
+          "DriveLetter": "D:",
+          "VolumeName": "",
+          "FileSystem": "NTFS",
+          "TotalSizeGB": 111.79,
+          "FreeSpaceGB": 108.11,
+          "FreePercent": 96.7
+        },
+        {
+          "DriveLetter": "G:",
+          "VolumeName": "huynhbao281201@gmail.com - Go...",
+          "FileSystem": "FAT32",
+          "TotalSizeGB": 475.92,
+          "FreeSpaceGB": 173.76,
+          "FreePercent": 36.5
+        },
+        {
+          "DriveLetter": "H:",
+          "VolumeName": "phmliem22@gmail.com - Google ...",
+          "FileSystem": "FAT32",
+          "TotalSizeGB": 15,
+          "FreeSpaceGB": 13.36,
+          "FreePercent": 89
+        },
+        {
+          "DriveLetter": "I:",
+          "VolumeName": "xdthanhthuan@gmail.com - Goog...",
+          "FileSystem": "FAT32",
+          "TotalSizeGB": 475.92,
+          "FreeSpaceGB": 173.76,
+          "FreePercent": 36.5
+        },
+        {
+          "DriveLetter": "J:",
+          "VolumeName": "ctyngoctham175@gmail.com - Go...",
+          "FileSystem": "FAT32",
+          "TotalSizeGB": 475.92,
+          "FreeSpaceGB": 173.76,
+          "FreePercent": 36.5
+        }
+      ],
+      "NetworkAdapters": [
+        {
+          "Description": "Intel(R) Ethernet Controller (3) I225-LM",
+          "MACAddress": "48:21:0B:2E:65:CA",
+          "IPAddress": "192.168.22.159, fe80::81c6:4a0f:8468:c161, ::1441:bb3a:dc6c:b897, ::87ab:5069:6ca9:bda1"
+        },
+        {
+          "Description": "Tailscale Tunnel",
+          "MACAddress": null,
+          "IPAddress": "100.126.74.80, fe80::b034:357d:3cce:bc6c, fd7a:115c:a1e0::b23b:4a51"
+        }
+      ],
+      "NodeVersion": "v24.15.0",
+      "Platform": "win32",
+      "firstSeen": "2026-10-19 06:11:55",
+      "lastSeen": "2026-10-19 06:12:58"
+    }
+  }
+}

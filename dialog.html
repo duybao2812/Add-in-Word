@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bảng giá dự toán ký hợp đồng - [WinForms Standalone Form]</title>
+
+  <!-- Nạp thư viện Office.js chính thức nếu chạy trong môi trường Office Dialog -->
+  <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+
+  <style>
+    /* Reset triệt để: Tuyệt đối không bo góc (0px radius) */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      border-radius: 0px !important;
+      -webkit-border-radius: 0px !important;
+      -moz-border-radius: 0px !important;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      font-size: 12px;
+      line-height: 1.35;
+      color: #000000;
+      background-color: #F0F0F0;
+      user-select: none;
+    }
+
+    #window-root {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      width: 100vw;
+      background-color: #F0F0F0;
+      border: 1px solid #707070;
+    }
+
+    /* 1. MenuStrip Cổ điển */
+    .win-menustrip {
+      display: flex;
+      background-color: #F0F0F0;
+      border-bottom: 1px solid #D0D0D0;
+      padding: 2px 4px;
+      font-size: 12px;
+      flex-shrink: 0;
+    }
+
+    .win-menu-item {
+      padding: 3px 8px;
+      cursor: default;
+      color: #000000;
+    }
+
+    .win-menu-item:hover {
+      background-color: #E5F1FB;
+      outline: 1px solid #0078D7;
+    }
+
+    /* 2. ToolStrip (Thanh công cụ với icon và nút bấm) */
+    .win-toolstrip {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      background: linear-gradient(to bottom, #FAFAFA, #EAEAEA);
+      border-bottom: 1px solid #B5B5B5;
+      padding: 3px 6px;
+      flex-shrink: 0;
+    }
+
+    .win-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      background-color: #E1E1E1;
+      border: 1px solid #707070;
+      color: #000000;
+      font-family: inherit;
+      font-size: 11px;
+      padding: 3px 8px;
+      height: 24px;
+      cursor: default;
+      outline: none;
+      white-space: nowrap;
+    }
+
+    .win-btn:hover {
+      background-color: #E5F1FB;
+      border-color: #0078D7;
+    }
+
+    .win-btn:active {
+      background-color: #CCE4F7;
+      border-color: #005499;
+    }
+
+    .win-btn-primary {
+      background-color: #0078D7;
+      border-color: #005499;
+      color: #FFFFFF;
+      font-weight: 600;
+    }
+
+    .win-btn-primary:hover {
+      background-color: #1A8AD9;
+      border-color: #004D99;
+    }
+
+    .win-separator {
+      width: 1px;
+      height: 18px;
+      background-color: #C0C0C0;
+      margin: 0 4px;
+    }
+
+    /* 3. Vùng làm việc chính */
+    .win-main-body {
+      flex: 1 1 auto;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: 8px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    /* WinForms GroupBox */
+    .win-groupbox {
+      border: 1px solid #A0A0A0;
+      background-color: #F0F0F0;
+      padding: 8px 10px;
+      width: 100%;
+    }
+
+    .win-legend {
+      padding: 0 5px;
+      margin-left: 6px;
+      color: #003399;
+      font-weight: 600;
+      font-size: 11px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 8px;
+    }
+
+    .form-col {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .form-label {
+      font-size: 11px;
+      font-weight: 500;
+      margin-bottom: 2px;
+      color: #333333;
+    }
+
+    .win-textbox, .win-combobox {
+      background-color: #FFFFFF;
+      border: 1px solid #7F9DB9;
+      font-family: inherit;
+      font-size: 12px;
+      padding: 3px 6px;
+      height: 25px;
+      width: 100%;
+      outline: none;
+    }
+
+    .win-textbox:focus, .win-combobox:focus {
+      border-color: #0078D7;
+    }
+
+    /* DataGridView (Lưới dữ liệu WinForms cổ điển) */
+    .win-datagrid-box {
+      border: 1px solid #7F9DB9;
+      background-color: #FFFFFF;
+      flex: 1 1 auto;
+      min-height: 220px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .win-grid-scroll {
+      flex: 1 1 auto;
+      overflow: auto;
+      max-height: 320px;
+    }
+
+    .win-datagrid {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11px;
+      table-layout: fixed;
+    }
+
+    .win-datagrid th {
+      background-color: #ECE9D8;
+      border: 1px solid #7F9DB9;
+      padding: 4px 6px;
+      font-weight: 600;
+      text-align: left;
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      box-shadow: inset 0 1px 0 #FFFFFF;
+    }
+
+    .win-datagrid td {
+      border: 1px solid #D9D9D9;
+      padding: 2px 4px;
+      vertical-align: middle;
+    }
+
+    .win-datagrid tr:nth-child(even) td {
+      background-color: #FBFBFB;
+    }
+
+    .win-datagrid tr:hover td {
+      background-color: #E5F1FB;
+    }
+
+    .win-datagrid tr.selected td {
+      background-color: #CDE8FF !important;
+    }
+
+    .win-grid-input {
+      width: 100%;
+      height: 22px;
+      border: 1px solid transparent;
+      background: transparent;
+      font-family: inherit;
+      font-size: 11px;
+      padding: 1px 3px;
+    }
+
+    .win-grid-input:focus {
+      border-color: #0078D7;
+      background-color: #FFFFFF;
+      outline: none;
+    }
+
+    .text-center { text-align: center; }
+    .text-right { text-align: right; }
+
+    /* Summary Box */
+    .win-summary-box {
+      background-color: #FAFBFD;
+      border: 1px solid #7F9DB9;
+      padding: 8px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .win-summary-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+    }
+
+    .win-summary-grand {
+      border-top: 1px dashed #7F9DB9;
+      padding-top: 4px;
+      margin-top: 2px;
+      font-size: 13px;
+      font-weight: bold;
+      color: #003399;
+    }
+
+    .win-summary-grand .grand-val {
+      color: #C00000;
+      font-size: 14px;
+      font-family: 'Consolas', monospace;
+    }
+
+    .win-summary-words {
+      font-style: italic;
+      color: #005500;
+      border-top: 1px solid #EEEEEE;
+      padding-top: 3px;
+      margin-top: 2px;
+      font-size: 11px;
+    }
+
+    /* Bottom Action Bar */
+    .win-bottom-bar {
+      background-color: #F0F0F0;
+      border-top: 1px solid #D0D0D0;
+      padding: 6px 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-shrink: 0;
+    }
+
+    /* 4. StatusStrip */
+    .win-statusstrip {
+      display: flex;
+      align-items: center;
+      height: 22px;
+      background-color: #F0F0F0;
+      border-top: 1px solid #D0D0D0;
+      padding: 0 4px;
+      font-size: 11px;
+      flex-shrink: 0;
+    }
+
+    .win-status-panel {
+      display: inline-flex;
+      align-items: center;
+      height: 18px;
+      padding: 0 6px;
+      margin-right: 3px;
+      border-top: 1px solid #999999;
+      border-left: 1px solid #999999;
+      border-bottom: 1px solid #FFFFFF;
+      border-right: 1px solid #FFFFFF;
+      background-color: #F0F0F0;
+      white-space: nowrap;
+    }
+
+    .status-fill { flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; }
+  </style>
+</head>
+<body>
+  <div id="window-root">
+
+    <!-- 1. MenuStrip -->
+    <nav class="win-menustrip">
+      <div class="win-menu-item">Tệp (<u>F</u>)</div>
+      <div class="win-menu-item">Chỉnh sửa (<u>E</u>)</div>
+      <div class="win-menu-item">Mẫu bảng giá (<u>T</u>)</div>
+      <div class="win-menu-item">Tương tác Word (<u>W</u>)</div>
+      <div class="win-menu-item">Trợ giúp (<u>H</u>)</div>
+    </nav>
+
+    <!-- 2. ToolStrip -->
+    <div class="win-toolstrip">
+      <button class="win-btn" id="btnToolAdd"><span>➕</span> Thêm dòng</button>
+      <button class="win-btn" id="btnToolDelete"><span>➖</span> Xóa dòng</button>
+      <button class="win-btn" id="btnToolReset"><span>🔄</span> Nạp lại mẫu</button>
+      <div class="win-separator"></div>
+      <button class="win-btn win-btn-primary" id="btnToolInsertWord"><span>📥</span> Chèn vào Word</button>
+      <button class="win-btn" id="btnToolSyncForm"><span>💾</span> Lấy giá trị về Form</button>
+      <div class="win-separator"></div>
+      <button class="win-btn" id="btnToolExportCsv"><span>📊</span> Xuất file CSV</button>
+    </div>
+
+    <!-- 3. Nội dung Form -->
+    <main class="win-main-body">
+
+      <!-- GroupBox: Thông tin dự án / Hợp đồng -->
+      <fieldset class="win-groupbox">
+        <legend class="win-legend">THÔNG TIN HỢP ĐỒNG &amp; DỰ TOÁN</legend>
+        <div class="form-grid">
+          <div class="form-col" style="grid-column: span 2;">
+            <label class="form-label" for="cboTemplateType">Mẫu bảng giá dự toán:</label>
+            <select id="cboTemplateType" class="win-combobox">
+              <option value="thi-cong" selected>Bảng giá thi công xây dựng công trình</option>
+              <option value="mua-ban">Bảng giá hợp đồng mua bán vật tư / thiết bị</option>
+              <option value="dich-vu">Bảng giá dịch vụ kỹ thuật / bảo trì</option>
+            </select>
+          </div>
+          <div class="form-col">
+            <label class="form-label" for="cboVatRate">Thuế suất VAT:</label>
+            <select id="cboVatRate" class="win-combobox">
+              <option value="10" selected>10% (Chuẩn)</option>
+              <option value="8">8% (Giảm thuế)</option>
+              <option value="0">0% (Không chịu thuế)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-grid" style="margin-top: 6px;">
+          <div class="form-col">
+            <label class="form-label" for="txtProjectName">Tên công trình / Gói thầu:</label>
+            <input type="text" id="txtProjectName" class="win-textbox" value="Công trình Tòa nhà Văn phòng TechCenter" />
+          </div>
+          <div class="form-col">
+            <label class="form-label" for="txtOwnerName">Chủ đầu tư / Bên mua (Bên A):</label>
+            <input type="text" id="txtOwnerName" class="win-textbox" value="CÔNG TY CỔ PHẦN ĐẦU TƯ BẤT ĐỘNG SẢN AN GIA" />
+          </div>
+          <div class="form-col">
+            <label class="form-label" for="txtContractorName">Nhà thầu / Bên thi công (Bên B):</label>
+            <input type="text" id="txtContractorName" class="win-textbox" value="CÔNG TY TNHH XÂY DỰNG HUỲNH BẢO" />
+          </div>
+        </div>
+      </fieldset>
+
+      <!-- GroupBox: DataGridView Bảng giá -->
+      <div class="win-datagrid-box">
+        <div class="win-grid-scroll">
+          <table class="win-datagrid" id="gridTable">
+            <thead>
+              <tr>
+                <th style="width: 35px; text-align: center;">STT</th>
+                <th style="width: 250px;">Nội dung công việc / Hàng hóa vật tư</th>
+                <th style="width: 55px; text-align: center;">ĐVT</th>
+                <th style="width: 65px; text-align: right;">Khối lượng</th>
+                <th style="width: 100px; text-align: right;">Đơn giá (VNĐ)</th>
+                <th style="width: 120px; text-align: right;">Thành tiền (VNĐ)</th>
+                <th style="width: 85px;">Ghi chú</th>
+              </tr>
+            </thead>
+            <tbody id="gridBody">
+              <!-- Rendered via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- GroupBox: Tổng hợp kinh phí -->
+      <div class="win-summary-box">
+        <div class="win-summary-row">
+          <span>Tổng giá trị công tác xây lắp / hàng hóa trước thuế:</span>
+          <span style="font-weight: 600; font-family: Consolas, monospace;" id="valSubtotal">0 VNĐ</span>
+        </div>
+        <div class="win-summary-row">
+          <span id="labelVat">Tiền thuế giá trị gia tăng GTGT (10%):</span>
+          <span style="font-weight: 600; font-family: Consolas, monospace;" id="valVat">0 VNĐ</span>
+        </div>
+        <div class="win-summary-row win-summary-grand">
+          <span>TỔNG CỘNG GIÁ TRỊ HỢP ĐỒNG THANH TOÁN:</span>
+          <span class="grand-val" id="valGrandTotal">0 VNĐ</span>
+        </div>
+        <div class="win-summary-words">
+          <span>Bằng chữ: </span>
+          <span style="font-weight: 600;" id="valWords">Không đồng.</span>
+        </div>
+      </div>
+
+    </main>
+
+    <!-- 4. Thanh nút bấm đáy -->
+    <div class="win-bottom-bar">
+      <div style="color: #005499; font-weight: 500; font-size: 11px;">
+        💡 Cửa sổ độc lập chạy song song với Microsoft Word
+      </div>
+      <div style="display: flex; gap: 6px;">
+        <button class="win-btn win-btn-primary" id="btnBottomInsertWord">
+          <span>📥</span> Chèn bảng giá vào Word
+        </button>
+        <button class="win-btn" id="btnBottomSyncForm">
+          <span>💾</span> Lấy giá trị về Form
+        </button>
+        <button class="win-btn" id="btnBottomClose">
+          <span>❌</span> Đóng cửa sổ
+        </button>
+      </div>
+    </div>
+
+    <!-- 5. StatusStrip -->
+    <footer class="win-statusstrip">
+      <div class="win-status-panel status-fill" id="statusMessage">
+        Sẵn sàng | Đang liên kết với Microsoft Word Add-in
+      </div>
+      <div class="win-status-panel" id="statusItemCount">
+        6 hạng mục
+      </div>
+      <div class="win-status-panel" style="color: #003399; font-weight: 600;">
+        WinForms Standalone Window v2.6.0
+      </div>
+    </footer>
+
+  </div>
+
+  <script>
+    /* ==========================================================================
+       LOGIC JAVASCRIPT CHO CỬA SỔ PHẦN MỀM ĐỘC LẬP (STANDALONE DIALOG)
+       ========================================================================== */
+
+    const BROADCAST_CHANNEL_NAME = "WordAddin_WinForms_Channel";
+    const broadcast = typeof BroadcastChannel !== "undefined" ? new BroadcastChannel(BROADCAST_CHANNEL_NAME) : null;
+
+    function setStatus(msg) {
+      const el = document.getElementById("statusMessage");
+      if (el) el.textContent = msg;
+    }
+
+    function formatCurrency(num) {
+      if (isNaN(num)) return "0";
+      return Math.round(num).toLocaleString("vi-VN");
+    }
+
+    function convertNumberToVietnameseWords(n) {
+      if (isNaN(n) || n <= 0) return "Không đồng";
+      const units = ["", "nghìn", "triệu", "tỷ", "nghìn tỷ", "triệu tỷ"];
+      const digits = ["không", "một", "hai", "ba", "bốn", "năm", "sáu", "bảy", "tám", "chín"];
+
+      function readGroup(group, isLeading) {
+        const c = Math.floor(group / 100);
+        const t = Math.floor((group % 100) / 10);
+        const d = group % 10;
+        let res = "";
+
+        if (c > 0 || !isLeading) res += digits[c] + " trăm ";
+        if (t > 1) {
+          res += digits[t] + " mươi ";
+          if (d === 1) res += "mốt ";
+          else if (d === 5) res += "lăm ";
+          else if (d > 0) res += digits[d] + " ";
+        } else if (t === 1) {
+          res += "mười ";
+          if (d === 5) res += "lăm ";
+          else if (d > 0) res += digits[d] + " ";
+        } else if (d > 0) {
+          if (c > 0 || !isLeading) res += "lẻ ";
+          res += digits[d] + " ";
+        }
+        return res.trim();
+      }
+
+      let num = Math.round(n);
+      const groups = [];
+      while (num > 0) {
+        groups.push(num % 1000);
+        num = Math.floor(num / 1000);
+      }
+
+      let text = "";
+      for (let i = groups.length - 1; i >= 0; i--) {
+        const g = groups[i];
+        if (g > 0) {
+          const gText = readGroup(g, i === groups.length - 1);
+          text += gText + " " + units[i] + " ";
+        }
+      }
+
+      text = text.trim();
+      if (!text) return "Không đồng";
+      text = text.charAt(0).toUpperCase() + text.slice(1) + " đồng chẵn.";
+      return text.replace(/\s+/g, " ");
+    }
+
+    const DEMO_TEMPLATES = {
+      "thi-cong": [
+        { name: "Thi công đào móng, vận chuyển đất đổ thải", unit: "m3", qty: 250, price: 120000, note: "Máy + thủ công" },
+        { name: "Gia công lắp dựng cốt thép móng, dầm, cột", unit: "tấn", qty: 8.5, price: 24500000, note: "Thép CB300" },
+        { name: "Bê tông thương phẩm mác 300 móng và dầm sàn", unit: "m3", qty: 180, price: 1450000, note: "Độ sụt 12±2" },
+        { name: "Xây tường gạch ống dày 100-200 vữa xi măng mác 75", unit: "m2", qty: 650, price: 210000, note: "Gạch Tuynel" },
+        { name: "Trát tường trong và ngoài nhà vữa XM mác 75", unit: "m2", qty: 1300, price: 110000, note: "Dày 1.5cm" },
+        { name: "Lắp đặt hệ thống cấp thoát nước và thiết bị vệ sinh", unit: "gói", qty: 1, price: 185000000, note: "Trọn gói" }
+      ],
+      "mua-ban": [
+        { name: "Xi măng Portland hỗn hợp PCB40 bao 50kg", unit: "tấn", qty: 45, price: 1750000, note: "Hà Tiên" },
+        { name: "Thép vằn xây dựng phi 10 - 25 Hòa Phát", unit: "tấn", qty: 12, price: 17200000, note: "ASTM" },
+        { name: "Cát vàng xây tô hạt vừa sàng lọc sạch", unit: "m3", qty: 85, price: 360000, note: "Cát sông Lô" },
+        { name: "Gạch men lát nền 600x600 Viglacera cao cấp", unit: "m2", qty: 220, price: 195000, note: "Loại 1" },
+        { name: "Dây cáp điện Cadivi 2x4.0 mm2 cuộn 100m", unit: "cuộn", qty: 15, price: 1250000, note: "Chính hãng" },
+        { name: "Sơn nước nội thất Dulux EasyClean lau chùi hiệu quả", unit: "thùng", qty: 25, price: 1650000, note: "Thùng 18L" }
+      ],
+      "dich-vu": [
+        { name: "Dịch vụ bảo trì, bảo dưỡng hệ thống điều hòa không khí", unit: "hệ thống", qty: 1, price: 35000000, note: "Định kỳ 6 tháng" },
+        { name: "Dịch vụ kiểm định an toàn thiết bị nâng và PCCC", unit: "lần", qty: 2, price: 18000000, note: "Cấp chứng nhận" },
+        { name: "Dịch vụ hỗ trợ kỹ thuật và giám sát thi công chuyên nghiệp", unit: "tháng", qty: 6, price: 25000000, note: "Kỹ sư túc trực" }
+      ]
+    };
+
+    let gridItems = [];
+    let selectedIndex = -1;
+
+    function loadTemplate(key) {
+      const source = DEMO_TEMPLATES[key] || DEMO_TEMPLATES["thi-cong"];
+      gridItems = source.map(item => ({ ...item }));
+      selectedIndex = -1;
+      renderTable();
+      setStatus(`Đã tải mẫu bảng giá: ${key}`);
+    }
+
+    function renderTable() {
+      const tbody = document.getElementById("gridBody");
+      if (!tbody) return;
+      tbody.innerHTML = "";
+
+      gridItems.forEach((item, index) => {
+        const tr = document.createElement("tr");
+        if (index === selectedIndex) tr.classList.add("selected");
+
+        const amount = (item.qty || 0) * (item.price || 0);
+
+        tr.innerHTML = `
+          <td class="text-center" style="font-weight: 600; color: #555555;">${index + 1}</td>
+          <td><input type="text" class="win-grid-input" data-idx="${index}" data-field="name" value="${item.name || ""}" /></td>
+          <td class="text-center"><input type="text" class="win-grid-input text-center" data-idx="${index}" data-field="unit" value="${item.unit || "gói"}" /></td>
+          <td class="text-right"><input type="number" step="any" class="win-grid-input text-right" data-idx="${index}" data-field="qty" value="${item.qty || 0}" /></td>
+          <td class="text-right"><input type="number" step="1000" class="win-grid-input text-right" data-idx="${index}" data-field="price" value="${item.price || 0}" /></td>
+          <td class="text-right" style="font-weight: 600; font-family: Consolas, monospace; color: #003399;">${formatCurrency(amount)}</td>
+          <td><input type="text" class="win-grid-input" data-idx="${index}" data-field="note" value="${item.note || ""}" /></td>
+        `;
+
+        tr.addEventListener("click", () => {
+          selectedIndex = index;
+          highlightRow();
+        });
+
+        tbody.appendChild(tr);
+      });
+
+      const countEl = document.getElementById("statusItemCount");
+      if (countEl) countEl.textContent = `${gridItems.length} hạng mục`;
+
+      recalculate();
+    }
+
+    function highlightRow() {
+      const rows = document.querySelectorAll("#gridBody tr");
+      rows.forEach((r, idx) => {
+        if (idx === selectedIndex) r.classList.add("selected");
+        else r.classList.remove("selected");
+      });
+    }
+
+    function recalculate() {
+      let subtotal = 0;
+      gridItems.forEach(item => {
+        subtotal += (item.qty || 0) * (item.price || 0);
+      });
+
+      const vatRate = parseInt(document.getElementById("cboVatRate")?.value || "10", 10);
+      const vatAmount = subtotal * (vatRate / 100);
+      const grandTotal = subtotal + vatAmount;
+
+      document.getElementById("valSubtotal").textContent = `${formatCurrency(subtotal)} VNĐ`;
+      document.getElementById("labelVat").textContent = `Tiền thuế giá trị gia tăng GTGT (${vatRate}%):`;
+      document.getElementById("valVat").textContent = `${formatCurrency(vatAmount)} VNĐ`;
+      document.getElementById("valGrandTotal").textContent = `${formatCurrency(grandTotal)} VNĐ`;
+      document.getElementById("valWords").textContent = convertNumberToVietnameseWords(grandTotal);
+    }
+
+    // Lắng nghe thay đổi dữ liệu trong bảng
+    document.getElementById("gridBody")?.addEventListener("input", (e) => {
+      const idx = parseInt(e.target.dataset.idx, 10);
+      const field = e.target.dataset.field;
+      if (isNaN(idx) || !field || !gridItems[idx]) return;
+
+      if (field === "qty" || field === "price") {
+        gridItems[idx][field] = parseFloat(e.target.value) || 0;
+      } else {
+        gridItems[idx][field] = e.target.value;
+      }
+
+      // Cập nhật lại cột Thành tiền ngay lập tức
+      const tr = e.target.closest("tr");
+      if (tr) {
+        const itemAmount = (gridItems[idx].qty || 0) * (gridItems[idx].price || 0);
+        tr.children[5].textContent = formatCurrency(itemAmount);
+      }
+
+      recalculate();
+    });
+
+    // Thêm dòng mới
+    function addRow() {
+      gridItems.push({ name: "Hạng mục công việc / Vật tư mới", unit: "gói", qty: 1, price: 10000000, note: "" });
+      selectedIndex = gridItems.length - 1;
+      renderTable();
+      setStatus("Đã thêm 1 dòng mới vào bảng dự toán.");
+    }
+
+    // Xóa dòng
+    function deleteRow() {
+      if (gridItems.length === 0) return;
+      const target = selectedIndex >= 0 ? selectedIndex : gridItems.length - 1;
+      gridItems.splice(target, 1);
+      selectedIndex = Math.min(target, gridItems.length - 1);
+      renderTable();
+      setStatus("Đã xóa dòng.");
+    }
+
+    // Đồng bộ giá trị về Form Taskpane chính
+    function sendSyncToTaskpane() {
+      let subtotal = 0;
+      gridItems.forEach(item => {
+        subtotal += (item.qty || 0) * (item.price || 0);
+      });
+      const vatRate = parseInt(document.getElementById("cboVatRate")?.value || "10", 10);
+      const grandTotal = subtotal + subtotal * (vatRate / 100);
+      const inWords = convertNumberToVietnameseWords(grandTotal);
+      const payload = {
+        action: "SYNC_TOTAL",
+        grandTotal: grandTotal,
+        formattedString: `${formatCurrency(grandTotal)} VNĐ (${inWords})`,
+        projectName: document.getElementById("txtProjectName")?.value || ""
+      };
+
+      if (broadcast) {
+        broadcast.postMessage(payload);
+      }
+      if (window.opener && !window.opener.closed) {
+        window.opener.postMessage(payload, "*");
+        if (typeof window.opener.onReceiveSyncFromDialog === "function") {
+          window.opener.onReceiveSyncFromDialog(payload);
+        }
+      }
+
+      setStatus("Đã gửi đồng bộ tổng giá trị về Form Taskpane chính!");
+      alert(`Đã đồng bộ tổng giá trị về Form hợp đồng thành công:\n${payload.formattedString}`);
+    }
+
+    // Chèn bảng giá trực tiếp vào Microsoft Word
+    function sendInsertToWord() {
+      if (gridItems.length === 0) {
+        alert("Bảng giá đang trống!");
+        return;
+      }
+
+      let subtotal = 0;
+      gridItems.forEach(item => {
+        subtotal += (item.qty || 0) * (item.price || 0);
+      });
+      const vatRate = parseInt(document.getElementById("cboVatRate")?.value || "10", 10);
+      const grandTotal = subtotal + subtotal * (vatRate / 100);
+      const inWords = convertNumberToVietnameseWords(grandTotal);
+
+      const payload = {
+        action: "INSERT_WORD_TABLE",
+        projectName: document.getElementById("txtProjectName")?.value || "Công trình xây dựng",
+        templateName: document.getElementById("cboTemplateType")?.options[document.getElementById("cboTemplateType").selectedIndex].text || "Bảng giá hợp đồng",
+        vatRate: vatRate,
+        subtotal: subtotal,
+        vatAmount: subtotal * (vatRate / 100),
+        grandTotal: grandTotal,
+        inWords: inWords,
+        items: gridItems
+      };
+
+      if (broadcast) {
+        broadcast.postMessage(payload);
+      }
+      if (window.opener && !window.opener.closed) {
+        window.opener.postMessage(payload, "*");
+        if (typeof window.opener.onReceiveWordTableFromDialog === "function") {
+          window.opener.onReceiveWordTableFromDialog(payload);
+        }
+      }
+
+      setStatus("Đã gửi lệnh chèn bảng biểu sang Microsoft Word!");
+      alert("Đã gửi yêu cầu chèn Bảng giá vào tài liệu Word! Hãy kiểm tra cửa sổ Word.");
+    }
+
+    // Xuất file CSV
+    function exportToCsv() {
+      if (gridItems.length === 0) return;
+      let csv = "\uFEFFSTT,Tên hạng mục,ĐVT,Khối lượng,Đơn giá,Thành tiền,Ghi chú\n";
+      gridItems.forEach((item, idx) => {
+        const amt = (item.qty || 0) * (item.price || 0);
+        csv += `"${idx + 1}","${(item.name || "").replace(/"/g, '""')}","${item.unit}","${item.qty}","${item.price}","${amt}","${(item.note || "").replace(/"/g, '""')}"\n`;
+      });
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = `Bang_Gia_Du_Toan_${Date.now()}.csv`;
+      link.click();
+      setStatus("Đã xuất file CSV thành công.");
+    }
+
+    // Gắn sự kiện
+    window.addEventListener("DOMContentLoaded", () => {
+      document.getElementById("btnToolAdd")?.addEventListener("click", addRow);
+      document.getElementById("btnToolDelete")?.addEventListener("click", deleteRow);
+      document.getElementById("btnToolReset")?.addEventListener("click", () => loadTemplate(document.getElementById("cboTemplateType").value));
+      document.getElementById("btnToolInsertWord")?.addEventListener("click", sendInsertToWord);
+      document.getElementById("btnBottomInsertWord")?.addEventListener("click", sendInsertToWord);
+      document.getElementById("btnToolSyncForm")?.addEventListener("click", sendSyncToTaskpane);
+      document.getElementById("btnBottomSyncForm")?.addEventListener("click", sendSyncToTaskpane);
+      document.getElementById("btnToolExportCsv")?.addEventListener("click", exportToCsv);
+      document.getElementById("btnBottomClose")?.addEventListener("click", () => window.close());
+
+      document.getElementById("cboTemplateType")?.addEventListener("change", (e) => loadTemplate(e.target.value));
+      document.getElementById("cboVatRate")?.addEventListener("change", recalculate);
+
+      // Khởi tạo bảng mẫu mặc định
+      loadTemplate("thi-cong");
+    });
+  </script>
+</body>
+</html>

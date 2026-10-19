@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Chuẩn hóa Thể thức Văn bản Hành chính - WinForms Classic</title>
+
+  <!-- Nạp thư viện Office.js chính thức từ Microsoft CDN -->
+  <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+
+  <!-- Bộ định dạng CSS thuần phong cách WinForms Classic (0px radius) -->
+  <link rel="stylesheet" href="taskpane.css?v=2.7.0" />
+
+  <!-- Xử lý logic Word JavaScript API & tương tác WinForms -->
+  <script src="taskpane.js?v=2.7.0" defer></script>
+</head>
+<body>
+  <div id="app-root">
+
+    <!-- ==========================================================================
+         VIEW 1: MENU CHÍNH (Giao diện hiển thị mặc định khi mở Add-in)
+         ========================================================================== -->
+    <div id="viewMainMenu" class="win-view">
+      <!-- ToolStrip của Menu Chính -->
+      <header class="win-toolstrip" role="toolbar" aria-label="Thanh công cụ Menu">
+        <button class="win-toolstrip-btn" id="btnReloadMenu" title="Nạp lại giao diện">
+          <span>🔄</span> Nạp lại
+        </button>
+      </header>
+
+      <!-- Nội dung Menu chính -->
+      <main class="form-body win-menu-body">
+        <!-- GROUPBOX 1: ĐỒNG HỒ 24H & LỊCH ÂM DƯƠNG -->
+        <fieldset class="win-groupbox win-clock-box">
+          <legend class="win-legend">ĐỒNG HỒ &amp; LỊCH ÂM DƯƠNG</legend>
+          <div class="win-clock-time" id="clock24h">00:00:00</div>
+          <div class="win-clock-date" id="clockDate">Đang cập nhật thời gian...</div>
+          <div class="win-lunar-box" id="clockLunar">
+            <span class="win-lunar-icon">🌙</span>
+            <span id="lblLunarText">Âm lịch: Đang tính toán...</span>
+          </div>
+        </fieldset>
+
+        <!-- GROUPBOX 2: MENU CÁC NÚT CHỌN CHỨC NĂNG -->
+        <fieldset class="win-groupbox">
+          <legend class="win-legend">DANH MỤC CHỨC NĂNG HỆ THỐNG</legend>
+          <div class="win-menu-list">
+            <!-- NÚT CHÍNH: QUY CHUẨN NĐ 30 -->
+            <button class="win-menu-card-btn win-menu-card-primary" id="btnNavStandardize" type="button" title="Mở giao diện Chuẩn hóa thể thức văn bản hành chính theo NĐ 30">
+              <span class="win-menu-card-icon">⚡</span>
+              <div class="win-menu-card-info">
+                <span class="win-menu-card-title">QUY CHUẨN NĐ 30 / 2020 / NĐ-CP</span>
+                <span class="win-menu-card-desc">Chuẩn hóa thể thức, phông chữ, tiêu ngữ, căn lề, trích yếu văn bản</span>
+              </div>
+            </button>
+
+            <!-- NÚT 2: BẢNG GIÁ DỰ TOÁN (CỬA SỔ RIÊNG BIỆT) -->
+            <button class="win-menu-card-btn" id="btnNavPriceDialog" type="button" title="Mở cửa sổ phần mềm độc lập để nhập liệu bảng giá hợp đồng">
+              <span class="win-menu-card-icon">🗔</span>
+              <div class="win-menu-card-info">
+                <span class="win-menu-card-title">BẢNG GIÁ DỰ TOÁN KÝ HỢP ĐỒNG</span>
+                <span class="win-menu-card-desc">Cửa sổ Form WinForms độc lập tính toán chi phí, chèn bảng vào Word</span>
+              </div>
+            </button>
+
+            <!-- NÚT 3: BÓC TÁCH OCR FILE (AI QWEN2.5-VL-3B LOCAL) -->
+            <button class="win-menu-card-btn ocr-btn" id="btnNavOcrDialog" type="button" title="Mở cửa sổ trích xuất dữ liệu tài liệu PDF scan, bảng biểu, hợp đồng bằng AI Qwen2.5-VL-3B Local">
+              <span class="win-menu-card-icon">🔍</span>
+              <div class="win-menu-card-info">
+                <span class="win-menu-card-title">BÓC TÁCH OCR TÀI LIỆU (AI QWEN2.5-VL-3B)</span>
+                <span class="win-menu-card-desc">Bóc tách PDF scan, ảnh hợp đồng, bảng biểu bằng AI local và chèn sang Word</span>
+              </div>
+            </button>
+
+            <!-- NÚT 3: CHÈN MẪU VĂN BẢN MỚI -->
+            <button class="win-menu-card-btn" id="btnNavInsertTemplate" type="button" title="Chèn trực tiếp khung mẫu văn bản hành chính vào tài liệu Word">
+              <span class="win-menu-card-icon">📄</span>
+              <div class="win-menu-card-info">
+                <span class="win-menu-card-title">CHÈN MẪU VĂN BẢN MỚI</span>
+                <span class="win-menu-card-desc">Mẫu Công văn, Hợp đồng kinh tế, Biên bản, Tờ trình theo thể thức chuẩn</span>
+              </div>
+            </button>
+
+            <!-- NÚT 4: HƯỚNG DẪN QUY CHUẨN THỂ THỨC -->
+            <button class="win-menu-card-btn" id="btnNavHelpND30" type="button" title="Tra cứu nhanh các quy định thể thức văn bản theo Nghị định 30/2020/NĐ-CP">
+              <span class="win-menu-card-icon">📘</span>
+              <div class="win-menu-card-info">
+                <span class="win-menu-card-title">HƯỚNG DẪN QUY CHUẨN THỂ THỨC</span>
+                <span class="win-menu-card-desc">Quy định chi tiết về phông chữ, cỡ chữ, căn lề và bố cục theo NĐ 30</span>
+              </div>
+            </button>
+          </div>
+        </fieldset>
+
+        <!-- GROUPBOX 3: THÔNG TIN HỆ THỐNG -->
+        <fieldset class="win-groupbox" style="margin-top: 8px;">
+          <legend class="win-legend">THÔNG TIN HỆ THỐNG</legend>
+          <div style="font-size: 11px; color: #444; line-height: 1.6;">
+            <div>• <b>Phiên bản:</b> WinForms Office Add-in v2.7.0 Classic</div>
+            <div>• <b>Chuẩn pháp lý:</b> Nghị định số 30/2020/NĐ-CP của Chính phủ</div>
+            <div>• <b>Tính toàn vẹn dữ liệu:</b> Giữ nguyên 100% dữ liệu nhập khi quay về Menu</div>
+          </div>
+        </fieldset>
+      </main>
+    </div>
+
+    <!-- ==========================================================================
+         VIEW 2: FORM CHUẨN HÓA THỂ THỨC (NĐ 30/2020/NĐ-CP)
+         (Giữ nguyên toàn bộ DOM & dữ liệu khi ẩn/hiện)
+         ========================================================================== -->
+    <div id="viewStandardize" class="win-view hidden">
+
+      <!-- 1. WinForms ToolStrip đỉnh của Form Thể thức (Chỉ giữ Quay về Menu và Test cửa sổ) -->
+      <header class="win-toolstrip" role="toolbar" aria-label="Thanh công cụ">
+        <button class="win-toolstrip-btn win-btn-back" id="btnBackToMenu" title="Quay về menu chính (Giữ nguyên toàn bộ dữ liệu đã nhập)">
+          <span>⬅️</span> Quay về Menu
+        </button>
+        <div class="win-toolstrip-separator"></div>
+        <button class="win-toolstrip-btn" id="btnOpenDemoDialog" title="Mở cửa sổ demo nhập liệu bảng giá hợp đồng (WinForms Form Dialog)">
+          <span>🗔</span> Test cửa sổ
+        </button>
+      </header>
+
+      <!-- 2. Vùng cuộn chính chứa Form Thể thức (Fluid Responsive Layout) -->
+      <main class="form-body">
+
+      <!-- GROUPBOX CHÍNH: CHUẨN HÓA THỂ THỨC (NĐ 30/2020/NĐ-CP) -->
+      <fieldset class="win-groupbox">
+        <legend class="win-legend">CHUẨN HÓA THỂ THỨC (NĐ 30/2020/NĐ-CP)</legend>
+
+        <!-- Loại văn bản -->
+        <div class="form-row">
+          <label class="form-label" for="cboDocType">Loại văn bản hành chính:</label>
+          <select id="cboDocType" class="win-combobox">
+            <option value="cong-van" selected>Công văn hành chính (CV)</option>
+            <option value="hop-dong">Hợp đồng kinh tế / Dịch vụ (HĐ)</option>
+            <option value="bien-ban">Biên bản làm việc (BB)</option>
+            <option value="to-trinh">Tờ trình / Báo cáo (TTr)</option>
+          </select>
+        </div>
+
+        <!-- Cơ quan cấp trên -->
+        <div class="form-row">
+          <label class="form-label" for="txtSuperiorOrg">Cơ quan chủ quản (cấp trên - nếu có):</label>
+          <input type="text" id="txtSuperiorOrg" class="win-textbox" placeholder="VD: BỘ KHOA HỌC VÀ CÔNG NGHỆ" />
+        </div>
+
+        <!-- Cơ quan ban hành -->
+        <div class="form-row">
+          <label class="form-label" for="txtPublishingOrg">Tên cơ quan / Đơn vị ban hành văn bản:</label>
+          <input type="text" id="txtPublishingOrg" class="win-textbox" placeholder="VD: CỤC PHÁT TRIỂN CÔNG NGHỆ" />
+        </div>
+
+        <!-- Hàng 2 cột: Số thứ tự (nhập tay) & Ký hiệu đầy đủ (tự động) -->
+        <div class="form-row-grid">
+          <div class="form-col" style="flex: 0 0 95px; max-width: 110px;">
+            <label class="form-label" for="txtDocSeqNumber">Số thứ tự:</label>
+            <input type="text" id="txtDocSeqNumber" class="win-textbox" value="001" placeholder="VD: 001" />
+          </div>
+          <div class="form-col">
+            <label class="form-label" for="txtDocSymbol">Ký hiệu văn bản (Tự động):</label>
+            <input type="text" id="txtDocSymbol" class="win-textbox" placeholder="VD: /CV-HB" />
+          </div>
+        </div>
+
+        <!-- Hàng 2 cột: Địa danh (tìm/chọn) & Lịch chọn ngày -->
+        <div class="form-row-grid">
+          <div class="form-col">
+            <label class="form-label" for="txtLocation">Địa danh (Tìm &amp; Chọn):</label>
+            <input type="text" id="txtLocation" list="provincesList" class="win-textbox" value="TP. Hồ Chí Minh" placeholder="Nhập để tìm tỉnh/thành..." />
+            <datalist id="provincesList">
+              <option value="TP. Hồ Chí Minh">Thành phố Hồ Chí Minh</option>
+              <option value="Hà Nội">Thủ đô Hà Nội</option>
+              <option value="Đà Nẵng">Thành phố Đà Nẵng</option>
+              <option value="Hải Phòng">Thành phố Hải Phòng</option>
+              <option value="Cần Thơ">Thành phố Cần Thơ</option>
+              <option value="Thừa Thiên Huế">Thành phố Huế (Thừa Thiên Huế)</option>
+              <option value="An Giang"></option>
+              <option value="Bà Rịa - Vũng Tàu"></option>
+              <option value="Bắc Giang"></option>
+              <option value="Bắc Kạn"></option>
+              <option value="Bạc Liêu"></option>
+              <option value="Bắc Ninh"></option>
+              <option value="Bến Tre"></option>
+              <option value="Bình Định"></option>
+              <option value="Bình Dương"></option>
+              <option value="Bình Phước"></option>
+              <option value="Bình Thuận"></option>
+              <option value="Cà Mau"></option>
+              <option value="Cao Bằng"></option>
+              <option value="Đắk Lắk"></option>
+              <option value="Đắk Nông"></option>
+              <option value="Điện Biên"></option>
+              <option value="Đồng Nai"></option>
+              <option value="Đồng Tháp"></option>
+              <option value="Gia Lai"></option>
+              <option value="Hà Giang"></option>
+              <option value="Hà Nam"></option>
+              <option value="Hà Tĩnh"></option>
+              <option value="Hải Dương"></option>
+              <option value="Hậu Giang"></option>
+              <option value="Hòa Bình"></option>
+              <option value="Hưng Yên"></option>
+              <option value="Khánh Hòa"></option>
+              <option value="Kiên Giang"></option>
+              <option value="Kon Tum"></option>
+              <option value="Lai Châu"></option>
+              <option value="Lâm Đồng"></option>
+              <option value="Lạng Sơn"></option>
+              <option value="Lào Cai"></option>
+              <option value="Long An"></option>
+              <option value="Nam Định"></option>
+              <option value="Nghệ An"></option>
+              <option value="Ninh Bình"></option>
+              <option value="Ninh Thuận"></option>
+              <option value="Phú Thọ"></option>
+              <option value="Phú Yên"></option>
+              <option value="Quảng Bình"></option>
+              <option value="Quảng Nam"></option>
+              <option value="Quảng Ngãi"></option>
+              <option value="Quảng Ninh"></option>
+              <option value="Quảng Trị"></option>
+              <option value="Sóc Trăng"></option>
+              <option value="Sơn La"></option>
+              <option value="Tây Ninh"></option>
+              <option value="Thái Bình"></option>
+              <option value="Thái Nguyên"></option>
+              <option value="Thanh Hóa"></option>
+              <option value="Tiền Giang"></option>
+              <option value="Trà Vinh"></option>
+              <option value="Tuyên Quang"></option>
+              <option value="Vĩnh Long"></option>
+              <option value="Vĩnh Phúc"></option>
+              <option value="Yên Bái"></option>
+            </datalist>
+          </div>
+          <div class="form-col" style="flex: 0 0 135px; max-width: 145px;">
+            <label class="form-label" for="dtpDocDate">Chọn lịch ngày:</label>
+            <input type="date" id="dtpDocDate" class="win-textbox" />
+          </div>
+        </div>
+
+        <!-- Ngày tháng năm ban hành đầy đủ -->
+        <div class="form-row">
+          <label class="form-label" for="txtDocDate">Ngày, tháng, năm ban hành (hoặc nhập dd/mm/yyyy):</label>
+          <input type="text" id="txtDocDate" class="win-textbox" placeholder="VD: TP. Hồ Chí Minh, ngày 18 tháng 10 năm 2026" />
+        </div>
+
+        <!-- ============================================================= -->
+        <!-- PANEL 1: CÔNG VĂN HÀNH CHÍNH (CV)                               -->
+        <!-- ============================================================= -->
+        <div id="panelCongVan" class="win-doc-panel">
+          <div class="form-row">
+            <label class="form-label" for="txtDocTitle">Trích yếu nội dung công văn (bắt đầu bằng Về việc):</label>
+            <textarea id="txtDocTitle" class="win-textarea" style="min-height: 48px;" placeholder="VD: Về việc: phối hợp triển khai công tác chuyển đổi số năm 2026">Về việc: </textarea>
+          </div>
+          <div class="form-row">
+            <label class="form-label" for="txtDearCongVan">Kính gửi (cơ quan, tổ chức hoặc cá nhân nhận):</label>
+            <input type="text" id="txtDearCongVan" class="win-textbox" value="Kính gửi: Tên cơ quan, tổ chức hoặc cá nhân nhận công văn" placeholder="VD: Kính gửi: Sở Khoa học và Công nghệ TP. Hồ Chí Minh" />
+          </div>
+        </div>
+
+        <!-- ============================================================= -->
+        <!-- PANEL 2: HỢP ĐỒNG KINH TẾ / DỊCH VỤ / XÂY DỰNG (HĐ)           -->
+        <!-- ============================================================= -->
+        <div id="panelHopDong" class="win-doc-panel hidden">
+          <fieldset class="win-sub-groupbox">
+            <legend class="win-sub-legend">THÔNG TIN HỢP ĐỒNG KINH TẾ / THI CÔNG</legend>
+
+            <!-- Chọn loại hợp đồng -->
+            <div class="form-row">
+              <label class="form-label" for="cboContractType">Loại hợp đồng cụ thể:</label>
+              <select id="cboContractType" class="win-combobox">
+                <option value="hd-thi-cong" selected>Hợp đồng thi công xây dựng công trình</option>
+                <option value="hd-kinh-te">Hợp đồng kinh tế</option>
+                <option value="hd-nguyen-tac">Hợp đồng nguyên tắc</option>
+                <option value="hd-dich-vu">Hợp đồng dịch vụ</option>
+                <option value="hd-mua-ban">Hợp đồng mua bán hàng hóa</option>
+                <option value="hd-tu-van">Hợp đồng tư vấn thiết kế / Giám sát</option>
+              </select>
+            </div>
+
+            <!-- Tiêu đề hợp đồng -->
+            <div class="form-row">
+              <label class="form-label" for="txtContractTitle">Tiêu đề hợp đồng (In hoa):</label>
+              <input type="text" id="txtContractTitle" class="win-textbox" value="HỢP ĐỒNG THI CÔNG XÂY DỰNG CÔNG TRÌNH" placeholder="VD: HỢP ĐỒNG THI CÔNG XÂY DỰNG CÔNG TRÌNH" />
+            </div>
+
+            <!-- Thông tin thi công / dự án -->
+            <div class="form-row-grid">
+              <div class="form-col">
+                <label class="form-label" for="txtProjectName">Tên công trình / Dự án:</label>
+                <input type="text" id="txtProjectName" class="win-textbox" placeholder="VD: Tòa nhà Văn phòng TechCenter" />
+              </div>
+              <div class="form-col">
+                <label class="form-label" for="txtBiddingPackage">Tên gói thầu:</label>
+                <input type="text" id="txtBiddingPackage" class="win-textbox" placeholder="VD: Gói thầu số 02: Thi công xây dựng và hoàn thiện" />
+              </div>
+            </div>
+
+            <div class="form-row-grid">
+              <div class="form-col">
+                <label class="form-label" for="txtProjectLocation">Địa điểm thi công / Thực hiện:</label>
+                <input type="text" id="txtProjectLocation" class="win-textbox" placeholder="VD: Lô E2, Khu Công nghệ cao, TP. Thủ Đức, TP. HCM" />
+              </div>
+              <div class="form-col">
+                <label class="form-label" for="txtContractValue">Giá trị hợp đồng / Bảng giá:</label>
+                <input type="text" id="txtContractValue" class="win-textbox" placeholder="VD: 1.850.000.000 VNĐ (Một tỷ tám trăm năm mươi triệu đồng)" />
+              </div>
+            </div>
+
+            <!-- Đại diện Bên A -->
+            <div class="form-row-grid" style="margin-top: 4px;">
+              <div class="form-col">
+                <label class="form-label" for="txtPartyAName">Bên A (Chủ đầu tư / Bên mua):</label>
+                <input type="text" id="txtPartyAName" class="win-textbox" placeholder="VD: CÔNG TY CỔ PHẦN ĐẦU TƯ BẤT ĐỘNG SẢN AN GIA" />
+              </div>
+              <div class="form-col">
+                <label class="form-label" for="txtPartyARep">Đại diện Bên A - Chức vụ:</label>
+                <input type="text" id="txtPartyARep" class="win-textbox" placeholder="VD: Ông Nguyễn Văn A - Tổng Giám đốc" />
+              </div>
+            </div>
+
+            <!-- Đại diện Bên B -->
+            <div class="form-row-grid">
+              <div class="form-col">
+                <label class="form-label" for="txtPartyBName">Bên B (Nhà thầu / Bên thi công):</label>
+                <input type="text" id="txtPartyBName" class="win-textbox" placeholder="Để trống sẽ tự lấy tên đơn vị ban hành" />
+              </div>
+              <div class="form-col">
+                <label class="form-label" for="txtPartyBRep">Đại diện Bên B - Chức vụ:</label>
+                <input type="text" id="txtPartyBRep" class="win-textbox" placeholder="VD: Ông Huỳnh Bảo - Giám đốc" />
+              </div>
+            </div>
+
+          </fieldset>
+        </div>
+
+        <!-- ============================================================= -->
+        <!-- PANEL 3: BIÊN BẢN LÀM VIỆC / BÀN GIAO / NGHIỆM THU (BB)        -->
+        <!-- ============================================================= -->
+        <div id="panelBienBan" class="win-doc-panel hidden">
+          <fieldset class="win-sub-groupbox">
+            <legend class="win-sub-legend">THÔNG TIN BIÊN BẢN LÀM VIỆC / NGHIỆM THU</legend>
+
+            <!-- Chọn loại biên bản -->
+            <div class="form-row">
+              <label class="form-label" for="cboMinuteType">Loại biên bản cụ thể:</label>
+              <select id="cboMinuteType" class="win-combobox">
+                <option value="bb-nghiem-thu" selected>Biên bản nghiệm thu công việc / công trình</option>
+                <option value="bb-lam-viec">Biên bản làm việc</option>
+                <option value="bb-ban-giao">Biên bản bàn giao hạng mục / thiết bị</option>
+                <option value="bb-hop-giao-ban">Biên bản họp giao ban định kỳ</option>
+              </select>
+            </div>
+
+            <!-- Tiêu đề biên bản -->
+            <div class="form-row">
+              <label class="form-label" for="txtMinuteTitle">Tiêu đề biên bản (In hoa):</label>
+              <input type="text" id="txtMinuteTitle" class="win-textbox" value="BIÊN BẢN NGHIỆM THU VÀ BÀN GIAO HẠNG MỤC THI CÔNG" placeholder="VD: BIÊN BẢN NGHIỆM THU CÔNG VIỆC" />
+            </div>
+
+            <div class="form-row">
+              <label class="form-label" for="txtMinuteSubject">Nội dung sự việc (V/v):</label>
+              <input type="text" id="txtMinuteSubject" class="win-textbox" value="V/v: Nghiệm thu hoàn thành công tác thi công và bàn giao đưa vào sử dụng" placeholder="VD: V/v: Họp giải quyết tranh chấp hợp đồng..." />
+            </div>
+
+            <!-- Thời gian & Địa điểm -->
+            <div class="form-row-grid">
+              <div class="form-col">
+                <label class="form-label" for="txtMinuteTime">Thời gian bắt đầu:</label>
+                <input type="text" id="txtMinuteTime" class="win-textbox" placeholder="VD: 09 giờ 00 phút ngày 18 tháng 10 năm 2026" />
+              </div>
+              <div class="form-col">
+                <label class="form-label" for="txtMinuteLocation">Địa điểm làm việc:</label>
+                <input type="text" id="txtMinuteLocation" class="win-textbox" placeholder="VD: Tại văn phòng Ban Quản lý công trình" />
+              </div>
+            </div>
+
+            <!-- Thành phần tham dự -->
+            <div class="form-row-grid">
+              <div class="form-col">
+                <label class="form-label" for="txtMinuteChair">Chủ trì / Chủ tọa cuộc họp:</label>
+                <input type="text" id="txtMinuteChair" class="win-textbox" placeholder="VD: Ông Nguyễn Văn A - Chỉ huy trưởng" />
+              </div>
+              <div class="form-col">
+                <label class="form-label" for="txtMinuteSecretary">Thư ký cuộc họp:</label>
+                <input type="text" id="txtMinuteSecretary" class="win-textbox" placeholder="VD: Bà Trần Thị B - Cán bộ kỹ thuật" />
+              </div>
+            </div>
+
+            <div class="form-row">
+              <label class="form-label" for="txtMinuteAttendees">Thành phần tham gia khác:</label>
+              <input type="text" id="txtMinuteAttendees" class="win-textbox" placeholder="VD: Đại diện Chủ đầu tư, Tư vấn giám sát, Cán bộ phụ trách an toàn" />
+            </div>
+
+          </fieldset>
+        </div>
+
+        <!-- ============================================================= -->
+        <!-- PANEL 4: TỜ TRÌNH / BÁO CÁO (TTr)                             -->
+        <!-- ============================================================= -->
+        <div id="panelToTrinh" class="win-doc-panel hidden">
+          <fieldset class="win-sub-groupbox">
+            <legend class="win-sub-legend">THÔNG TIN TỜ TRÌNH / BÁO CÁO</legend>
+
+            <!-- Chọn loại tờ trình -->
+            <div class="form-row">
+              <label class="form-label" for="cboReportType">Loại văn bản trình / báo cáo:</label>
+              <select id="cboReportType" class="win-combobox">
+                <option value="ttr-phe-duyet" selected>Tờ trình phê duyệt kế hoạch / dự toán</option>
+                <option value="bc-cong-tac">Báo cáo công tác chuyên môn</option>
+                <option value="bc-dinh-ky">Báo cáo tình hình định kỳ</option>
+              </select>
+            </div>
+
+            <!-- Tiêu đề / Trích yếu -->
+            <div class="form-row">
+              <label class="form-label" for="txtReportTitle">Trích yếu tờ trình (V/v):</label>
+              <textarea id="txtReportTitle" class="win-textarea" style="min-height: 48px;" placeholder="VD: V/v xin phê duyệt kế hoạch thi công và dự toán kinh phí công trình năm 2026">V/v xin phê duyệt kế hoạch thi công và dự toán kinh phí năm 2026</textarea>
+            </div>
+
+            <div class="form-row">
+              <label class="form-label" for="txtReportDear">Kính gửi (Cấp có thẩm quyền phê duyệt):</label>
+              <input type="text" id="txtReportDear" class="win-textbox" value="Kính gửi: Ban Giám đốc Công ty" placeholder="VD: Kính gửi: Ban Giám đốc Sở Xây dựng TP. Hồ Chí Minh" />
+            </div>
+
+            <div class="form-row">
+              <label class="form-label" for="txtReportBasis">Căn cứ đề xuất:</label>
+              <input type="text" id="txtReportBasis" class="win-textbox" placeholder="VD: Căn cứ Kế hoạch sản xuất kinh doanh năm 2026; Căn cứ nhu cầu thực tế của đơn vị." />
+            </div>
+
+          </fieldset>
+        </div>
+
+        <!-- Khung tùy chọn quy chuẩn -->
+        <div class="win-options-box">
+          <div class="win-options-title">Tùy chọn quy chuẩn áp dụng:</div>
+          <div class="win-checkbox-group">
+            <label class="win-checkbox-label">
+              <input type="checkbox" id="chkSmartParse" checked />
+              Tự động phân tích &amp; tái cấu trúc nội dung đang có (Tránh trùng lặp)
+            </label>
+            <label class="win-checkbox-label">
+              <input type="checkbox" id="chkHeaderTable" checked />
+              Tạo bảng tiêu ngữ &amp; quốc hiệu 2 cột không viền (Có gạch ngang chuẩn)
+            </label>
+            <label class="win-checkbox-label">
+              <input type="checkbox" id="chkFooterTable" checked />
+              Tạo bảng Nơi nhận &amp; Chữ ký 2 cột cân đối ở cuối văn bản
+            </label>
+            <label class="win-checkbox-label">
+              <input type="checkbox" id="chkMarginA4" checked />
+              Căn lề chuẩn A4 NĐ 30 (Trên: 20mm, Dưới: 20mm, Trái: 30mm, Phải: 15mm)
+            </label>
+            <label class="win-checkbox-label">
+              <input type="checkbox" id="chkIndentSpacing" checked />
+              Thụt đầu dòng 1.27cm, căn đều 2 lề (Justify), giãn đoạn 6pt
+            </label>
+            <label class="win-checkbox-label">
+              <input type="checkbox" id="chkFontTimes" checked />
+              Chuẩn hóa Font toàn bộ văn bản về Times New Roman (size 13)
+            </label>
+          </div>
+        </div>
+
+        <!-- Các nút hành động WinForms -->
+        <div class="win-action-grid">
+          <button class="win-btn win-btn-primary" id="btnStandardizeAll" title="Tự động nhận diện nội dung văn bản và chuẩn hóa toàn diện theo NĐ 30/2020/NĐ-CP">
+            <span>⚡</span> Chuẩn hóa toàn bộ văn bản
+          </button>
+          <button class="win-btn" id="btnInsertTemplate" title="Chèn khung nội dung mẫu hoàn chỉnh theo loại văn bản đã chọn">
+            <span>📄</span> Chèn mẫu văn bản mới
+          </button>
+          <button class="win-btn" id="btnClearForm" title="Xóa trắng các ô nhập liệu trên form">
+            <span>🧹</span> Xóa trắng form
+          </button>
+        </div>
+
+      </fieldset>
+    </main>
+    </div> <!-- /viewStandardize -->
+
+    <!-- 3. Thanh trạng thái WinForms StatusStrip -->
+    <footer class="win-statusstrip" role="status" aria-label="Thanh trạng thái">
+      <div class="win-status-panel status-main" id="statusMessage" title="Trạng thái thực thi">
+        Sẵn sàng | NĐ 30/2020/NĐ-CP Ready
+      </div>
+      <div class="win-status-panel status-host" id="hostInfo" title="Nền tảng ứng dụng">
+        Word Desktop
+      </div>
+      <div class="win-status-panel status-version" title="Phiên bản">
+        v2.7.0
+      </div>
+      <div class="win-sizegrip" title="Kéo cạnh taskpane để điều chỉnh kích thước"></div>
+    </footer>
+
+    <!-- 4. WinForms Modal Dialog: Bảng giá ký hợp đồng (Demo Test Cửa Sổ) -->
+    <div id="dlgPriceScheduleOverlay" class="win-modal-overlay hidden">
+      <div class="win-dialog-window" role="dialog" aria-labelledby="dlgTitle">
+        <!-- Title bar -->
+        <div class="win-dialog-titlebar">
+          <div class="win-dialog-title" id="dlgTitle">
+            <span class="win-dialog-icon">📋</span>
+            <span>Bảng giá ký hợp đồng - [FormBaoGia]</span>
+          </div>
+          <div class="win-dialog-controlbox">
+            <button class="win-dialog-btn-min" title="Thu nhỏ">_</button>
+            <button class="win-dialog-btn-close" id="btnCloseDialog" title="Đóng cửa sổ">✕</button>
+          </div>
+        </div>
+
+        <!-- Dialog Body -->
+        <div class="win-dialog-content">
+          <!-- Top bar inside dialog -->
+          <div class="win-dialog-top">
+            <div class="form-row" style="margin-bottom: 6px;">
+              <label class="form-label" for="cboPriceTemplateType">Mẫu bảng giá áp dụng:</label>
+              <select id="cboPriceTemplateType" class="win-combobox" style="height: 25px;">
+                <option value="thi-cong" selected>Bảng giá hợp đồng thi công xây dựng công trình</option>
+                <option value="mua-ban">Bảng giá hợp đồng mua bán vật tư, thiết bị</option>
+                <option value="dich-vu">Bảng giá hợp đồng cung cấp dịch vụ kỹ thuật</option>
+              </select>
+            </div>
+            <div class="form-row-grid" style="margin-bottom: 0;">
+              <div class="form-col">
+                <label class="form-label" for="txtDlgProjectName">Tên công trình / Gói thầu / Dự án:</label>
+                <input type="text" id="txtDlgProjectName" class="win-textbox" style="height: 25px;" value="Công trình Tòa nhà Văn phòng TechCenter" />
+              </div>
+              <div class="form-col" style="flex: 0 0 110px; max-width: 120px;">
+                <label class="form-label" for="cboDlgVatRate">Thuế suất VAT:</label>
+                <select id="cboDlgVatRate" class="win-combobox" style="height: 25px;">
+                  <option value="10" selected>10%</option>
+                  <option value="8">8%</option>
+                  <option value="0">0%</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- DataGridView Container -->
+          <div class="win-datagrid-container">
+            <div class="win-datagrid-toolbar">
+              <button class="win-btn win-btn-xs" id="btnAddGridRow"><span>➕</span> Thêm dòng</button>
+              <button class="win-btn win-btn-xs" id="btnDeleteGridRow"><span>➖</span> Xóa dòng</button>
+              <button class="win-btn win-btn-xs" id="btnResetGridRows"><span>🔄</span> Nạp lại mẫu</button>
+            </div>
+            
+            <div class="win-datagrid-scroll">
+              <table id="tblPriceGrid" class="win-datagrid">
+                <thead>
+                  <tr>
+                    <th style="width: 32px; text-align: center;">STT</th>
+                    <th style="width: 160px;">Tên công việc / Hàng hóa vật tư</th>
+                    <th style="width: 50px; text-align: center;">ĐVT</th>
+                    <th style="width: 55px; text-align: right;">KL/SL</th>
+                    <th style="width: 85px; text-align: right;">Đơn giá</th>
+                    <th style="width: 95px; text-align: right;">Thành tiền</th>
+                    <th style="width: 70px;">Ghi chú</th>
+                  </tr>
+                </thead>
+                <tbody id="tblPriceGridBody">
+                  <!-- Rendered dynamically -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Summary footer box -->
+          <div class="win-summary-box">
+            <div class="win-summary-row">
+              <span class="win-summary-label">Cộng tiền trước thuế:</span>
+              <span class="win-summary-val" id="lblSubTotal">0 VNĐ</span>
+            </div>
+            <div class="win-summary-row">
+              <span class="win-summary-label" id="lblVatText">Tiền thuế GTGT (10%):</span>
+              <span class="win-summary-val" id="lblVatAmount">0 VNĐ</span>
+            </div>
+            <div class="win-summary-row win-summary-grand">
+              <span class="win-summary-label">TỔNG CỘNG THANH TOÁN:</span>
+              <span class="win-summary-val" id="lblGrandTotal">0 VNĐ</span>
+            </div>
+            <div class="win-summary-row win-summary-words">
+              <span class="win-summary-label">Bằng chữ:</span>
+              <span class="win-summary-words-text" id="lblTotalInWords">Không đồng</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Dialog Footer Actions -->
+        <div class="win-dialog-footer">
+          <button class="win-btn win-btn-primary" id="btnInsertTableToWord" title="Chèn toàn bộ bảng giá này vào tài liệu Word đang mở">
+            <span>📥</span> Chèn bảng giá vào Word
+          </button>
+          <button class="win-btn" id="btnApplyTotalToForm" title="Cập nhật tổng số tiền này vào ô Giá trị hợp đồng trên Form chính">
+            <span>💾</span> Lấy giá trị về Form
+          </button>
+          <button class="win-btn" id="btnCloseDialogBottom">
+            <span>❌</span> Đóng
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>

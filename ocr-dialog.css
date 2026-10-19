@@ -1,0 +1,492 @@
+/* ==========================================================================
+   ocr-dialog.css - Giao diện Cửa sổ Trích xuất OCR AI Qwen2.5-VL-3B
+   Phong cách WinForms Classic (0px border-radius, #F0F0F0, #7F9DB9)
+   ========================================================================== */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+  font-size: 12px;
+  background-color: #F0F0F0;
+  color: #000000;
+  user-select: none;
+}
+
+.win-app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+  background-color: #F0F0F0;
+}
+
+/* 1. WinForms Titlebar */
+.win-titlebar {
+  background: linear-gradient(to right, #005499, #2788D8);
+  color: #FFFFFF;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 4px 0 8px;
+  flex-shrink: 0;
+  border-bottom: 1px solid #003366;
+}
+
+.win-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.win-controlbox {
+  display: flex;
+  gap: 2px;
+}
+
+.win-ctrl-btn {
+  width: 22px;
+  height: 20px;
+  background-color: transparent;
+  border: 1px solid transparent;
+  color: #FFFFFF;
+  font-family: monospace;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.win-ctrl-btn:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.win-ctrl-btn.close:hover {
+  background-color: #E81123;
+  border-color: #E81123;
+}
+
+/* 2. WinForms ToolStrip */
+.win-toolstrip {
+  background-color: #F0F0F0;
+  border-bottom: 1px solid #D0D0D0;
+  padding: 3px 6px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+
+.win-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 26px;
+  padding: 0 10px;
+  background-color: #FFFFFF;
+  border: 1px solid #7F9DB9;
+  color: #000000;
+  font-family: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.win-btn:hover:not(:disabled) {
+  background-color: #E5F1FB;
+  border-color: #0078D7;
+}
+
+.win-btn:active:not(:disabled) {
+  background-color: #CCE4F7;
+}
+
+.win-btn:disabled {
+  background-color: #F4F4F4;
+  color: #888888;
+  border-color: #D0D0D0;
+  cursor: not-allowed;
+}
+
+.win-btn-primary {
+  background-color: #0078D7;
+  color: #FFFFFF;
+  border-color: #005499;
+  font-weight: 600;
+}
+
+.win-btn-primary:hover:not(:disabled) {
+  background-color: #106EBE;
+  border-color: #004578;
+}
+
+.win-btn-accent {
+  background-color: #107C41;
+  color: #FFFFFF;
+  border-color: #0B5A2F;
+  font-weight: 600;
+}
+
+.win-btn-accent:hover:not(:disabled) {
+  background-color: #0E6B37;
+  border-color: #084323;
+}
+
+.win-btn-danger {
+  background-color: #D83B01;
+  color: #FFFFFF;
+  border-color: #A82E00;
+}
+
+.win-btn-danger:hover:not(:disabled) {
+  background-color: #C43400;
+}
+
+.win-separator {
+  width: 1px;
+  height: 18px;
+  background-color: #D0D0D0;
+  margin: 0 2px;
+}
+
+.model-selector-box {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: auto;
+  font-size: 11px;
+}
+
+.win-combobox {
+  height: 24px;
+  border: 1px solid #7F9DB9;
+  background-color: #FFFFFF;
+  font-family: inherit;
+  font-size: 11px;
+  padding: 0 4px;
+}
+
+.ai-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 6px;
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid #D0D0D0;
+  background-color: #FFFFFF;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #999999;
+}
+
+.status-dot.online { background-color: #107C41; }
+.status-dot.starting { background-color: #FFB900; }
+.status-dot.offline { background-color: #D83B01; }
+
+/* 3. Main Workspace: Two-Column Split */
+.win-workspace {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  padding: 6px;
+  gap: 6px;
+  overflow: hidden;
+}
+
+.win-col {
+  flex: 1 1 50%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  background-color: #FFFFFF;
+  border: 1px solid #7F9DB9;
+  overflow: hidden;
+}
+
+.win-col-header {
+  height: 28px;
+  background-color: #E8EEF4;
+  border-bottom: 1px solid #7F9DB9;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 8px;
+  font-weight: 600;
+  font-size: 11.5px;
+  color: #003366;
+  flex-shrink: 0;
+}
+
+/* 4. Left Column: Upload & Document Viewer */
+.upload-dropzone {
+  flex: 1 1 auto;
+  border: 2px dashed #7F9DB9;
+  margin: 8px;
+  background-color: #FAFAFA;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  cursor: pointer;
+  text-align: center;
+  transition: background-color 0.15s, border-color 0.15s;
+}
+
+.upload-dropzone.dragover {
+  background-color: #E5F1FB;
+  border-color: #0078D7;
+}
+
+.drop-icon {
+  font-size: 38px;
+  margin-bottom: 8px;
+}
+
+.drop-text-primary {
+  font-size: 13px;
+  font-weight: 600;
+  color: #003366;
+  margin-bottom: 4px;
+}
+
+.drop-text-secondary {
+  font-size: 11px;
+  color: #666666;
+}
+
+.viewer-container {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.viewer-toolbar {
+  height: 28px;
+  background-color: #F8F8F8;
+  border-bottom: 1px solid #D0D0D0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 6px;
+  font-size: 11px;
+  flex-shrink: 0;
+}
+
+.viewer-pagination {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.viewer-scroll-box {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  background-color: #404040;
+  padding: 16px;
+  box-sizing: border-box;
+  text-align: center;
+  position: relative;
+}
+
+#pdfCanvas, #imgPreview {
+  max-width: 100%;
+  height: auto;
+  margin: 0 auto;
+  display: inline-block;
+  vertical-align: top;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
+  background-color: #FFFFFF;
+}
+
+/* 5. Right Column: Logs & Extracted Results */
+.log-box {
+  height: 110px;
+  border-bottom: 1px solid #7F9DB9;
+  background-color: #1E1E1E;
+  color: #CCCCCC;
+  font-family: 'Consolas', monospace;
+  font-size: 11px;
+  overflow-y: auto;
+  padding: 6px;
+  line-height: 1.4;
+  flex-shrink: 0;
+}
+
+.log-line {
+  margin-bottom: 2px;
+}
+
+.log-line.info { color: #8CDCFE; }
+.log-line.success { color: #B5CEA8; font-weight: 600; }
+.log-line.warn { color: #CE9178; }
+.log-line.error { color: #F44747; font-weight: bold; }
+
+.result-tabs-bar {
+  height: 26px;
+  background-color: #F0F0F0;
+  border-bottom: 1px solid #7F9DB9;
+  display: flex;
+  align-items: flex-end;
+  padding: 0 4px;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.result-tab-btn {
+  height: 23px;
+  padding: 0 10px;
+  background-color: #E1E1E1;
+  border: 1px solid #7F9DB9;
+  border-bottom: none;
+  font-family: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.result-tab-btn.active {
+  background-color: #FFFFFF;
+  font-weight: 600;
+  height: 24px;
+  border-bottom: 1px solid #FFFFFF;
+  margin-bottom: -1px;
+}
+
+.result-display-container {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  padding: 10px;
+  background-color: #FFFFFF;
+  user-select: text;
+}
+
+.result-empty {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #888888;
+  text-align: center;
+}
+
+.result-raw-text {
+  width: 100%;
+  height: 100%;
+  border: none;
+  resize: none;
+  font-family: 'Consolas', monospace;
+  font-size: 11.5px;
+  line-height: 1.5;
+  outline: none;
+}
+
+/* Markdown Table Render in Visual Tab */
+.ocr-formatted-view h1, .ocr-formatted-view h2, .ocr-formatted-view h3 {
+  color: #003366;
+  margin-top: 8px;
+  margin-bottom: 6px;
+}
+
+.ocr-formatted-view p {
+  line-height: 1.5;
+  margin-bottom: 6px;
+}
+
+.ocr-markdown-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 10px 0;
+  font-size: 11px;
+}
+
+.ocr-markdown-table th, .ocr-markdown-table td {
+  border: 1px solid #7F9DB9;
+  padding: 4px 6px;
+}
+
+.ocr-markdown-table th {
+  background-color: #E8EEF4;
+  color: #003366;
+  font-weight: 600;
+  text-align: center;
+}
+
+.ocr-markdown-table tr:nth-child(even) {
+  background-color: #F9F9F9;
+}
+
+.ocr-meta-card {
+  background-color: #F8FBFE;
+  border: 1px solid #B0CBE5;
+  padding: 8px 10px;
+  margin-bottom: 10px;
+  font-size: 11.5px;
+}
+
+.ocr-meta-row {
+  margin-bottom: 3px;
+}
+
+.ocr-meta-label {
+  font-weight: 600;
+  color: #003366;
+}
+
+/* 6. StatusStrip at bottom */
+.win-statusstrip {
+  height: 22px;
+  background-color: #F0F0F0;
+  border-top: 1px solid #D0D0D0;
+  display: flex;
+  align-items: center;
+  padding: 0 4px;
+  font-size: 11px;
+  flex-shrink: 0;
+}
+
+.win-status-panel {
+  display: inline-flex;
+  align-items: center;
+  height: 18px;
+  padding: 0 6px;
+  margin-right: 3px;
+  border-top: 1px solid #999999;
+  border-left: 1px solid #999999;
+  border-bottom: 1px solid #FFFFFF;
+  border-right: 1px solid #FFFFFF;
+  background-color: #F0F0F0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.win-status-panel.flex {
+  flex: 1 1 auto;
+}
+
+.hidden {
+  display: none !important;
+}

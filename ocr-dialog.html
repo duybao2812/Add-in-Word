@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bóc tách OCR Tài liệu AI Qwen2.5-VL-3B Local - WinForms Classic</title>
+
+  <!-- Nạp Office.js để tương tác Word nếu có -->
+  <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+
+  <!-- PDF.js Offline từ thư mục vendor -->
+  <script src="vendor/pdf.min.js"></script>
+
+  <!-- Định dạng WinForms Classic -->
+  <link rel="stylesheet" href="ocr-dialog.css?v=2.7.0" />
+
+  <!-- Script xử lý OCR và chèn sang Word -->
+  <script src="ocr-dialog.js?v=2.7.0" defer></script>
+</head>
+<body>
+  <div class="win-app">
+
+    <!-- 1. WinForms Titlebar -->
+    <header class="win-titlebar">
+      <div class="win-title">
+        <span>🔍</span>
+        <span>[FormBocTachOCR] - Bóc tách dữ liệu tài liệu &amp; bảng biểu AI Qwen2.5-VL-3B Local</span>
+      </div>
+      <div class="win-controlbox">
+        <button class="win-ctrl-btn" id="btnMinWindow" title="Thu nhỏ">_</button>
+        <button class="win-ctrl-btn close" id="btnCloseWindow" title="Đóng cửa sổ">✕</button>
+      </div>
+    </header>
+
+    <!-- 2. WinForms ToolStrip -->
+    <div class="win-toolstrip" role="toolbar">
+      <button class="win-btn" id="btnSelectFile" title="Chọn file PDF hoặc hình ảnh">
+        <span>📂</span> Chọn File PDF / Ảnh
+      </button>
+      <input type="file" id="fileInput" accept="image/png,image/jpeg,image/webp,application/pdf" hidden />
+
+      <div class="win-separator"></div>
+
+      <button class="win-btn win-btn-primary" id="btnStartOcr" title="Bắt đầu khởi chạy mô hình AI và trích xuất dữ liệu" disabled>
+        <span>⚡</span> Bắt đầu Trích xuất
+      </button>
+
+      <select id="cboExtractScope" class="win-combobox" style="height: 26px; font-weight: 500;" title="Phạm vi trang cần bóc tách">
+        <option value="all" selected>Quét: Toàn bộ các trang (Tất cả PDF)</option>
+        <option value="current">Quét: Chỉ trang hiện tại</option>
+      </select>
+
+      <button class="win-btn win-btn-accent" id="btnTransferToWord" title="Chuyển dữ liệu và tạo bảng Word tự động" disabled>
+        <span>📝</span> Chuyển sang Word
+      </button>
+
+      <button class="win-btn" id="btnCopyResult" title="Sao chép toàn bộ kết quả vào Clipboard" disabled>
+        <span>📋</span> Sao chép
+      </button>
+
+      <div class="win-separator"></div>
+
+      <button class="win-btn win-btn-danger" id="btnStopAi" title="Tắt hoàn toàn tiến trình AI để giải phóng RAM/VRAM">
+        <span>🛑</span> Tắt AI (Tiết kiệm RAM)
+      </button>
+
+      <button class="win-btn" id="btnReload" title="Nạp lại giao diện">
+        <span>🔄</span> Nạp lại
+      </button>
+
+      <!-- Model Selector & Status Badge -->
+      <div class="model-selector-box">
+        <label for="cboModelSelect"><b>Mô hình:</b></label>
+        <select id="cboModelSelect" class="win-combobox">
+          <option value="qwen3b" selected>Qwen2.5-VL-3B (Khuyên dùng - Nhanh &amp; Nhẹ)</option>
+          <option value="qwen">Qwen2.5-VL-7B (Toàn Năng - Bảng Biểu Chuẩn)</option>
+        </select>
+
+        <div id="aiStatusBadge" class="ai-status-badge">
+          <span class="status-dot" id="aiStatusDot"></span>
+          <span id="aiStatusText">Kiểm tra AI...</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. Workspace Split View -->
+    <main class="win-workspace">
+      <!-- CỘT TRÁI: TÀI LIỆU ĐẦU VÀO & XEM TRƯỚC -->
+      <section class="win-col">
+        <div class="win-col-header">
+          <span>📄 TÀI LIỆU ĐẦU VÀO (PDF SCAN / HÌNH ẢNH HỢP ĐỒNG, BẢNG GIÁ)</span>
+          <span id="lblFileMeta" style="font-weight: normal; color: #555;">Chưa có file</span>
+        </div>
+
+        <!-- Dropzone ban đầu -->
+        <div id="dropzone" class="upload-dropzone">
+          <div class="drop-icon">📑</div>
+          <div class="drop-text-primary">Kéo thả file PDF hoặc Ảnh vào đây, hoặc nhấn "Chọn File"</div>
+          <div class="drop-text-secondary">Hỗ trợ PDF scan đa trang, hợp đồng, bảng dự toán, hóa đơn (.pdf, .png, .jpg)</div>
+          <div class="drop-text-secondary" style="margin-top: 6px; color: #0078D7;">(Mẹo: Bạn có thể nhấn <b>Ctrl + V</b> để dán ảnh trực tiếp từ bộ nhớ tạm)</div>
+        </div>
+
+        <!-- Container xem trước tài liệu sau khi nạp -->
+        <div id="viewerContainer" class="viewer-container hidden">
+          <div class="viewer-toolbar">
+            <!-- Điều hướng trang PDF -->
+            <div id="pdfPagination" class="viewer-pagination hidden">
+              <button class="win-btn" id="btnPrevPage" style="height: 20px; padding: 0 6px;">&lt; Trước</button>
+              <span id="lblPageIndicator" style="font-weight: 600;">Trang 1/1</span>
+              <button class="win-btn" id="btnNextPage" style="height: 20px; padding: 0 6px;">Sau &gt;</button>
+            </div>
+
+            <!-- Thu phóng -->
+            <div style="display: flex; align-items: center; gap: 4px; margin-left: auto;">
+              <button class="win-btn" id="btnZoomOut" style="height: 20px; padding: 0 6px;" title="Thu nhỏ">-</button>
+              <span id="lblZoomLevel" style="min-width: 42px; text-align: center;">100%</span>
+              <button class="win-btn" id="btnZoomIn" style="height: 20px; padding: 0 6px;" title="Phóng to">+</button>
+              <button class="win-btn" id="btnZoomReset" style="height: 20px; padding: 0 6px;" title="Vừa khung">Fit</button>
+              <button class="win-btn" id="btnRemoveFile" style="height: 20px; padding: 0 6px; color: #D83B01;" title="Đổi file khác">Xóa file</button>
+            </div>
+          </div>
+
+          <div id="viewerScrollBox" class="viewer-scroll-box">
+            <canvas id="pdfCanvas" class="hidden"></canvas>
+            <img id="imgPreview" class="hidden" alt="Xem trước ảnh" />
+          </div>
+        </div>
+      </section>
+
+      <!-- CỘT PHẢI: NHẬT KÝ XỬ LÝ & KẾT QUẢ TRÍCH XUẤT -->
+      <section class="win-col">
+        <div class="win-col-header">
+          <span>⚡ NHẬT KÝ XỬ LÝ &amp; KẾT QUẢ BÓC TÁCH</span>
+          <span id="lblResultStatus" style="font-weight: normal; color: #005500;">Chờ trích xuất</span>
+        </div>
+
+        <!-- Khung Nhật ký AI Realtime -->
+        <div class="log-box" id="logConsole">
+          <div class="log-line info">[Hệ thống] Trình bóc tách OCR AI Qwen2.5-VL-3B đã sẵn sàng.</div>
+        </div>
+
+        <!-- Thanh Tab Chuyển đổi Kết quả -->
+        <div class="result-tabs-bar">
+          <button class="result-tab-btn active" id="tabVisual">Trực quan (Bảng &amp; Văn bản)</button>
+          <button class="result-tab-btn" id="tabRaw">Mã Markdown / Văn bản thuần</button>
+        </div>
+
+        <!-- Khung hiển thị nội dung kết quả -->
+        <div class="result-display-container">
+          <!-- Trạng thái trống -->
+          <div id="resultEmptyState" class="result-empty">
+            <div style="font-size: 32px; margin-bottom: 8px;">📋</div>
+            <div style="font-weight: 600; font-size: 13px; color: #555;">Chưa có dữ liệu trích xuất</div>
+            <div style="font-size: 11px; color: #888; max-width: 320px; margin-top: 4px;">
+              Tải lên tài liệu ở cột bên trái và nhấn nút <b>"Bắt đầu Trích xuất"</b> để mô hình AI Qwen2.5-VL tự động bóc tách.
+            </div>
+          </div>
+
+          <!-- Tab 1: Trực quan -->
+          <div id="viewVisual" class="ocr-formatted-view hidden">
+            <!-- Render động nội dung bóc tách -->
+          </div>
+
+          <!-- Tab 2: Raw Markdown -->
+          <div id="viewRaw" class="hidden" style="height: 100%;">
+            <textarea id="txtRawResult" class="result-raw-text" spellcheck="false" placeholder="Dữ liệu trích xuất dạng Markdown..."></textarea>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- 4. WinForms StatusStrip -->
+    <footer class="win-statusstrip">
+      <div class="win-status-panel flex" id="statusMessage">
+        Sẵn sàng | Chờ nạp tài liệu
+      </div>
+      <div class="win-status-panel" id="modelInfo">
+        AI: Qwen2.5-VL-3B Local
+      </div>
+      <div class="win-status-panel">
+        Word Add-in v2.7.0
+      </div>
+    </footer>
+
+  </div>
+</body>
+</html>

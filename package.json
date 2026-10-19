@@ -1,0 +1,30 @@
+{
+  "name": "word-winforms-addin",
+  "version": "1.0.0",
+  "description": "Microsoft Word Taskpane Add-in với phong cách UI/UX WinForms Classic",
+  "main": "server.js",
+  "scripts": {
+    "start": "office-addin-debugging start manifest.xml desktop --app word --dev-server \"node server.js\" --dev-server-port 3000 --no-debug",
+    "stop": "office-addin-debugging stop manifest.xml desktop",
+    "serve": "node server.js",
+    "open-word": "node scripts/open-word.js",
+    "clear-cache": "powershell -Command \"Stop-Process -Name WINWORD -Force -ErrorAction SilentlyContinue; Remove-Item -Path ($env:LOCALAPPDATA + '\\Microsoft\\Office\\16.0\\Wef\\*') -Recurse -Force -ErrorAction SilentlyContinue; Write-Host 'Đã xóa sạch Office cache!'\"",
+    "certs": "npx office-addin-dev-certs install",
+    "validate": "npx office-addin-manifest validate manifest.xml",
+    "check-machine": "node scripts/detect-machine.js"
+  },
+  "keywords": [
+    "office-add-in",
+    "office.js",
+    "word-desktop",
+    "winforms",
+    "classic-ui"
+  ],
+  "author": "Antigravity",
+  "license": "MIT",
+  "devDependencies": {
+    "office-addin-debugging": "^7.0.1",
+    "office-addin-dev-certs": "^3.0.1",
+    "office-addin-manifest": "^3.0.1"
+  }
+}
