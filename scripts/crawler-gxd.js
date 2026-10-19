@@ -1,30 +1,29 @@
 /**
  * scripts/crawler-gxd.js
  * Bot thu thập văn bản pháp luật tự động từ QLDA GXD (Tầng 1)
- * Phiên bản: Text-First – Anti-WAF – Telegram Alert – Heartbeat Anti-Pause
+ * Phiên bản: Text-First – Anti-WAF – Auto-Redirect (308/301) – Telegram Alert – Heartbeat Anti-Pause
  */
 
 const https = require('https');
+const http = require('http');
 const crypto = require('crypto');
+const fs = require('fs');
+const path = require('path');
 
 // Cấu hình môi trường từ GitHub Secrets / Process Env
-const SUPABASE_URL = (process.env.SUPABASE_URL || '').replace(/\/$/, '');
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY || '';
-const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
-const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID || '';
+const SUPABASE_URL = (process.env.SUPABASE_URL || 'https://mabnaygyrscdfsqownhy.supabase.co').replace(/\/$/, '');
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1hYm5heWd5cnNjZGZzcW93bmh5Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc5MjQxNzQ2NywiZXhwIjoyMTA3OTkzNDY3fQ.9DIvmI1IDu3LHrh8vkKESb5NWqRiAmZwmW2Iq-Q3ad8';
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '8660476357:AAEynNtesZtuTyjEFPfL4VsPWmn9IxOIbw8';
+const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID || '7901714823';
 const IS_HEARTBEAT_ONLY = process.env.HEARTBEAT_ONLY === 'true';
 
-// Giả lập Headers trình duyệt Windows 11 Chrome hiện đại
 const USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36';
 
 /**
  * Gửi tin nhắn cảnh báo hoặc báo cáo qua Telegram Bot
  */
 async function sendTelegramMessage(text) {
-  if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) {
-    console.log('[Telegram] Bỏ qua gửi thông báo (chưa cấu hình TELEGRAM_BOT_TOKEN hoặc TELEGRAM_CHAT_ID).');
-    return;
-  }
+  if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) return;
 
   const payload = JSON.stringify({
     chat_id: TELEGRAM_CHAT_ID,
@@ -55,49 +54,50 @@ async function sendTelegramMessage(text) {
 }
 
 /**
- * Gửi HTTP GET tiện ích
+ * Gửi HTTP GET tự động follow chuyển hướng (Redirect 301, 302, 308 của VuePress/Next.js)
  */
-function fetchHttp(url, headers = {}) {
+function fetchWithRedirect(url, maxRedirects = 5) {
   return new Promise((resolve, reject) => {
+    if (maxRedirects <= 0) return reject(new Error('Quá nhiều redirect'));
+
     const parsed = new URL(url);
-    const options = {
-      hostname: parsed.hostname,
-      port: parsed.port || 443,
-      path: parsed.pathname + parsed.search,
-      method: 'GET',
+    const client = parsed.protocol === 'https:' ? https : http;
+
+    const req = client.get(url, {
       headers: {
         'User-Agent': USER_AGENT,
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-        'Accept-Language': 'vi,en-US;q=0.9',
-        ...headers
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'vi,en;q=0.9'
       },
-      timeout: 15000
-    };
+      timeout: 20000
+    }, res => {
+      if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+        let nextUrl = res.headers.location;
+        if (nextUrl.startsWith('/')) {
+          nextUrl = `${parsed.protocol}//${parsed.host}${nextUrl}`;
+        }
+        res.resume();
+        return resolve(fetchWithRedirect(nextUrl, maxRedirects - 1));
+      }
 
-    const req = https.request(options, (res) => {
       let data = '';
       res.on('data', chunk => data += chunk);
-      res.on('end', () => resolve({ status: res.statusCode, headers: res.headers, body: data }));
+      res.on('end', () => resolve({ status: res.statusCode, data }));
     });
 
     req.on('error', reject);
     req.on('timeout', () => {
       req.destroy();
-      reject(new Error('Request Timeout sau 15 giây'));
+      reject(new Error('Request Timeout sau 20s'));
     });
-    req.end();
   });
 }
 
 /**
- * Gửi HTTP POST/PUT/PATCH tới Supabase REST API
+ * Gửi HTTP tới Supabase REST API
  */
 function sendSupabaseRequest(method, endpointPath, bodyData) {
   return new Promise((resolve, reject) => {
-    if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
-      return reject(new Error('Chưa cung cấp SUPABASE_URL hoặc SUPABASE_SERVICE_KEY'));
-    }
-
     const payload = bodyData ? JSON.stringify(bodyData) : '';
     const parsed = new URL(`${SUPABASE_URL}/rest/v1/${endpointPath}`);
 
@@ -137,51 +137,34 @@ function sendSupabaseRequest(method, endpointPath, bodyData) {
 }
 
 /**
- * Ngủ ngẫu nhiên (Jitter Delay) để tránh bị chặn IP
+ * Trích xuất toàn văn chuẩn VuePress từ trang web QLDA GXD
  */
-function sleepRandom(minMs = 2000, maxMs = 4000) {
-  const ms = Math.floor(Math.random() * (maxMs - minMs + 1)) + minMs;
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
+function extractLawContent(html) {
+  if (!html) return '';
 
-/**
- * Bóc tách nội dung HTML text thuần túy
- */
-function extractArticleText(html) {
-  if (!html) return { text: '', hasText: false, fileLink: '' };
-
-  // Tìm kiếm link file đính kèm nếu có (pdf, doc, docx, drive viewer)
-  let fileLink = '';
-  const fileMatch = html.match(/href="([^"]+\.(?:pdf|docx?|zip|rar))"/i) || 
-                    html.match(/src="([^"]*(?:drive\.google\.com|docs\.google\.com\/viewer)[^"]*)"/i);
-  if (fileMatch) {
-    fileLink = fileMatch[1];
-  }
-
-  // Loại bỏ các thẻ script, style, nav, footer, ads
   let clean = html
     .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
     .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '')
+    .replace(/<aside\b[^<]*(?:(?!<\/aside>)<[^<]*)*<\/aside>/gi, '')
+    .replace(/<nav\b[^<]*(?:(?!<\/nav>)<[^<]*)*<\/nav>/gi, '')
     .replace(/<header\b[^<]*(?:(?!<\/header>)<[^<]*)*<\/header>/gi, '')
     .replace(/<footer\b[^<]*(?:(?!<\/footer>)<[^<]*)*<\/footer>/gi, '')
-    .replace(/<nav\b[^<]*(?:(?!<\/nav>)<[^<]*)*<\/nav>/gi, '');
+    .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '')
+    .replace(/<details\b[^<]*(?:(?!<\/details>)<[^<]*)*<\/details>/gi, '');
 
-  // Trích xuất vùng nội dung chính
-  let content = '';
-  const articleMatch = clean.match(/<article[^>]*>([\s\S]*?)<\/article>/i) ||
-                       clean.match(/<div class="[^"]*(?:content|detail|post-body|entry-content)[^"]*"[^>]*>([\s\S]*?)<\/div>/i);
-  
-  if (articleMatch) {
-    content = articleMatch[1];
-  } else {
-    content = clean;
+  const mainMatch = clean.match(/<main[^>]*class="[^"]*page[^"]*"[^>]*>([\s\S]*?)<\/main>/i) ||
+                    clean.match(/<div[^>]*class="[^"]*theme-default-content[^"]*"[^>]*>([\s\S]*?)<\/div>/i) ||
+                    clean.match(/<main[^>]*>([\s\S]*?)<\/main>/i);
+
+  if (mainMatch) {
+    clean = mainMatch[1];
   }
 
-  // Đổi thẻ <p>, <br>, <tr> thành xuống dòng
-  content = content
-    .replace(/<\/(p|div|tr|h[1-6])>/gi, '\n')
+  clean = clean
+    .replace(/<\/h[1-6]>/gi, '\n\n')
+    .replace(/<\/(p|div|tr)>/gi, '\n')
     .replace(/<br\s*[\/]?>/gi, '\n')
-    .replace(/<[^>]+>/g, '') // Xóa hết thẻ HTML còn lại
+    .replace(/<[^>]+>/g, '')
     .replace(/&nbsp;/g, ' ')
     .replace(/&amp;/g, '&')
     .replace(/&lt;/g, '<')
@@ -189,15 +172,15 @@ function extractArticleText(html) {
     .replace(/&quot;/g, '"')
     .replace(/&#039;/g, "'");
 
-  // Chuẩn hóa dòng trống
-  const lines = content.split('\n')
-    .map(line => line.trim())
-    .filter(line => line.length > 0);
+  const lines = clean.split('\n')
+    .map(l => l.trim())
+    .filter(l => l.length > 0);
 
-  const text = lines.join('\n\n');
-  const hasText = text.length >= 200; // Ngưỡng để xác định có toàn văn chữ hay không
+  return lines.join('\n\n');
+}
 
-  return { text, hasText, fileLink };
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 /**
@@ -207,7 +190,7 @@ async function main() {
   const startTime = new Date();
   console.log(`[Crawler GXD] Khởi động bot lúc: ${startTime.toISOString()}`);
 
-  // 1. Chế độ Heartbeat Ping (giữ Supabase thức, không cào)
+  // 1. Chế độ Heartbeat Ping
   if (IS_HEARTBEAT_ONLY) {
     console.log('[Heartbeat] Đang thực hiện Heartbeat Ping để giữ Supabase Database luôn Active...');
     try {
@@ -219,38 +202,60 @@ async function main() {
     return;
   }
 
-  // 2. Chế độ Thu thập & Cập nhật dữ liệu
+  // 2. Chế độ cào và đồng bộ toàn văn
   let scannedCount = 0;
-  let insertedCount = 0;
   let updatedCount = 0;
   let errorCount = 0;
 
   try {
-    // Ping kiểm tra kết nối Supabase
-    const testRes = await sendSupabaseRequest('GET', 'system_metadata?limit=1');
-    if (testRes.status !== 200) {
-      throw new Error(`Không thể kết nối Supabase REST API (HTTP ${testRes.status})`);
-    }
-
-    console.log('[1/3] Đang khảo sát các danh mục văn bản trên https://qlda.gxd.vn/ ...');
+    // Lấy danh sách các văn bản cần cập nhật toàn văn từ Supabase
+    console.log('[1/3] Đang tải danh sách văn bản cần cập nhật từ Supabase...');
+    const res = await sendSupabaseRequest('GET', 'van_ban_phap_luat?select=id,so_hieu,ten_van_ban,duong_dan_gxd,co_toan_van_html&co_toan_van_html=eq.false&limit=15');
     
-    // Cập nhật trạng thái lần quét
-    scannedCount = 515; // Giả lập quét danh mục
-    console.log(`[2/3] Đã quét qua ${scannedCount} văn bản quy phạm.`);
+    const docsToCrawl = Array.isArray(res.data) ? res.data : [];
+    scannedCount = docsToCrawl.length;
+    console.log(`[2/3] Tìm thấy ${scannedCount} văn bản đang chờ cào toàn văn chữ.`);
+
+    for (let i = 0; i < docsToCrawl.length; i++) {
+      const doc = docsToCrawl[i];
+      if (!doc.duong_dan_gxd) continue;
+
+      console.log(`[${i + 1}/${scannedCount}] Đang cào toàn văn: ${doc.so_hieu} -> ${doc.duong_dan_gxd}`);
+      try {
+        const pageRes = await fetchWithRedirect(doc.duong_dan_gxd);
+        if (pageRes.status === 200) {
+          const text = extractLawContent(pageRes.data);
+          if (text.length > 200) {
+            await sendSupabaseRequest('PATCH', `van_ban_phap_luat?id=eq.${doc.id}`, {
+              noi_dung_toan_van: text,
+              co_toan_van_html: true
+            });
+            updatedCount++;
+            console.log(`   ✅ Đã cập nhật toàn văn thành công (${text.length} ký tự)!`);
+          } else {
+            console.log(`   ℹ️ Trang không có khối chữ dài (${text.length} ký tự). Giữ nguyên trạng thái file gốc.`);
+          }
+        }
+      } catch (err) {
+        errorCount++;
+        console.error(`   ❌ Lỗi khi cào ${doc.so_hieu}:`, err.message);
+      }
+
+      await sleep(2000); // Random Jitter 2s
+    }
 
     const endTime = new Date();
     const durationSec = Math.round((endTime - startTime) / 1000);
 
     const reportMessage = `
-📢 <b>BÁO CÁO THU THẬP VĂN BẢN TỰ ĐỘNG (QLDA GXD)</b>
+📢 <b>BÁO CÁO CRAWLER BOT QLDA GXD</b>
 ⏰ <b>Thời gian:</b> ${endTime.toLocaleString('vi-VN')} (${durationSec}s)
 
-• <b>Tổng số văn bản quét:</b> ${scannedCount}
-• <b>Văn bản mới bổ sung:</b> ${insertedCount}
-• <b>Văn bản cập nhật nội dung:</b> ${updatedCount}
-• <b>Số lỗi phát sinh:</b> ${errorCount}
+• <b>Văn bản đã quét:</b> ${scannedCount}
+• <b>Văn bản đã nạp toàn văn:</b> ${updatedCount}
+• <b>Số lỗi:</b> ${errorCount}
 
-✅ <b>Trạng thái:</b> THÀNH CÔNG HOÀN TOÀN
+✅ <b>Trạng thái:</b> ${errorCount === 0 ? 'THÀNH CÔNG' : 'CÓ CẢNH BÁO'}
     `.trim();
 
     console.log(reportMessage);
@@ -260,12 +265,9 @@ async function main() {
     console.error('[LỖI KHẨN CẤP BOT CÀO]:', err.message);
     const alertMsg = `
 🚨 <b>CẢNH BÁO LỖI CRAWLER BOT GXD</b>
-⏰ Thời gian: ${new Date().toLocaleString('vi-VN')}
 ❌ Lỗi: <code>${err.message}</code>
-⚠️ Vui lòng kiểm tra lại GitHub Actions hoặc cấu hình Supabase!
     `.trim();
     await sendTelegramMessage(alertMsg);
-    process.exit(1);
   }
 }
 

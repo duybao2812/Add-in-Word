@@ -166,8 +166,9 @@
         badgeHtml = '<span class="badge badge-active">Còn hiệu lực</span>';
       }
 
-      const textTag = item.co_toan_van_html 
-        ? '<span class="badge badge-tag" title="Có toàn văn chữ số hóa">📄 Text</span>'
+      const hasFullText = Boolean(item.co_toan_van_html || (item.noi_dung_toan_van && item.noi_dung_toan_van.trim().length > 50));
+      const textTag = hasFullText 
+        ? '<span class="badge badge-tag" style="background:#E6F4EA; color:#137333; border:1px solid #CEEAD6;" title="Có toàn văn chữ số hóa">📄 Toàn văn</span>'
         : '<span class="badge badge-tag" title="Chỉ có file đính kèm gốc">📎 File</span>';
 
       html += `
@@ -266,7 +267,8 @@
 
     // Nội dung toàn văn hoặc banner file gốc
     let contentHtml = '';
-    if (doc.co_toan_van_html && doc.noi_dung_toan_van && doc.noi_dung_toan_van.trim().length > 50) {
+    const hasFullText = Boolean(doc.co_toan_van_html || (doc.noi_dung_toan_van && doc.noi_dung_toan_van.trim().length > 50));
+    if (hasFullText && doc.noi_dung_toan_van) {
       contentHtml = `
         <div class="fulltext-section-title">NỘI DUNG VĂN BẢN TRÍCH XUẤT</div>
         <div class="fulltext-content">${escapeHtml(doc.noi_dung_toan_van)}</div>
