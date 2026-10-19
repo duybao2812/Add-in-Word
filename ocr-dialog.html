@@ -24,8 +24,7 @@
     <!-- 1. WinForms Titlebar -->
     <header class="win-titlebar">
       <div class="win-title">
-        <span>🔍</span>
-        <span>[FormBocTachOCR] - Bóc tách dữ liệu tài liệu &amp; bảng biểu AI Qwen2.5-VL-3B Local</span>
+        <span>[FormBocTachOCR] Bóc tách tài liệu OCR</span>
       </div>
       <div class="win-controlbox">
         <button class="win-ctrl-btn" id="btnMinWindow" title="Thu nhỏ">_</button>
@@ -36,50 +35,52 @@
     <!-- 2. WinForms ToolStrip -->
     <div class="win-toolstrip" role="toolbar">
       <button class="win-btn" id="btnSelectFile" title="Chọn file PDF hoặc hình ảnh">
-        <span>📂</span> Chọn File PDF / Ảnh
+        1. Chọn file
       </button>
       <input type="file" id="fileInput" accept="image/png,image/jpeg,image/webp,application/pdf" hidden />
 
-      <div class="win-separator"></div>
-
-      <button class="win-btn win-btn-primary" id="btnStartOcr" title="Bắt đầu khởi chạy mô hình AI và trích xuất dữ liệu" disabled>
-        <span>⚡</span> Bắt đầu Trích xuất
+      <button class="win-btn" id="btnToggleAi" title="Bật hoặc Tắt tiến trình AI">
+        2. Bật AI
       </button>
 
-      <select id="cboExtractScope" class="win-combobox" style="height: 26px; font-weight: 500;" title="Phạm vi trang cần bóc tách">
-        <option value="all" selected>Quét: Toàn bộ các trang (Tất cả PDF)</option>
-        <option value="current">Quét: Chỉ trang hiện tại</option>
+      <div class="win-separator"></div>
+
+      <select id="cboExtractScope" class="win-combobox" title="Phạm vi trang cần bóc tách">
+        <option value="all" selected>Tất cả các trang</option>
+        <option value="current">Trang hiện tại</option>
       </select>
 
-      <button class="win-btn win-btn-accent" id="btnTransferToWord" title="Chuyển dữ liệu và tạo bảng Word tự động" disabled>
-        <span>📝</span> Chuyển sang Word
-      </button>
-
-      <button class="win-btn" id="btnCopyResult" title="Sao chép toàn bộ kết quả vào Clipboard" disabled>
-        <span>📋</span> Sao chép
+      <button class="win-btn win-btn-primary" id="btnStartOcr" title="Bắt đầu trích xuất dữ liệu" disabled>
+        3. Trích xuất
       </button>
 
       <div class="win-separator"></div>
 
-      <button class="win-btn" id="btnToggleAi" title="Bật hoặc Tắt tiến trình AI để tiết kiệm RAM">
-        <span id="btnToggleAiIcon">⚡</span> <span id="btnToggleAiText">Bật AI</span>
+      <button class="win-btn win-btn-accent" id="btnTransferToWord" title="Chuyển dữ liệu sang Word" disabled>
+        4. Chèn vào Word
       </button>
 
-      <button class="win-btn" id="btnReload" title="Tải lại giao diện (F5)">
-        <span>🔄</span> Làm mới
+      <button class="win-btn" id="btnCopyResult" title="Sao chép kết quả" disabled>
+        5. Sao chép
+      </button>
+
+      <div class="win-separator"></div>
+
+      <button class="win-btn" id="btnReload" title="Làm mới giao diện">
+        6. Làm mới
       </button>
 
       <!-- Model Selector & Status Badge -->
       <div class="model-selector-box">
-        <label for="cboModelSelect"><b>Mô hình:</b></label>
+        <label for="cboModelSelect">Mô hình:</label>
         <select id="cboModelSelect" class="win-combobox">
-          <option value="qwen3b" selected>Qwen2.5-VL-3B (Khuyên dùng - Nhanh &amp; Nhẹ)</option>
-          <option value="qwen">Qwen2.5-VL-7B (Toàn Năng - Bảng Biểu Chuẩn)</option>
+          <option value="qwen3b" selected>Qwen 3B</option>
+          <option value="qwen">Qwen 7B</option>
         </select>
 
-        <div id="aiStatusBadge" class="ai-status-badge" title="Nhấp để Bật / Tắt AI nhanh" style="cursor: pointer;">
+        <div id="aiStatusBadge" class="ai-status-badge" title="Nhấp để Bật / Tắt AI">
           <span class="status-dot" id="aiStatusDot"></span>
-          <span id="aiStatusText">Kiểm tra AI...</span>
+          <span id="aiStatusText">Kiểm tra...</span>
         </div>
       </div>
     </div>
@@ -89,16 +90,15 @@
       <!-- CỘT TRÁI: TÀI LIỆU ĐẦU VÀO & XEM TRƯỚC -->
       <section class="win-col">
         <div class="win-col-header">
-          <span>📄 TÀI LIỆU ĐẦU VÀO (PDF SCAN / HÌNH ẢNH HỢP ĐỒNG, BẢNG GIÁ)</span>
+          <span>TÀI LIỆU ĐẦU VÀO</span>
           <span id="lblFileMeta" style="font-weight: normal; color: #555;">Chưa có file</span>
         </div>
 
         <!-- Dropzone ban đầu -->
         <div id="dropzone" class="upload-dropzone">
-          <div class="drop-icon">📑</div>
-          <div class="drop-text-primary">Kéo thả file PDF hoặc Ảnh vào đây, hoặc nhấn "Chọn File"</div>
+          <div class="drop-text-primary">Kéo thả file PDF hoặc Ảnh vào đây, hoặc nhấn "1. Chọn file"</div>
           <div class="drop-text-secondary">Hỗ trợ PDF scan đa trang, hợp đồng, bảng dự toán, hóa đơn (.pdf, .png, .jpg)</div>
-          <div class="drop-text-secondary" style="margin-top: 6px; color: #0078D7;">(Mẹo: Bạn có thể nhấn <b>Ctrl + V</b> để dán ảnh trực tiếp từ bộ nhớ tạm)</div>
+          <div class="drop-text-secondary" style="margin-top: 6px; color: #0078D7;">(Hỗ trợ phím tắt <b>Ctrl + V</b> để dán ảnh trực tiếp từ bộ nhớ tạm)</div>
         </div>
 
         <!-- Container xem trước tài liệu sau khi nạp -->
@@ -116,7 +116,7 @@
               <button class="win-btn" id="btnZoomOut" style="height: 20px; padding: 0 6px;" title="Thu nhỏ">-</button>
               <span id="lblZoomLevel" style="min-width: 42px; text-align: center;">100%</span>
               <button class="win-btn" id="btnZoomIn" style="height: 20px; padding: 0 6px;" title="Phóng to">+</button>
-              <button class="win-btn" id="btnZoomReset" style="height: 20px; padding: 0 6px;" title="Vừa khung">Fit</button>
+              <button class="win-btn" id="btnZoomReset" style="height: 20px; padding: 0 6px;" title="Vừa khung">Vừa khung</button>
               <button class="win-btn" id="btnRemoveFile" style="height: 20px; padding: 0 6px; color: #D83B01;" title="Đổi file khác">Xóa file</button>
             </div>
           </div>
@@ -131,7 +131,7 @@
       <!-- CỘT PHẢI: NHẬT KÝ XỬ LÝ & KẾT QUẢ TRÍCH XUẤT -->
       <section class="win-col">
         <div class="win-col-header">
-          <span>⚡ NHẬT KÝ XỬ LÝ &amp; KẾT QUẢ BÓC TÁCH</span>
+          <span>KẾT QUẢ BÓC TÁCH</span>
           <span id="lblResultStatus" style="font-weight: normal; color: #005500;">Chờ trích xuất</span>
         </div>
 
@@ -142,18 +142,17 @@
 
         <!-- Thanh Tab Chuyển đổi Kết quả -->
         <div class="result-tabs-bar">
-          <button class="result-tab-btn active" id="tabVisual">Trực quan (Bảng &amp; Văn bản)</button>
-          <button class="result-tab-btn" id="tabRaw">Mã Markdown / Văn bản thuần</button>
+          <button class="result-tab-btn active" id="tabVisual">Trực quan</button>
+          <button class="result-tab-btn" id="tabRaw">Văn bản thuần</button>
         </div>
 
         <!-- Khung hiển thị nội dung kết quả -->
         <div class="result-display-container">
           <!-- Trạng thái trống -->
           <div id="resultEmptyState" class="result-empty">
-            <div style="font-size: 32px; margin-bottom: 8px;">📋</div>
-            <div style="font-weight: 600; font-size: 13px; color: #555;">Chưa có dữ liệu trích xuất</div>
-            <div style="font-size: 11px; color: #888; max-width: 320px; margin-top: 4px;">
-              Tải lên tài liệu ở cột bên trái và nhấn nút <b>"Bắt đầu Trích xuất"</b> để mô hình AI Qwen2.5-VL tự động bóc tách.
+            <div style="font-weight: 600; font-size: 13px; color: #555; margin-bottom: 4px;">Chưa có dữ liệu trích xuất</div>
+            <div style="font-size: 11px; color: #888; max-width: 320px;">
+              Tải lên tài liệu ở cột bên trái và nhấn nút <b>"3. Trích xuất"</b> để bóc tách.
             </div>
           </div>
 

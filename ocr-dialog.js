@@ -63,8 +63,6 @@ const cboExtractScope = document.getElementById('cboExtractScope');
 const btnTransferToWord = document.getElementById('btnTransferToWord');
 const btnCopyResult = document.getElementById('btnCopyResult');
 const btnToggleAi = document.getElementById('btnToggleAi');
-const btnToggleAiIcon = document.getElementById('btnToggleAiIcon');
-const btnToggleAiText = document.getElementById('btnToggleAiText');
 const btnReload = document.getElementById('btnReload');
 const cboModelSelect = document.getElementById('cboModelSelect');
 const aiStatusBadge = document.getElementById('aiStatusBadge');
@@ -130,38 +128,35 @@ async function checkAiStatus() {
 
     if (data.running) {
       aiStatusDot.className = 'status-dot online';
-      aiStatusText.textContent = `AI Online (${data.currentModel === 'qwen3b' ? '3B' : '7B'})`;
-      if (modelInfo) modelInfo.textContent = `AI: ${data.modelLabel || 'Qwen2.5-VL'}`;
+      aiStatusText.textContent = `Trực tuyến (${data.currentModel === 'qwen3b' ? '3B' : '7B'})`;
+      if (modelInfo) modelInfo.textContent = `AI: ${data.modelLabel || 'Qwen 3B'}`;
       if (btnToggleAi) {
         btnToggleAi.className = 'win-btn win-btn-danger';
-        btnToggleAiIcon.textContent = '🛑';
-        btnToggleAiText.textContent = 'Tắt AI (Tiết kiệm RAM)';
-        btnToggleAi.title = 'Tắt tiến trình AI để giải phóng RAM';
+        btnToggleAi.textContent = '2. Tắt AI';
+        btnToggleAi.title = 'Tắt tiến trình AI';
       }
     } else if (data.isStarting) {
       aiStatusDot.className = 'status-dot starting';
-      aiStatusText.textContent = 'AI đang nạp vào RAM...';
+      aiStatusText.textContent = 'Đang nạp...';
       if (btnToggleAi) {
         btnToggleAi.className = 'win-btn';
-        btnToggleAiIcon.textContent = '⏳';
-        btnToggleAiText.textContent = 'Đang nạp AI...';
-        btnToggleAi.title = 'Đang nạp mô hình vào RAM, vui lòng chờ vài giây';
+        btnToggleAi.textContent = '2. Đang nạp...';
+        btnToggleAi.title = 'Đang nạp mô hình vào RAM...';
       }
     } else {
       aiStatusDot.className = 'status-dot offline';
-      aiStatusText.textContent = 'AI Sẵn sàng (Chế độ chờ)';
+      aiStatusText.textContent = 'Chế độ chờ';
       if (btnToggleAi) {
-        btnToggleAi.className = 'win-btn win-btn-primary';
-        btnToggleAiIcon.textContent = '⚡';
-        btnToggleAiText.textContent = 'Bật AI';
-        btnToggleAi.title = 'Nhấn để nạp trước mô hình AI vào RAM';
+        btnToggleAi.className = 'win-btn';
+        btnToggleAi.textContent = '2. Bật AI';
+        btnToggleAi.title = 'Bật tiến trình AI';
       }
     }
 
     return data;
   } catch (err) {
     aiStatusDot.className = 'status-dot offline';
-    aiStatusText.textContent = 'Chưa kết nối';
+    aiStatusText.textContent = 'Ngoại tuyến';
     return { running: false };
   }
 }
