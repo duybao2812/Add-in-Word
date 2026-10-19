@@ -2207,6 +2207,40 @@
       }
     }
 
+    
+    const OVERRIDE_KEY = "WORD_ADDIN_TEMPLATES_OVERRIDE";
+    function loadDefaultTemplateOverrides() {
+      try {
+        const raw = localStorage.getItem(OVERRIDE_KEY);
+        if (!raw) return;
+        const overrides = JSON.parse(raw);
+        Object.keys(overrides).forEach(k => {
+          if (TEMPLATES_DATA[k] && overrides[k]) {
+            TEMPLATES_DATA[k].structuredData = overrides[k].structuredData || TEMPLATES_DATA[k].structuredData;
+            TEMPLATES_DATA[k].html = buildTemplateHtmlFromData(TEMPLATES_DATA[k].structuredData);
+          }
+        });
+      } catch (e) {
+        console.warn("Lỗi nạp override mẫu:", e);
+      }
+    }
+
+    function saveTemplateOverrides() {
+      try {
+        const overrides = {};
+        Object.keys(TEMPLATES_DATA).forEach(k => {
+          if (TEMPLATES_DATA[k] && TEMPLATES_DATA[k].structuredData) {
+            overrides[k] = {
+              structuredData: TEMPLATES_DATA[k].structuredData
+            };
+          }
+        });
+        localStorage.setItem(OVERRIDE_KEY, JSON.stringify(overrides));
+      } catch (e) {
+        console.warn("Lỗi lưu override:", e);
+      }
+    }
+
     function saveCustomTemplatesToStorage(arr) {
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(arr));
@@ -3113,7 +3147,11 @@
 
           const matchedGrounds = [];
           allLines.forEach(line => {
-            if (rule.keywords.some(kw => line.toLowerCase().includes(kw))) {
+            const cleanLine = line.trim().toLowerCase();
+            const cleanNew = rule.newCitation.trim().toLowerCase();
+            // Nếu đã là câu trích dẫn mới rồi thì không quét/đề xuất lại nữa
+            if (cleanLine === cleanNew) return;
+            if (rule.keywords.some(kw => cleanLine.includes(kw))) {
               matchedGrounds.push(line);
             }
           });
@@ -3249,6 +3287,38 @@
     /**
      * THỰC THI THAY THẾ HÀNG LOẠT TRÊN TẤT CẢ MẪU ĐƯỢC CHỌN
      */
+    function showBulkSuccessModal(info) {
+      const modal = document.getElementById("dlgBulkSuccessModalOverlay");
+      const details = document.getElementById("bulkSuccessDetails");
+      if (!modal) {
+        alert(`✓ THAY THẾ PHÁP LÝ HÀNG LOẠT THÀNH CÔNG!\n\n- Số điều luật đã áp dụng: ${info.proposalCount}\n- Số lượt căn cứ đã thay thế: ${info.replacedCount}\n- Số mẫu văn bản đã cập nhật: ${info.templateCount}\n\nDanh sách mẫu:\n• ${info.templateNames.join('\n• ')}`);
+        return;
+      }
+
+      if (details) {
+        details.innerHTML = `
+          <div style="margin-bottom: 4px;"><strong>• Số điều luật đã áp dụng:</strong> ${info.proposalCount} loại văn bản luật</div>
+          <div style="margin-bottom: 4px;"><strong>• Tổng số lượt căn cứ đã thay thế:</strong> ${info.replacedCount} vị trí</div>
+          <div style="margin-bottom: 4px;"><strong>• Số mẫu văn bản đã cập nhật:</strong> ${info.templateCount} mẫu</div>
+          <div style="margin-top: 6px; padding-top: 4px; border-top: 1px dashed #CCC;">
+            <strong>Các mẫu văn bản đã thay thế luật mới:</strong><br/>
+            ${info.templateNames.map(n => `<span style="display: inline-block; background: #E8F5E9; border: 1px solid #A5D6A7; color: #1B5E20; padding: 1px 6px; margin: 2px 3px 2px 0; font-size: 11px;">✓ ${escapeHtml(n)}</span>`).join("")}
+          </div>
+        `;
+      }
+
+      modal.style.display = "flex";
+      modal.classList.remove("hidden");
+    }
+
+    function closeBulkSuccessModal() {
+      const modal = document.getElementById("dlgBulkSuccessModalOverlay");
+      if (modal) {
+        modal.style.display = "none";
+        modal.classList.add("hidden");
+      }
+    }
+
     function handleExecuteBulkLaw3Cols() {
       const checkedBoxes = document.querySelectorAll("#tblBulk3ColsBody .chk-bulk-row:checked");
       if (checkedBoxes.length === 0) {
@@ -3264,11 +3334,10 @@
         }
       });
 
-      const confirmMsg = `XÁC NHẬN THAY THẾ PHÁP LÝ HÀNG LOẠT:\n\n` +
-        `Hệ thống sẽ thay thế ${selectedProposals.length} căn cứ pháp lý cũ bằng các văn bản luật mới nhất trên toàn bộ các mẫu văn bản liên quan.\n\n` +
-        `Bạn có chắc chắn muốn thực hiện ngay bây giờ không?`;
-
-      if (!confirm(confirmMsg)) return;
+      if (selectedProposals.length === 0) {
+        alert("Không có đề xuất nào được chọn để thực hiện!");
+        return;
+      }
 
       let customStorageList = getCustomTemplatesFromStorage();
       let totalReplacedInstances = 0;
@@ -3286,7 +3355,9 @@
           const updatedGrounds = [];
 
           grounds.forEach(g => {
-            const isMatch = rule.keywords.some(kw => g.toLowerCase().includes(kw));
+            const cleanG = g.trim().toLowerCase();
+            const cleanNew = newCit.trim().toLowerCase();
+            const isMatch = (cleanG !== cleanNew) && rule.keywords.some(kw => cleanG.includes(kw));
             if (isMatch) {
               updatedGrounds.push(newCit);
               totalReplacedInstances++;
@@ -3312,9 +3383,11 @@
         });
       });
 
+      // Lưu trữ cả mẫu tự tạo và mẫu mặc định để duy trì vĩnh viễn
       saveCustomTemplatesToStorage(customStorageList);
+      saveTemplateOverrides();
 
-      // Cập nhật lại giao diện Xem trước
+      // Cập nhật lại giao diện Xem trước ngay lập tức
       if (affectedTemplateKeys.has(selectedTemplateKey)) {
         renderPreview(selectedTemplateKey);
       }
@@ -3323,11 +3396,14 @@
       scanAllTemplateGroundsAndSuggestReplacements();
 
       setStatus(`Đã thay thế thành công ${totalReplacedInstances} căn cứ pháp lý trên ${affectedTemplateKeys.size} mẫu văn bản.`);
-      alert(`✓ THAY THẾ PHÁP LÝ HÀNG LOẠT THÀNH CÔNG!\n\n` +
-        `- Số đề xuất luật đã áp dụng: ${selectedProposals.length}\n` +
-        `- Tổng số căn cứ pháp lý đã thay thế: ${totalReplacedInstances}\n` +
-        `- Số mẫu văn bản đã được cập nhật: ${affectedTemplateKeys.size}\n\n` +
-        `Tất cả mẫu văn bản hiện đã áp dụng trích dẫn pháp luật mới nhất theo đúng chuẩn Nghị định 30!`);
+
+      // HIỂN THỊ POPUP THÔNG BÁO THÀNH CÔNG RÕ RÀNG
+      showBulkSuccessModal({
+        proposalCount: selectedProposals.length,
+        replacedCount: totalReplacedInstances,
+        templateCount: affectedTemplateKeys.size,
+        templateNames: Array.from(affectedTemplateKeys).map(k => TEMPLATES_DATA[k]?.title || k)
+      });
     }
 
     function scanAffectedTemplates(keyword) {
@@ -3402,7 +3478,10 @@
       } catch (e) {}
 
       // 1. Nạp các mẫu do người dùng tạo từ LocalStorage
+      loadDefaultTemplateOverrides();
       loadCustomTemplates();
+      document.getElementById("btnCloseBulkSuccessX")?.addEventListener("click", closeBulkSuccessModal);
+      document.getElementById("btnConfirmBulkSuccess")?.addEventListener("click", closeBulkSuccessModal);
 
       // 2. Gắn sự kiện chọn mẫu trong danh sách
       const items = document.querySelectorAll("#templateList .win-list-item");
@@ -3636,6 +3715,36 @@
   </datalist>
 
   <!-- Datalist danh sách 63 tỉnh/thành phố sau sáp nhập để tìm kiếm nhanh -->
+  
+    <!-- 8. Popup Thông Báo Thay Thế Pháp Lý Hàng Loạt Thành Công -->
+    <div id="dlgBulkSuccessModalOverlay" class="win-modal-overlay hidden" style="display: none; z-index: 10005;">
+      <div class="win-modal-dialog" style="width: 500px; max-width: 95vw; background: #FFFFFF; border: 2px solid #0078D7; box-shadow: 0 4px 24px rgba(0,0,0,0.45);">
+        <div class="win-modal-titlebar" style="background: #0078D7; color: #FFFFFF; font-weight: bold; display: flex; justify-content: space-between; align-items: center; padding: 4px 8px;">
+          <span>✓ Thông Báo Hệ Thống - Cập Nhật Pháp Lý Thành Công</span>
+          <button type="button" class="win-modal-close-x" id="btnCloseBulkSuccessX" style="color: #FFFFFF; font-weight: bold;">✕</button>
+        </div>
+        <div style="padding: 16px; font-size: 12px; display: flex; gap: 14px; align-items: flex-start; background: #FFFFFF;">
+          <div style="font-size: 42px; line-height: 1; color: #2E7D32;">✓</div>
+          <div style="flex: 1 1 auto;">
+            <div style="font-weight: bold; font-size: 14px; color: #1B5E20; margin-bottom: 6px;">
+              ĐÃ THAY THẾ PHÁP LÝ HÀNG LOẠT THÀNH CÔNG!
+            </div>
+            <div id="bulkSuccessDetails" style="color: #333; line-height: 1.5; font-size: 11.5px; background: #F8F9FA; border: 1px solid #D0D0D0; padding: 8px; margin-bottom: 8px;">
+              <!-- Nội dung cập nhật chi tiết -->
+            </div>
+            <div style="color: #004D99; font-weight: 600; font-size: 11px;">
+              💡 Toàn bộ các mẫu văn bản đã được đồng bộ chuẩn luật mới nhất theo đúng Nghị định 30.
+            </div>
+          </div>
+        </div>
+        <div class="win-modal-actions" style="padding: 8px 14px; background: #EAEAEA; border-top: 1px solid #CCCCCC; display: flex; justify-content: flex-end;">
+          <button type="button" class="win-btn win-btn-primary" id="btnConfirmBulkSuccess" style="min-width: 120px; height: 26px; font-weight: bold; background: #0078D7; cursor: pointer;">
+            ✓ Xác nhận / Đóng
+          </button>
+        </div>
+      </div>
+    </div>
+
   <datalist id="vnProvincesList">
     <option value="Hà Nội"></option>
     <option value="TP. Hồ Chí Minh"></option>
