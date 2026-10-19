@@ -2,14 +2,14 @@
   "$schemaVersion": "1.0",
   "description": "Danh sách hồ sơ phần cứng các máy tính từng chạy dự án Add-in Word",
   "lastActiveMachineId": "7CC0A566-B81A-9978-B6B7-48210B2E65CA",
-  "lastDetectedAt": "2026-10-19 06:56:52",
+  "lastDetectedAt": "2026-10-19 10:05:46",
   "machines": {
     "7CC0A566-B81A-9978-B6B7-48210B2E65CA": {
       "MachineId": "7CC0A566-B81A-9978-B6B7-48210B2E65CA",
       "ComputerName": "DESKTOP-D7DEASF",
       "UserName": "Admin",
       "SystemUUID": "7CC0A566-B81A-9978-B6B7-48210B2E65CA",
-      "Timestamp": "2026-10-19 13:56:52",
+      "Timestamp": "2026-10-19 17:05:46",
       "OperatingSystem": {
         "Caption": "Microsoft Windows 11 Pro",
         "Version": "10.0.26300",
@@ -90,15 +90,15 @@
           "VolumeName": "",
           "FileSystem": "NTFS",
           "TotalSizeGB": 475.92,
-          "FreeSpaceGB": 181.6,
-          "FreePercent": 38.2
+          "FreeSpaceGB": 181.51,
+          "FreePercent": 38.1
         },
         {
           "DriveLetter": "D:",
           "VolumeName": "",
           "FileSystem": "NTFS",
           "TotalSizeGB": 111.79,
-          "FreeSpaceGB": 108.11,
+          "FreeSpaceGB": 108.12,
           "FreePercent": 96.7
         },
         {
@@ -106,8 +106,8 @@
           "VolumeName": "huynhbao281201@gmail.com - Go...",
           "FileSystem": "FAT32",
           "TotalSizeGB": 475.92,
-          "FreeSpaceGB": 172.52,
-          "FreePercent": 36.3
+          "FreeSpaceGB": 172.43,
+          "FreePercent": 36.2
         },
         {
           "DriveLetter": "H:",
@@ -122,16 +122,16 @@
           "VolumeName": "xdthanhthuan@gmail.com - Goog...",
           "FileSystem": "FAT32",
           "TotalSizeGB": 475.92,
-          "FreeSpaceGB": 172.52,
-          "FreePercent": 36.3
+          "FreeSpaceGB": 172.43,
+          "FreePercent": 36.2
         },
         {
           "DriveLetter": "J:",
           "VolumeName": "ctyngoctham175@gmail.com - Go...",
           "FileSystem": "FAT32",
           "TotalSizeGB": 475.92,
-          "FreeSpaceGB": 172.52,
-          "FreePercent": 36.3
+          "FreeSpaceGB": 172.43,
+          "FreePercent": 36.2
         }
       ],
       "NetworkAdapters": [
@@ -149,7 +149,7 @@
       "NodeVersion": "v24.15.0",
       "Platform": "win32",
       "firstSeen": "2026-10-19 06:11:55",
-      "lastSeen": "2026-10-19 06:56:52"
+      "lastSeen": "2026-10-19 10:05:46"
     }
   }
 }
