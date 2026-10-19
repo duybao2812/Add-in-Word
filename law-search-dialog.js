@@ -95,6 +95,26 @@
     const btnBatchExt = document.getElementById('btnBatchExtractExternal');
     if (btnBatchExt) btnBatchExt.addEventListener('click', handleBatchExtractExternal);
 
+    // Bóc tách nhanh từ link
+    const btnQuick = document.getElementById('btnQuickImportUrl');
+    if (btnQuick) btnQuick.addEventListener('click', handleQuickImportUrl);
+    const txtQuick = document.getElementById('txtQuickImportUrl');
+    if (txtQuick) {
+      txtQuick.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          handleQuickImportUrl();
+        }
+      });
+      txtQuick.addEventListener('paste', () => {
+        setTimeout(() => {
+          if (txtQuick.value.trim().startsWith('http')) {
+            handleQuickImportUrl();
+          }
+        }, 150);
+      });
+    }
+
     const txtSearchExt = document.getElementById('txtSearchExternal');
     if (txtSearchExt) {
       txtSearchExt.addEventListener('input', () => {
@@ -699,6 +719,49 @@
     tbody.querySelectorAll('.btn-extract-external').forEach(btn => {
       btn.addEventListener('click', handleExtractExternalRow);
     });
+
+    tbody.querySelectorAll('.ext-url-input').forEach(input => {
+      // Khi dán link vào ô input: tự động lấy dữ liệu ngay
+      input.addEventListener('paste', () => {
+        setTimeout(() => {
+          const val = input.value.trim();
+          if (val.startsWith('http')) {
+            const tr = input.closest('tr');
+            const btn = tr ? tr.querySelector('.btn-extract-external') : null;
+            if (btn && !btn.disabled) {
+              btn.click();
+            }
+          }
+        }, 150);
+      });
+
+      // Khi ấn Enter trong ô input: tự động lấy dữ liệu ngay
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          const tr = input.closest('tr');
+          const btn = tr ? tr.querySelector('.btn-extract-external') : null;
+          if (btn && !btn.disabled) {
+            btn.click();
+          }
+        }
+      });
+    });
+  }
+
+  /**
+   * Trích xuất mã số LawID từ mọi định dạng link Thư Viện Pháp Luật
+   */
+  function extractTvplLawId(url) {
+    if (!url || typeof url !== 'string') return null;
+    const mQuery = url.match(/[?&]LawID=(\d+)/i);
+    if (mQuery) return mQuery[1];
+    const mEnd = url.match(/[-_](\d{4,8})(?:\.(?:aspx|html|htm))?(?:[?#]|$)/i);
+    if (mEnd) return mEnd[1];
+    const mDigits = url.match(/\/(\d{5,8})(?:[?#]|$)/i);
+    if (mDigits) return mDigits[1];
+    const mAny = url.match(/\b(\d{5,8})\b/);
+    return mAny ? mAny[1] : null;
   }
 
   /**
@@ -748,6 +811,9 @@
         clearTimeout(timeoutId);
         return {
           success: true,
+          id: serverResult.id || docId,
+          soHieu: serverResult.soHieu || soHieu,
+          tenVanBan: serverResult.tenVanBan || '',
           textLength: serverResult.textLength,
           snippet: serverResult.snippet
         };
@@ -765,9 +831,7 @@
       // 2. CƠ CHẾ DỰ PHÒNG TRỰC TIẾP TỪ CLIENT NẾU SERVER LOCAL CHƯA BẬT
       if (url.includes('thuvienphapluat.vn')) {
         notify('Đang trích xuất qua TVPL API...');
-        let lawId = null;
-        const m = url.match(/[-_](\d+)\.aspx/i) || url.match(/[?&]LawID=(\d+)/i) || url.match(/\b(\d{5,8})\b/);
-        if (m) lawId = m[1];
+        const lawId = extractTvplLawId(url);
 
         if (!lawId) {
           clearTimeout(timeoutId);
@@ -785,10 +849,14 @@
         }
 
         const tvplJson = await tvplRes.json();
-        const html = tvplJson.ContentVN || '';
+        const html = tvplJson.ContentVN || (tvplJson.Document ? tvplJson.Document.MainContent : '') || tvplJson.ContentEN || '';
         if (!html || html.length < 50) {
           clearTimeout(timeoutId);
-          return { success: false, error: 'Văn bản trên TVPL chưa có nội dung chữ toàn văn' };
+          const hasScan = tvplJson.LawScan || (tvplJson.LinkScans && tvplJson.LinkScans.length > 0) || tvplJson.FilePDF;
+          return {
+            success: false,
+            error: hasScan ? 'Văn bản trên TVPL hiện chỉ có file scan/PDF đính kèm, chưa có toàn văn chữ' : 'Văn bản trên TVPL chưa có nội dung chữ toàn văn'
+          };
         }
 
         notify('Đang làm sạch văn bản...');
@@ -807,32 +875,42 @@
         const lines = cleanText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
         cleanText = lines.join('\n\n');
 
-        // Lưu trực tiếp lên Supabase từ Client
+        const codeFromTvpl = (tvplJson.Document && tvplJson.Document.News_Code) || soHieu || 'Chưa rõ số hiệu';
+        const titleFromTvpl = (tvplJson.Document && tvplJson.Document.News_Subject) || '';
+
+        // Lưu trực tiếp lên Supabase từ Client nếu có cấu hình
         const engine = window.LawSyncEngine;
         if (engine && engine.config && engine.config.supabaseUrl && engine.config.anonKey) {
           notify('Đang lưu lên Supabase Cloud...');
-          const sbUrl = `${engine.config.supabaseUrl.replace(/\/$/, '')}/rest/v1/van_ban_phap_luat?id=eq.${docId}`;
-          await fetch(sbUrl, {
-            method: 'PATCH',
-            headers: {
-              'apikey': engine.config.anonKey,
-              'Authorization': `Bearer ${engine.config.anonKey}`,
-              'Content-Type': 'application/json',
-              'Prefer': 'return=representation'
-            },
-            body: JSON.stringify({
-              duong_dan_gxd: url,
-              noi_dung_toan_van: cleanText,
-              co_toan_van_html: true,
-              updated_at: new Date().toISOString()
-            }),
-            signal: controller.signal
-          });
+          const baseUrl = engine.config.supabaseUrl.replace(/\/$/, '');
+          if (docId) {
+            const sbUrl = `${baseUrl}/rest/v1/van_ban_phap_luat?id=eq.${docId}`;
+            await fetch(sbUrl, {
+              method: 'PATCH',
+              headers: {
+                'apikey': engine.config.anonKey,
+                'Authorization': `Bearer ${engine.config.anonKey}`,
+                'Content-Type': 'application/json',
+                'Prefer': 'return=representation'
+              },
+              body: JSON.stringify({
+                duong_dan_gxd: url,
+                noi_dung_toan_van: cleanText,
+                co_toan_van_html: true,
+                is_external_managed: true,
+                updated_at: new Date().toISOString()
+              }),
+              signal: controller.signal
+            });
+          }
         }
 
         clearTimeout(timeoutId);
         return {
           success: true,
+          id: docId,
+          soHieu: codeFromTvpl,
+          tenVanBan: titleFromTvpl,
           textLength: cleanText.length,
           snippet: cleanText.slice(0, 500)
         };
@@ -853,6 +931,105 @@
         success: false,
         error: isTimeout ? 'Hết thời gian chờ (Timeout 45s)' : `Lỗi: ${err.message}`
       };
+    }
+  }
+
+  /**
+   * Bóc tách nhanh văn bản từ thanh nhập link ở đầu bảng
+   */
+  async function handleQuickImportUrl() {
+    const txtInput = document.getElementById('txtQuickImportUrl');
+    const btn = document.getElementById('btnQuickImportUrl');
+    const url = txtInput ? txtInput.value.trim() : '';
+
+    if (!url || !url.startsWith('http')) {
+      alert('Vui lòng dán đường link URL hợp lệ (bắt đầu bằng http:// hoặc https://) vào ô nhập nhanh!');
+      if (txtInput) txtInput.focus();
+      return;
+    }
+
+    const originalBtnText = btn ? btn.textContent : '';
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = '⏳ Đang lấy...';
+    }
+
+    const pContainer = document.getElementById('extProgressContainer');
+    const pBar = document.getElementById('extProgressBar');
+    const pPercent = document.getElementById('extProgressPercent');
+    const pStatus = document.getElementById('extProgressStatus');
+
+    if (pContainer) pContainer.style.display = 'block';
+    if (pBar) pBar.style.width = '30%';
+    if (pPercent) pPercent.textContent = '30%';
+    if (pStatus) pStatus.textContent = 'Đang nhận diện và bóc tách dữ liệu từ link...';
+
+    const res = await executeExtractOneDoc(null, '', url, (msg) => {
+      if (pStatus) pStatus.textContent = `⏳ ${msg}`;
+    });
+
+    if (res.success) {
+      if (pBar) pBar.style.width = '100%';
+      if (pPercent) pPercent.textContent = '100%';
+      if (pStatus) pStatus.innerHTML = `✅ Bóc tách thành công văn bản: <b>${escapeHtml(res.soHieu || 'Mới')}</b> (${res.textLength.toLocaleString()} ký tự)`;
+
+      // Cập nhật bộ nhớ cục bộ
+      const engine = window.LawSyncEngine;
+      if (engine) {
+        let doc = engine.laws ? engine.laws.find(d => (res.id && (d.id === res.id || d.uuid === res.id)) || (res.soHieu && d.code && d.code.toLowerCase().includes(res.soHieu.toLowerCase()))) : null;
+        if (doc) {
+          doc.linkGoc = url;
+          doc.duong_dan_gxd = url;
+          doc.co_toan_van_html = true;
+          doc.is_external_managed = true;
+          doc.noi_dung_toan_van = res.snippet;
+          if (res.soHieu) doc.code = res.soHieu;
+          if (res.tenVanBan) doc.name = res.tenVanBan;
+        } else {
+          const newDoc = {
+            id: res.id || Date.now(),
+            uuid: res.id,
+            code: res.soHieu || 'Văn bản mới',
+            name: res.tenVanBan || 'Văn bản trích xuất từ link ngoài',
+            type: 'Văn bản QPPL',
+            category: 'chung',
+            issueDate: '',
+            effectiveDate: '',
+            status: 'Còn hiệu lực',
+            issuer: 'Cơ quan nhà nước',
+            linkGoc: url,
+            duong_dan_gxd: url,
+            noi_dung_toan_van: res.snippet,
+            co_toan_van_html: true,
+            is_external_managed: true,
+            citation: `- Căn cứ ${res.tenVanBan || res.soHieu};`
+          };
+          if (!engine.laws) engine.laws = [];
+          engine.laws.unshift(newDoc);
+        }
+        engine.saveLocalData();
+      }
+
+      // Xóa ô nhập nhanh và nạp lại bảng
+      if (txtInput) txtInput.value = '';
+      const txtSearch = document.getElementById('txtSearchExternal');
+      if (txtSearch && res.soHieu) {
+        txtSearch.value = res.soHieu;
+      }
+      renderExternalLawsTable(txtSearch ? txtSearch.value.trim().toLowerCase() : '');
+
+      alert(`✅ THÀNH CÔNG!\n\nĐã bóc tách tự động và cập nhật văn bản:\n"${res.soHieu || ''}" - ${res.tenVanBan || ''}\n\nĐộ dài: ${res.textLength.toLocaleString()} ký tự.\nDữ liệu đã được lưu lên Supabase Cloud Database!`);
+    } else {
+      if (pBar) pBar.style.width = '100%';
+      if (pPercent) pPercent.textContent = '100%';
+      if (pStatus) pStatus.innerHTML = `<span style="color: #dc3545;">❌ Lỗi: ${escapeHtml(res.error)}</span>`;
+
+      alert(`❌ BÓC TÁCH THẤT BẠI:\n\n${res.error}\n\nĐường dẫn: ${url}`);
+    }
+
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = originalBtnText || '📥 Bóc tách ngay';
     }
   }
 

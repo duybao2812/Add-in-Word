@@ -352,11 +352,21 @@ function patchSupabaseDoc(id, payload) {
   });
 }
 
+function extractTvplLawId(url) {
+  if (!url || typeof url !== 'string') return null;
+  const mQuery = url.match(/[?&]LawID=(\d+)/i);
+  if (mQuery) return mQuery[1];
+  const mEnd = url.match(/[-_](\d{4,8})(?:\.(?:aspx|html|htm))?(?:[?#]|$)/i);
+  if (mEnd) return mEnd[1];
+  const mDigits = url.match(/\/(\d{5,8})(?:[?#]|$)/i);
+  if (mDigits) return mDigits[1];
+  const mAny = url.match(/\b(\d{5,8})\b/);
+  return mAny ? mAny[1] : null;
+}
+
 function extractThuvienPhapLuat(url) {
   return new Promise((resolve, reject) => {
-    let lawId = null;
-    const m = url.match(/[-_](\d+)\.aspx/i) || url.match(/[?&]LawID=(\d+)/i) || url.match(/\b(\d{5,8})\b/);
-    if (m) lawId = m[1];
+    const lawId = extractTvplLawId(url);
     if (!lawId) return reject(new Error('Không tìm thấy mã LawID trong link Thư Viện Pháp Luật'));
 
     const apiUrl = `https://apimobile.thuvienphapluat.vn/Document/GetDocumentDetail?LawID=${lawId}&language=&token=`;
@@ -376,14 +386,25 @@ function extractThuvienPhapLuat(url) {
       res.on('end', () => {
         try {
           const json = JSON.parse(Buffer.concat(chunks).toString('utf8'));
-          if (json && json.ContentVN && json.ContentVN.length > 50) {
+          const html = json.ContentVN || (json.Document ? json.Document.MainContent : '') || json.ContentEN || '';
+          if (html && html.length > 50) {
             resolve({
-              html: json.ContentVN,
+              html: html,
               title: json.Document ? json.Document.News_Subject : '',
-              code: json.Document ? json.Document.News_Code : ''
+              code: json.Document ? json.Document.News_Code : '',
+              organ: json.Document ? json.Document.Organ : '',
+              issueDate: json.Document ? json.Document.News_Dates_Date : '',
+              signer: json.Document ? json.Document.Singer : '',
+              lawType: json.Document && json.Document.LawType ? json.Document.LawType.LawType_Name : 'Văn bản QPPL',
+              lawId: lawId
             });
           } else {
-            reject(new Error('Văn bản này trên Thư Viện Pháp Luật chưa có nội dung toàn văn chữ'));
+            const hasScan = json.LawScan || (json.LinkScans && json.LinkScans.length > 0) || json.FilePDF;
+            if (hasScan) {
+              reject(new Error('Văn bản này trên Thư Viện Pháp Luật hiện chỉ lưu trữ dưới dạng file scan/PDF đính kèm, chưa có toàn văn chữ'));
+            } else {
+              reject(new Error('Văn bản này trên Thư Viện Pháp Luật chưa có nội dung toàn văn chữ'));
+            }
           }
         } catch (e) {
           reject(new Error('Lỗi giải mã JSON từ Thư Viện Pháp Luật: ' + e.message));
@@ -400,16 +421,75 @@ function extractThuvienPhapLuat(url) {
   });
 }
 
+function findSupabaseDocByCode(code) {
+  return new Promise((resolve) => {
+    if (!code) return resolve(null);
+    const path = `/rest/v1/van_ban_phap_luat?so_hieu=ilike.*${encodeURIComponent(code)}*&limit=1`;
+    https.get(SUPABASE_URL + path, {
+      headers: {
+        'apikey': SUPABASE_SERVICE_KEY,
+        'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`
+      }
+    }, res => {
+      const chunks = [];
+      res.on('data', c => chunks.push(c));
+      res.on('end', () => {
+        try {
+          const list = JSON.parse(Buffer.concat(chunks).toString('utf8'));
+          resolve(Array.isArray(list) && list.length > 0 ? list[0] : null);
+        } catch (_) {
+          resolve(null);
+        }
+      });
+    }).on('error', () => resolve(null));
+  });
+}
+
+function insertSupabaseDoc(payload) {
+  return new Promise((resolve) => {
+    const postData = JSON.stringify(payload);
+    const parsed = new URL(`${SUPABASE_URL}/rest/v1/van_ban_phap_luat`);
+    const req = https.request({
+      hostname: parsed.hostname,
+      port: 443,
+      path: parsed.pathname,
+      method: 'POST',
+      headers: {
+        'apikey': SUPABASE_SERVICE_KEY,
+        'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=representation',
+        'Content-Length': Buffer.byteLength(postData)
+      }
+    }, res => {
+      const chunks = [];
+      res.on('data', c => chunks.push(c));
+      res.on('end', () => {
+        const text = Buffer.concat(chunks).toString('utf8');
+        try {
+          resolve({ status: res.statusCode, data: JSON.parse(text), raw: text });
+        } catch (_) {
+          resolve({ status: res.statusCode, raw: text });
+        }
+      });
+    });
+    req.on('error', (e) => resolve({ status: 500, raw: e.message }));
+    req.write(postData);
+    req.end();
+  });
+}
+
 async function handleApiExtractExternalLaw(req, res, body) {
   res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
   try {
-    const { id, soHieu, url } = JSON.parse(body || '{}');
+    let { id, soHieu, url } = JSON.parse(body || '{}');
     if (!url || !url.startsWith('http')) {
       return res.end(JSON.stringify({ success: false, error: 'Đường dẫn URL không hợp lệ (phải bắt đầu bằng http:// hoặc https://)' }));
     }
 
-    console.log(`[Trích xuất Link ngoài] Đang tải: ${soHieu || id} -> ${url}`);
+    console.log(`[Trích xuất Link ngoài] Đang tải: ${soHieu || id || 'Auto'} -> ${url}`);
     let cleanText = '';
+    let meta = null;
     const isTvpl = url.includes('thuvienphapluat.vn');
 
     if (isTvpl) {
@@ -417,7 +497,9 @@ async function handleApiExtractExternalLaw(req, res, body) {
       try {
         const tvplRes = await extractThuvienPhapLuat(url);
         cleanText = extractCleanTextFromHtml(tvplRes.html);
-        console.log(`[Trích xuất Link ngoài] ✅ Bóc tách TVPL thành công: ${cleanText.length} ký tự`);
+        meta = tvplRes;
+        if (!soHieu && tvplRes.code) soHieu = tvplRes.code;
+        console.log(`[Trích xuất Link ngoài] ✅ Bóc tách TVPL thành công: ${cleanText.length} ký tự (${tvplRes.code || ''})`);
       } catch (tvplErr) {
         console.warn(`[Trích xuất Link ngoài] TVPL API gặp lỗi (${tvplErr.message}), thử tải web thông thường...`);
       }
@@ -435,38 +517,93 @@ async function handleApiExtractExternalLaw(req, res, body) {
       return res.end(JSON.stringify({ success: false, error: 'Không trích xuất được khối văn bản hợp lệ từ URL này (nội dung chữ quá ngắn)' }));
     }
 
-    // 1. Thử cập nhật kèm is_external_managed
-    let patchPayload = {
-      duong_dan_gxd: url,
-      noi_dung_toan_van: cleanText,
-      co_toan_van_html: true,
-      is_external_managed: true,
-      updated_at: new Date().toISOString()
-    };
-
-    let patchRes = await patchSupabaseDoc(id, patchPayload);
-    // 2. Nếu schema Supabase chưa có cột is_external_managed, cập nhật mà không gửi cột này
-    if (patchRes.status === 400 && patchRes.raw && patchRes.raw.includes('is_external_managed')) {
-      delete patchPayload.is_external_managed;
-      patchRes = await patchSupabaseDoc(id, patchPayload);
+    // Nếu không có id truyền vào, thử tìm văn bản trong Supabase theo số hiệu
+    let targetDocId = id;
+    if (!targetDocId && soHieu) {
+      const found = await findSupabaseDocByCode(soHieu);
+      if (found) {
+        targetDocId = found.id;
+        console.log(`[Trích xuất Link ngoài] Đã tìm thấy văn bản trùng số hiệu: ${found.so_hieu} (ID ${targetDocId})`);
+      }
     }
 
-    if (patchRes.status >= 200 && patchRes.status < 300) {
-      console.log(`[Trích xuất Link ngoài] ✅ Thành công: ${soHieu} (${cleanText.length} ký tự)`);
-      res.end(JSON.stringify({
-        success: true,
-        id,
-        soHieu,
-        url,
-        textLength: cleanText.length,
-        snippet: cleanText.slice(0, 300)
-      }));
+    let isNewDoc = false;
+    let savedDoc = null;
+
+    if (targetDocId) {
+      // Cập nhật văn bản hiện có
+      let patchPayload = {
+        duong_dan_gxd: url,
+        noi_dung_toan_van: cleanText,
+        co_toan_van_html: true,
+        is_external_managed: true,
+        updated_at: new Date().toISOString()
+      };
+      if (meta && meta.title) patchPayload.ten_van_ban = meta.title;
+      if (meta && meta.code) patchPayload.so_hieu = meta.code;
+      if (meta && meta.organ) patchPayload.co_quan_ban_hanh = meta.organ;
+
+      let patchRes = await patchSupabaseDoc(targetDocId, patchPayload);
+      if (patchRes.status === 400 && patchRes.raw && patchRes.raw.includes('is_external_managed')) {
+        delete patchPayload.is_external_managed;
+        patchRes = await patchSupabaseDoc(targetDocId, patchPayload);
+      }
+
+      if (patchRes.status >= 200 && patchRes.status < 300) {
+        savedDoc = patchRes.data && patchRes.data[0] ? patchRes.data[0] : { id: targetDocId, so_hieu: soHieu };
+      } else {
+        return res.end(JSON.stringify({
+          success: false,
+          error: `Lỗi cập nhật Supabase (HTTP ${patchRes.status}): ${patchRes.raw || ''}`
+        }));
+      }
     } else {
-      res.end(JSON.stringify({
-        success: false,
-        error: `Lỗi cập nhật Supabase (HTTP ${patchRes.status}): ${patchRes.raw || ''}`
-      }));
+      // Thêm mới văn bản vào Supabase nếu chưa có
+      isNewDoc = true;
+      const newPayload = {
+        so_hieu: (meta && meta.code) || soHieu || 'Văn bản mới',
+        ten_van_ban: (meta && meta.title) || 'Văn bản pháp luật từ link ngoài',
+        loai_van_ban: (meta && meta.lawType) || 'Văn bản QPPL',
+        chu_de_id: 'chung',
+        ngay_ban_hanh: (meta && meta.issueDate) || null,
+        co_quan_ban_hanh: (meta && meta.organ) || 'Cơ quan nhà nước',
+        tinh_trang_hieu_luc: 'Còn hiệu lực',
+        duong_dan_gxd: url,
+        noi_dung_toan_van: cleanText,
+        co_toan_van_html: true,
+        is_external_managed: true,
+        updated_at: new Date().toISOString()
+      };
+
+      let insertRes = await insertSupabaseDoc(newPayload);
+      if (insertRes.status === 400 && insertRes.raw && insertRes.raw.includes('is_external_managed')) {
+        delete newPayload.is_external_managed;
+        insertRes = await insertSupabaseDoc(newPayload);
+      }
+
+      if (insertRes.status >= 200 && insertRes.status < 300) {
+        savedDoc = insertRes.data && insertRes.data[0] ? insertRes.data[0] : newPayload;
+        targetDocId = savedDoc.id;
+      } else {
+        return res.end(JSON.stringify({
+          success: false,
+          error: `Lỗi thêm mới văn bản vào Supabase (HTTP ${insertRes.status}): ${insertRes.raw || ''}`
+        }));
+      }
     }
+
+    console.log(`[Trích xuất Link ngoài] ✅ Hoàn tất: ${soHieu || targetDocId} (${cleanText.length} ký tự)`);
+    res.end(JSON.stringify({
+      success: true,
+      id: targetDocId,
+      soHieu: (savedDoc && savedDoc.so_hieu) || soHieu,
+      tenVanBan: (savedDoc && savedDoc.ten_van_ban) || (meta && meta.title) || '',
+      url,
+      isNewDoc,
+      textLength: cleanText.length,
+      snippet: cleanText.slice(0, 300)
+    }));
+
   } catch (err) {
     console.error('[Trích xuất Link ngoài] Thất bại:', err.message);
     res.end(JSON.stringify({ success: false, error: err.message }));
