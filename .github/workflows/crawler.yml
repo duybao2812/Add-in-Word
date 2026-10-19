@@ -1,0 +1,43 @@
+name: GXD Legal Documents Crawler Bot
+
+on:
+  schedule:
+    # Chạy cào dữ liệu định kỳ vào lúc 00:00 giờ đêm Việt Nam (17:00 UTC) mỗi ngày
+    - cron: '0 17 * * *'
+    # Heartbeat Ping định kỳ lúc 00:00 UTC mỗi 3 ngày để giữ Supabase Free Tier không bị Pause
+    - cron: '0 0 */3 * *'
+  workflow_dispatch:
+    inputs:
+      heartbeat_only:
+        description: 'Chỉ gửi Heartbeat Ping (giữ Supabase thức, không quét lại toàn bộ)'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  crawl_and_sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Mã nguồn
+        uses: actions/checkout@v4
+
+      - name: Thiết lập môi trường Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Cài đặt Dependencies
+        run: |
+          if [ -f package.json ]; then
+            npm install --production || true
+          fi
+
+      - name: Khởi chạy Bot Crawler QLDA GXD
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          HEARTBEAT_ONLY: ${{ github.event.inputs.heartbeat_only || (github.event.schedule == '0 0 */3 * *') }}
+        run: node scripts/crawler-gxd.js

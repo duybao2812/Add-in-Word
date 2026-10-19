@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hệ thống Tra cứu &amp; Quản lý Văn bản Pháp luật Chuẩn</title>
+
+  <!-- Office.js hỗ trợ môi trường Microsoft Word Dialog -->
+  <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+
+  <!-- Style chuẩn WinForms Classic -->
+  <link rel="stylesheet" href="law-search-dialog.css?v=1.0.0" />
+
+  <!-- Dữ liệu ban đầu 515 văn bản pháp luật -->
+  <script src="law-data.js?v=1.0.0"></script>
+
+  <!-- Bộ điều phối đồng bộ Offline-First + Supabase Delta Sync -->
+  <script src="sync-engine.js?v=1.0.0"></script>
+
+  <!-- Logic xử lý giao diện -->
+  <script src="law-search-dialog.js?v=1.0.0" defer></script>
+</head>
+<body>
+  <div id="app-container">
+
+    <!-- TOOLSTRIP ĐỈNH: THANH CÔNG CỤ TÌM KIẾM & BỘ LỌC -->
+    <header class="win-toolstrip">
+      <div class="search-box-wrap">
+        <input type="text" id="txtSearchKeyword" class="win-input-search" placeholder="🔍 Nhập số hiệu (VD: 10/2021, 135/2025) hoặc tên văn bản..." />
+        <button id="btnClearSearch" class="search-clear-btn" title="Xóa tìm kiếm">×</button>
+      </div>
+
+      <!-- Lọc Nhóm chủ đề -->
+      <select id="cboCategoryFilter" class="win-select" title="Chọn Nhóm chủ đề pháp lý">
+        <option value="all">-- Tất cả Nhóm chủ đề (515+) --</option>
+        <option value="qlda">Quản lý Dự án &amp; Thủ tục ĐTXD</option>
+        <option value="chi-phi">Quản lý Chi phí &amp; Định mức ĐTXD</option>
+        <option value="hop-dong">Hợp đồng Xây dựng</option>
+        <option value="dau-thau">Đấu thầu &amp; Lựa chọn Nhà thầu</option>
+        <option value="chat-luong">Quản lý Chất lượng &amp; An toàn Thi công</option>
+        <option value="luat-chung">Hệ thống Luật &amp; Bộ Luật</option>
+      </select>
+
+      <!-- Lọc Tình trạng hiệu lực -->
+      <select id="cboStatusFilter" class="win-select" title="Chọn Tình trạng hiệu lực">
+        <option value="all">-- Tất cả Hiệu lực --</option>
+        <option value="con-hieu-luc">🟢 Còn hiệu lực</option>
+        <option value="het-hieu-luc">🔴 Hết hiệu lực / Bị thay thế</option>
+        <option value="sua-doi">🟠 Văn bản sửa đổi / bổ sung</option>
+      </select>
+
+      <div class="win-toolstrip-sep"></div>
+
+      <!-- Nút thao tác -->
+      <button class="win-btn win-btn-primary" id="btnSyncCloud" title="Kiểm tra và nạp văn bản mới từ Cloud Supabase">
+        ⚡ Đồng bộ Đám mây
+      </button>
+
+      <button class="win-btn" id="btnConfigApi" title="Cấu hình kết nối Supabase Cloud">
+        ⚙️ Cấu hình API
+      </button>
+
+      <button class="win-btn" id="btnReloadData" title="Làm mới lại dữ liệu">
+        🔄 Nạp lại
+      </button>
+    </header>
+
+    <!-- MAIN BODY: CHIA 2 CỘT (SPLIT PANE) -->
+    <main class="main-split-body">
+
+      <!-- CỘT TRÁI: DANH SÁCH VĂN BẢN (LIST VIEW) -->
+      <section class="left-pane">
+        <div class="pane-header">
+          <span id="lblListStats">Đang tải danh mục...</span>
+          <span style="font-size: 10px; color: #666;">Bấm để xem chi tiết</span>
+        </div>
+
+        <div class="doc-list-scroll" id="docListContainer">
+          <!-- Render danh sách văn bản bằng JS -->
+        </div>
+      </section>
+
+      <!-- CỘT PHẢI: CHI TIẾT VĂN BẢN & CĂN CỨ PHÁP LÝ -->
+      <section class="right-pane">
+        <div class="doc-detail-body" id="docDetailContainer">
+          <!-- Hiển thị khi chưa chọn văn bản nào -->
+          <div style="text-align: center; color: #888; margin-top: 100px;">
+            <div style="font-size: 40px; margin-bottom: 12px;">⚖️</div>
+            <h3 style="font-size: 15px; color: #555;">Vui lòng chọn một văn bản ở danh sách bên trái</h3>
+            <p style="font-size: 12px; margin-top: 6px;">Bạn có thể tìm kiếm theo số hiệu, tên, từ khóa hoặc lọc theo nhóm chuyên ngành.</p>
+          </div>
+        </div>
+
+        <!-- THANH HÀNH ĐỘNG DƯỚI ĐÁY CỘT PHẢI -->
+        <footer class="detail-action-bar" id="detailActionBar" style="display: none;">
+          <button class="win-btn win-btn-primary" id="btnInsertCitation" title="Chèn dòng Căn cứ pháp lý này vào văn bản Word">
+            📥 Chèn Căn cứ vào Word
+          </button>
+          <button class="win-btn" id="btnCopyCitation" title="Sao chép câu trích dẫn chuẩn vào bộ nhớ đệm">
+            📋 Sao chép Trích dẫn
+          </button>
+          <button class="win-btn" id="btnOpenSourceLink" title="Mở trang gốc trên qlda.gxd.vn">
+            🌐 Xem trên QLDA GXD
+          </button>
+        </footer>
+      </section>
+
+    </main>
+
+    <!-- STATUSSTRIP ĐÁY: TRẠNG THÁI HỆ THỐNG -->
+    <footer class="win-statusstrip">
+      <div class="status-left">
+        <span><span class="status-indicator" id="statusIndicator"></span><span id="lblConnectionStatus">Chế độ Ngoại tuyến (Offline Ready)</span></span>
+        <span>•</span>
+        <span id="lblSyncRevision">Revision: 1</span>
+        <span>•</span>
+        <span id="lblLastSync">Đồng bộ gần nhất: Chưa kết nối Cloud</span>
+      </div>
+      <div class="status-right">
+        <span>Phím tắt: <b>Enter</b> Tìm | <b>Esc</b> Đóng</span>
+      </div>
+    </footer>
+
+  </div>
+
+  <!-- MODAL POPUP: CẤU HÌNH SUPABASE CLOUD -->
+  <div class="modal-overlay" id="modalConfig">
+    <div class="modal-window">
+      <div class="modal-header">
+        <span>⚙️ Cấu hình Kết nối Supabase Cloud Database</span>
+        <button class="modal-close-btn" id="btnModalClose">×</button>
+      </div>
+      <div class="modal-body">
+        <p style="margin-bottom: 10px; color: #555; line-height: 1.4;">
+          Nhập thông tin kết nối Supabase của bạn để kích hoạt cơ chế <b>Delta Sync</b> tự động cập nhật các văn bản mới nhất từ Crawler Bot:
+        </p>
+
+        <div class="modal-form-group">
+          <label for="txtSupabaseUrl">Supabase Project URL:</label>
+          <input type="text" id="txtSupabaseUrl" class="modal-input" placeholder="VD: https://abcdefghijklmn.supabase.co" />
+        </div>
+
+        <div class="modal-form-group">
+          <label for="txtSupabaseAnonKey">Supabase Anon Public Key (Khóa đọc an toàn):</label>
+          <input type="text" id="txtSupabaseAnonKey" class="modal-input" placeholder="VD: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." />
+        </div>
+
+        <div style="background-color: #E8F4FD; border: 1px solid #B8DAFF; padding: 8px 10px; font-size: 11px; color: #004085; line-height: 1.4;">
+          🔒 <b>An toàn bảo mật:</b> Chỉ sử dụng Anon Public Key (khóa chỉ đọc). Tuyệt đối không nhập Service Role Key vào đây.
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="win-btn" id="btnTestConnection">🔍 Kiểm tra kết nối</button>
+        <button class="win-btn win-btn-primary" id="btnSaveConfig">💾 Lưu cấu hình</button>
+        <button class="win-btn" id="btnCancelConfig">Hủy bỏ</button>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>

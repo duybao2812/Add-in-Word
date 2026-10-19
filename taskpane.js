@@ -534,6 +534,7 @@ Office.onReady((info) => {
   initUIEvents();
   initPriceDialogEvents();
   initOcrBroadcastReceiver();
+  initLawBroadcastReceiver();
 });
 
 /**
@@ -792,6 +793,13 @@ function initUIEvents() {
   if (btnNavInsertTemplate) {
     btnNavInsertTemplate.addEventListener("click", () => {
       openTemplateDialogWindow();
+    });
+  }
+
+  const btnNavLawSearch = document.getElementById("btnNavLawSearch");
+  if (btnNavLawSearch) {
+    btnNavLawSearch.addEventListener("click", () => {
+      openLawSearchDialogWindow();
     });
   }
 
@@ -2500,6 +2508,112 @@ function openHelpDialogWindow() {
   } else {
     win.focus();
     setStatus("Đã mở Cửa sổ Sổ tay Quy chuẩn Thể thức NĐ 30.");
+  }
+}
+
+/**
+ * Mở Cửa sổ Hệ thống Tra cứu Văn bản Pháp luật Chuẩn (Nút chức năng số 6)
+ */
+function openLawSearchDialogWindow() {
+  const dialogUrl = new URL("law-search-dialog.html?v=" + Date.now(), window.location.href).href;
+  const width = 1120;
+  const height = 740;
+  const left = Math.max(0, Math.round((window.screen.availWidth - width) / 2));
+  const top = Math.max(0, Math.round((window.screen.availHeight - height) / 2));
+  const features = `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes,status=no,toolbar=no,menubar=no,location=no`;
+
+  let win = null;
+  try {
+    win = window.open(dialogUrl, "WinForms_FormLawSearch", features);
+  } catch (e) {
+    console.warn("window.open law search dialog thất bại:", e);
+  }
+
+  if (!win || win.closed || typeof win.closed === "undefined") {
+    if (Office && Office.context && Office.context.ui && Office.context.ui.displayDialogAsync) {
+      Office.context.ui.displayDialogAsync(dialogUrl, { height: 85, width: 85, displayInIframe: false }, (asyncResult) => {
+        if (asyncResult.status === Office.AsyncResultStatus.Failed) {
+          alert("Không thể mở Cửa sổ Tra cứu Pháp luật: " + (asyncResult.error ? asyncResult.error.message : ""));
+        } else {
+          const dialog = asyncResult.value;
+          dialog.addEventHandler(Office.EventType.DialogMessageReceived, async (arg) => {
+            try {
+              const data = JSON.parse(arg.message);
+              if (data && data.type === 'INSERT_LAW_CITATION') {
+                await insertLawCitationToWord(data.citation, data);
+              }
+            } catch (err) {}
+          });
+          setStatus("Đã mở Cửa sổ Tra cứu Pháp luật qua Office Dialog API.");
+        }
+      });
+    } else {
+      alert("Trình duyệt đã chặn cửa sổ bật lên. Vui lòng cho phép popup để mở Hệ thống Tra cứu Pháp luật.");
+    }
+  } else {
+    win.focus();
+    setStatus("Đã mở Cửa sổ Hệ thống Tra cứu Văn bản Pháp luật Chuẩn.");
+  }
+}
+
+/**
+ * Khởi tạo kênh lắng nghe BroadcastChannel từ Cửa sổ Tra cứu Pháp luật
+ */
+function initLawBroadcastReceiver() {
+  try {
+    const channel = new BroadcastChannel('WordAddin_Law_Channel');
+    channel.onmessage = async (event) => {
+      const { type, citation, code, name } = event.data || {};
+      if (type === 'INSERT_LAW_CITATION' && citation) {
+        console.log('[BroadcastChannel] Nhận yêu cầu chèn Căn cứ Pháp luật vào Word:', citation);
+        await insertLawCitationToWord(citation, { code, name });
+      }
+    };
+  } catch (err) {
+    console.warn('Không thể khởi tạo BroadcastChannel cho Tra cứu Pháp luật:', err);
+  }
+}
+
+/**
+ * Chèn căn cứ pháp lý vào tài liệu Word hoặc cập nhật form
+ */
+async function insertLawCitationToWord(citation, docInfo) {
+  if (!citation) return;
+
+  // 1. Nếu có ô textarea txtLegalBasis trên Form chuẩn hóa, tự động thêm vào
+  const txtLegalBasis = document.getElementById("txtLegalBasis");
+  if (txtLegalBasis) {
+    let currentVal = txtLegalBasis.value.trim();
+    if (currentVal && !currentVal.includes(citation.trim())) {
+      txtLegalBasis.value = currentVal + "\n" + citation.trim();
+    } else if (!currentVal) {
+      txtLegalBasis.value = citation.trim();
+    }
+  }
+
+  // 2. Chèn trực tiếp vào văn bản Word tại con trỏ hoặc cuối trang
+  if (typeof Word !== 'undefined' && Word.run) {
+    try {
+      await Word.run(async (context) => {
+        const selection = context.document.getSelection();
+        const p = selection.insertParagraph(citation.trim(), Word.InsertLocation.after);
+        p.font.name = "Times New Roman";
+        p.font.size = 13;
+        p.font.italic = true;
+        p.firstLineIndent = 0;
+        p.lineSpacing = 1.15 * 12;
+        p.spaceAfter = 3;
+        p.alignment = Word.Alignment.justified;
+
+        await context.sync();
+        setStatus(`Đã chèn căn cứ [${docInfo?.code || 'Pháp luật'}] vào Word thành công!`);
+      });
+    } catch (e) {
+      console.warn("Lỗi chèn vào Word document:", e);
+      setStatus(`Đã ghi nhận căn cứ: ${citation}`);
+    }
+  } else {
+    alert(`Đã nhận căn cứ pháp lý:\n\n${citation}`);
   }
 }
 
