@@ -686,7 +686,7 @@
         : `<span class="badge badge-warning" style="font-size: 10px;">Chưa có</span>`;
 
       return `
-        <tr data-doc-id="${d.id}">
+        <tr data-doc-id="${d.id}" data-uuid="${d.uuid || ''}">
           <td style="font-weight: bold; color: #003366; vertical-align: middle;">
             ${escapeHtml(soHieu)}
           </td>
@@ -700,6 +700,7 @@
             <input type="text" 
                    class="win-input-search ext-url-input" 
                    data-id="${d.id}" 
+                   data-uuid="${d.uuid || ''}"
                    value="${escapeHtml(url)}" 
                    placeholder="Dán link bài viết HTML chứa toàn văn văn bản..." 
                    style="width: 100%; height: 26px; font-size: 11px; padding: 2px 6px;" />
@@ -707,6 +708,7 @@
           <td style="text-align: center; vertical-align: middle;">
             <button class="win-btn win-btn-primary btn-extract-external" 
                     data-id="${d.id}" 
+                    data-uuid="${d.uuid || ''}"
                     data-sohieu="${escapeHtml(soHieu)}"
                     style="font-size: 11px; padding: 3px 8px; white-space: nowrap;">
               ${hasText ? '🔄 Cập nhật' : '📥 Lấy dữ liệu'}
@@ -768,7 +770,7 @@
    * Hàm thực hiện bóc tách 1 văn bản đơn lẻ, hỗ trợ báo tiến trình (onProgress),
    * timeout 45s và cơ chế dự phòng tải trực tiếp từ Thư Viện Pháp Luật
    */
-  async function executeExtractOneDoc(docId, soHieu, url, onProgress) {
+  async function executeExtractOneDoc(docId, uuid, soHieu, url, onProgress) {
     const notify = (msg) => {
       if (typeof onProgress === 'function') onProgress(msg);
     };
@@ -789,12 +791,16 @@
         const res = await fetch('/api/extract-external-law', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id: docId, soHieu, url }),
+          body: JSON.stringify({ id: docId, uuid, soHieu, url }),
           signal: controller.signal
         });
 
         if (res.ok) {
           serverResult = await res.json();
+        } else if (res.status === 404 || res.status === 502 || res.status === 503) {
+          // Nếu máy chủ chưa nạp route mới (404), coi như máy chủ local chưa hỗ trợ và tự động chuyển sang kênh trích xuất trực tiếp
+          isServerAvailable = false;
+          console.warn(`Máy chủ local phản hồi ${res.status}, tự động kích hoạt kênh trích xuất trực tiếp...`);
         } else {
           serverResult = { success: false, error: `Máy chủ local phản hồi mã lỗi HTTP ${res.status}` };
         }
@@ -811,7 +817,7 @@
         clearTimeout(timeoutId);
         return {
           success: true,
-          id: serverResult.id || docId,
+          id: serverResult.id || uuid || docId,
           soHieu: serverResult.soHieu || soHieu,
           tenVanBan: serverResult.tenVanBan || '',
           textLength: serverResult.textLength,
@@ -819,7 +825,7 @@
         };
       }
 
-      // Nếu máy chủ báo lỗi cụ thể (không phải lỗi mất kết nối máy chủ)
+      // Nếu máy chủ báo lỗi cụ thể (không phải lỗi 404/mất kết nối máy chủ)
       if (serverResult && !serverResult.success && isServerAvailable) {
         clearTimeout(timeoutId);
         return {
@@ -1036,6 +1042,7 @@
   async function handleExtractExternalRow(e) {
     const btn = e.currentTarget;
     const docId = parseInt(btn.getAttribute('data-id'), 10);
+    const uuid = btn.getAttribute('data-uuid') || (btn.closest('tr') ? btn.closest('tr').getAttribute('data-uuid') : '') || '';
     const soHieu = btn.getAttribute('data-sohieu') || 'văn bản';
     const tr = btn.closest('tr');
     const input = tr ? tr.querySelector('.ext-url-input') : null;
@@ -1059,7 +1066,7 @@
 
     updateStatus('Đang xử lý...');
 
-    const res = await executeExtractOneDoc(docId, soHieu, url, updateStatus);
+    const res = await executeExtractOneDoc(docId, uuid, soHieu, url, updateStatus);
 
     if (res.success) {
       // Cập nhật bộ nhớ cục bộ
@@ -1101,12 +1108,13 @@
 
     rows.forEach(tr => {
       const docId = parseInt(tr.getAttribute('data-doc-id'), 10);
+      const uuid = tr.getAttribute('data-uuid') || '';
       const input = tr.querySelector('.ext-url-input');
       const btn = tr.querySelector('.btn-extract-external');
       const soHieu = btn ? btn.getAttribute('data-sohieu') : '';
       const url = input ? input.value.trim() : '';
       if (url && url.startsWith('http')) {
-        itemsToProcess.push({ docId, soHieu, url, tr, btn, input });
+        itemsToProcess.push({ docId, uuid, soHieu, url, tr, btn, input });
       }
     });
 
@@ -1164,7 +1172,7 @@
         }
       };
 
-      const res = await executeExtractOneDoc(item.docId, item.soHieu, item.url, updateRowStatus);
+      const res = await executeExtractOneDoc(item.docId, item.uuid, item.soHieu, item.url, updateRowStatus);
 
       if (res.success) {
         successCount++;

@@ -479,10 +479,14 @@ function insertSupabaseDoc(payload) {
   });
 }
 
+function isUuid(str) {
+  return typeof str === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str.trim());
+}
+
 async function handleApiExtractExternalLaw(req, res, body) {
   res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
   try {
-    let { id, soHieu, url } = JSON.parse(body || '{}');
+    let { id, uuid, soHieu, url } = JSON.parse(body || '{}');
     if (!url || !url.startsWith('http')) {
       return res.end(JSON.stringify({ success: false, error: 'Đường dẫn URL không hợp lệ (phải bắt đầu bằng http:// hoặc https://)' }));
     }
@@ -517,13 +521,20 @@ async function handleApiExtractExternalLaw(req, res, body) {
       return res.end(JSON.stringify({ success: false, error: 'Không trích xuất được khối văn bản hợp lệ từ URL này (nội dung chữ quá ngắn)' }));
     }
 
-    // Nếu không có id truyền vào, thử tìm văn bản trong Supabase theo số hiệu
-    let targetDocId = id;
+    // Xác định targetDocId chuẩn dạng UUID
+    let targetDocId = null;
+    if (isUuid(uuid)) {
+      targetDocId = uuid;
+    } else if (isUuid(id)) {
+      targetDocId = id;
+    }
+
+    // Nếu chưa có UUID hợp lệ, tìm theo số hiệu
     if (!targetDocId && soHieu) {
       const found = await findSupabaseDocByCode(soHieu);
       if (found) {
         targetDocId = found.id;
-        console.log(`[Trích xuất Link ngoài] Đã tìm thấy văn bản trùng số hiệu: ${found.so_hieu} (ID ${targetDocId})`);
+        console.log(`[Trích xuất Link ngoài] Đã tìm thấy văn bản trùng số hiệu: ${found.so_hieu} (UUID ${targetDocId})`);
       }
     }
 

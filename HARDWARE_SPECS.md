@@ -1,6 +1,6 @@
 # 🖥️ Thống Kê Thông Số Phần Cứng & Nhận Diện Máy Tính
 
-> **Thời gian cập nhật:** `2026-10-19 17:05:46`  
+> **Thời gian cập nhật:** `2026-10-20 01:10:22`  
 > **Máy tính hiện tại:** **`DESKTOP-D7DEASF`** (NUC11TNBi5)  
 > **Trạng thái:** ✅ **ĐÃ NHẬN DIỆN CHÍNH XÁC**  
 
@@ -52,12 +52,12 @@
 ### Phân vùng ổ đĩa (Logical Drives):
 | Phân vùng | Tên nhãn | Định dạng | Tổng dung lượng | Còn trống | Tỷ lệ trống |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **C:** | (Không tên) | NTFS | 475.92 GB | **181.51 GB** | 38.1% |
-| **D:** | (Không tên) | NTFS | 111.79 GB | **108.12 GB** | 96.7% |
-| **G:** | huynhbao281201@gmail.com - Go... | FAT32 | 475.92 GB | **172.43 GB** | 36.2% |
+| **C:** | (Không tên) | NTFS | 475.92 GB | **180.34 GB** | 37.9% |
+| **D:** | (Không tên) | NTFS | 111.79 GB | **108.06 GB** | 96.7% |
+| **G:** | huynhbao281201@gmail.com - Go... | FAT32 | 475.92 GB | **171.32 GB** | 36% |
 | **H:** | phmliem22@gmail.com - Google ... | FAT32 | 15 GB | **13.36 GB** | 89% |
-| **I:** | xdthanhthuan@gmail.com - Goog... | FAT32 | 475.92 GB | **172.43 GB** | 36.2% |
-| **J:** | ctyngoctham175@gmail.com - Go... | FAT32 | 475.92 GB | **172.43 GB** | 36.2% |
+| **I:** | xdthanhthuan@gmail.com - Goog... | FAT32 | 475.92 GB | **171.32 GB** | 36% |
+| **J:** | ctyngoctham175@gmail.com - Go... | FAT32 | 475.92 GB | **171.32 GB** | 36% |
 
 ## 6. Kết Nối Mạng (Network Interfaces)
 
@@ -70,7 +70,7 @@
 
 | Tên máy | ID Hồ Sơ | CPU | RAM | Lần đầu ghi nhận | Lần cuối hoạt động |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **DESKTOP-D7DEASF** **(Máy này)** | `7CC0A566-B81A-99...` | 11th Gen Intel(R) Core(TM) i5-1135G7 @ 2.40GHz | 15.63 GB | 2026-10-19 06:11:55 | 2026-10-19 10:05:46 |
+| **DESKTOP-D7DEASF** **(Máy này)** | `7CC0A566-B81A-99...` | 11th Gen Intel(R) Core(TM) i5-1135G7 @ 2.40GHz | 15.63 GB | 2026-10-19 06:11:55 | 2026-10-19 18:10:22 |
 
 ---
 *File được tạo và cập nhật tự động bởi hệ thống nhận diện cấu hình máy tính Add-in Word.*
