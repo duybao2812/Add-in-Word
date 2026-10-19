@@ -91,6 +91,20 @@
       return this.laws.filter(doc => !doc.is_deleted);
     }
 
+    getAllDocuments() {
+      return this.getAllActiveLaws();
+    }
+
+    saveDocumentLocally(doc) {
+      if (doc && doc.id) {
+        const idx = this.laws.findIndex(x => x.id === doc.id);
+        if (idx !== -1) {
+          this.laws[idx] = { ...this.laws[idx], ...doc };
+        }
+      }
+      this.saveLocalData();
+    }
+
     /**
      * Tìm kiếm văn bản theo từ khóa (Số hiệu, tên, trích yếu, nội dung)
      */

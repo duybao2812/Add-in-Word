@@ -10,16 +10,16 @@
   <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
 
   <!-- Style chuẩn WinForms Classic -->
-  <link rel="stylesheet" href="law-search-dialog.css?v=1.0.0" />
+  <link rel="stylesheet" href="law-search-dialog.css?v=1.1.0" />
 
   <!-- Dữ liệu ban đầu 515 văn bản pháp luật -->
-  <script src="law-data.js?v=1.0.0"></script>
+  <script src="law-data.js?v=1.1.0"></script>
 
   <!-- Bộ điều phối đồng bộ Offline-First + Supabase Delta Sync -->
-  <script src="sync-engine.js?v=1.0.0"></script>
+  <script src="sync-engine.js?v=1.1.0"></script>
 
   <!-- Logic xử lý giao diện -->
-  <script src="law-search-dialog.js?v=1.0.0" defer></script>
+  <script src="law-search-dialog.js?v=1.1.0" defer></script>
 </head>
 <body>
   <div id="app-container">
@@ -57,7 +57,7 @@
         ⚡ Đồng bộ Đám mây
       </button>
 
-      <button class="win-btn" id="btnOpenExternalManager" title="Quản lý các văn bản có link ngoài qlda.gxd.vn và trích xuất dữ liệu tùy chỉnh">
+      <button class="win-btn" id="btnOpenExternalManager" onclick="window.openExternalManagerModal && window.openExternalManagerModal()" title="Quản lý các văn bản có link ngoài qlda.gxd.vn và trích xuất dữ liệu tùy chỉnh">
         🔗 Quản lý Link ngoài
       </button>
 
@@ -167,7 +167,7 @@
     <div class="modal-window modal-window-large">
       <div class="modal-header">
         <span>🔗 Quản lý Văn bản Link ngoài (Non-QLDA) &amp; Trích xuất Dữ liệu Tùy chỉnh</span>
-        <button class="modal-close-btn" id="btnCloseExternalManager">×</button>
+        <button class="modal-close-btn" id="btnCloseExternalManager" onclick="window.closeExternalManagerModal && window.closeExternalManagerModal()">×</button>
       </div>
       <div class="modal-body" style="padding: 10px 14px;">
         <div style="margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; gap: 10px;">
@@ -197,7 +197,7 @@
         <div style="font-size: 11px; color: #666; display: flex; align-items: center;">
           <span id="lblExternalCount">Đang tải danh sách...</span>
         </div>
-        <button class="win-btn win-btn-primary" id="btnDoneExternalManager">Đóng cửa sổ</button>
+        <button class="win-btn win-btn-primary" id="btnDoneExternalManager" onclick="window.closeExternalManagerModal && window.closeExternalManagerModal()">Đóng cửa sổ</button>
       </div>
     </div>
   </div>

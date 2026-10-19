@@ -545,28 +545,44 @@
    * Modal Quản lý Link ngoài & Bóc tách văn bản tùy chỉnh
    */
   function openExternalManagerModal() {
-    const allDocs = window.LawSyncEngine.getAllDocuments();
-    // Lọc các văn bản có link không thuộc qlda.gxd.vn hoặc được đánh dấu quản lý ngoài
-    cachedExternalDocs = allDocs.filter(d => {
-      const url = (d.duong_dan_gxd || '').trim();
-      return !url.includes('qlda.gxd.vn') || d.is_external_managed;
-    });
+    try {
+      const engine = window.LawSyncEngine;
+      const allDocs = engine ? (engine.getAllActiveLaws ? engine.getAllActiveLaws() : (engine.laws || [])) : [];
+      
+      // Lọc các văn bản có link không thuộc qlda.gxd.vn hoặc được đánh dấu quản lý ngoài
+      cachedExternalDocs = allDocs.filter(d => {
+        const url = (d.linkGoc || d.duong_dan_gxd || '').trim();
+        return !url.includes('qlda.gxd.vn') || d.is_external_managed;
+      });
 
-    renderExternalLawsTable('');
-    const modal = document.getElementById('modalExternalManager');
-    if (modal) modal.classList.add('show');
-    const txtSearch = document.getElementById('txtSearchExternal');
-    if (txtSearch) {
-      txtSearch.value = '';
-      setTimeout(() => txtSearch.focus(), 100);
+      renderExternalLawsTable('');
+      const modal = document.getElementById('modalExternalManager');
+      if (modal) {
+        modal.classList.add('show');
+      } else {
+        alert('Lỗi: Không tìm thấy modal Quản lý Link ngoài (#modalExternalManager) trong HTML.');
+      }
+
+      const txtSearch = document.getElementById('txtSearchExternal');
+      if (txtSearch) {
+        txtSearch.value = '';
+        setTimeout(() => txtSearch.focus(), 100);
+      }
+    } catch (err) {
+      console.error('Lỗi khi mở Quản lý Link ngoài:', err);
+      alert('Lỗi khi mở Quản lý Link ngoài: ' + err.message);
     }
   }
+
+  // Đưa hàm ra window để inline onclick có thể gọi trực tiếp
+  window.openExternalManagerModal = openExternalManagerModal;
 
   function closeExternalManagerModal() {
     const modal = document.getElementById('modalExternalManager');
     if (modal) modal.classList.remove('show');
     renderDocumentList();
   }
+  window.closeExternalManagerModal = closeExternalManagerModal;
 
   function renderExternalLawsTable(filterText) {
     const tbody = document.getElementById('tbodyExternalLaws');
@@ -575,11 +591,12 @@
 
     let filtered = cachedExternalDocs;
     if (filterText) {
-      filtered = cachedExternalDocs.filter(d => 
-        (d.so_hieu && d.so_hieu.toLowerCase().includes(filterText)) ||
-        (d.ten_van_ban && d.ten_van_ban.toLowerCase().includes(filterText)) ||
-        (d.duong_dan_gxd && d.duong_dan_gxd.toLowerCase().includes(filterText))
-      );
+      filtered = cachedExternalDocs.filter(d => {
+        const soHieu = (d.code || d.so_hieu || '').toLowerCase();
+        const tenVB = (d.name || d.ten_van_ban || '').toLowerCase();
+        const url = (d.linkGoc || d.duong_dan_gxd || '').toLowerCase();
+        return soHieu.includes(filterText) || tenVB.includes(filterText) || url.includes(filterText);
+      });
     }
 
     if (lblCount) {
@@ -592,6 +609,9 @@
     }
 
     tbody.innerHTML = filtered.map(d => {
+      const soHieu = d.code || d.so_hieu || 'N/A';
+      const tenVanBan = d.name || d.ten_van_ban || '';
+      const url = d.linkGoc || d.duong_dan_gxd || '';
       const hasText = !!(d.co_toan_van_html && d.noi_dung_toan_van && d.noi_dung_toan_van.length > 50);
       const textLen = hasText ? d.noi_dung_toan_van.length : 0;
       const statusBadge = hasText
@@ -601,10 +621,10 @@
       return `
         <tr data-doc-id="${d.id}">
           <td style="font-weight: bold; color: #003366; vertical-align: middle;">
-            ${escapeHtml(d.so_hieu)}
+            ${escapeHtml(soHieu)}
           </td>
-          <td style="font-size: 11.5px; color: #333; vertical-align: middle;" title="${escapeHtml(d.ten_van_ban)}">
-            ${escapeHtml(d.ten_van_ban)}
+          <td style="font-size: 11.5px; color: #333; vertical-align: middle;" title="${escapeHtml(tenVanBan)}">
+            ${escapeHtml(tenVanBan)}
           </td>
           <td style="text-align: center; vertical-align: middle;" class="col-status">
             ${statusBadge}
@@ -613,14 +633,14 @@
             <input type="text" 
                    class="win-input-search ext-url-input" 
                    data-id="${d.id}" 
-                   value="${escapeHtml(d.duong_dan_gxd || '')}" 
+                   value="${escapeHtml(url)}" 
                    placeholder="Dán link bài viết HTML chứa toàn văn văn bản..." 
                    style="width: 100%; height: 26px; font-size: 11px; padding: 2px 6px;" />
           </td>
           <td style="text-align: center; vertical-align: middle;">
             <button class="win-btn win-btn-primary btn-extract-external" 
                     data-id="${d.id}" 
-                    data-sohieu="${escapeHtml(d.so_hieu)}"
+                    data-sohieu="${escapeHtml(soHieu)}"
                     style="font-size: 11px; padding: 3px 8px; white-space: nowrap;">
               ${hasText ? '🔄 Cập nhật' : '📥 Lấy dữ liệu'}
             </button>
@@ -662,13 +682,17 @@
       const data = await res.json();
       if (data.success) {
         // Cập nhật bộ nhớ cục bộ
-        const doc = window.LawSyncEngine.documents.find(d => d.id === docId);
-        if (doc) {
-          doc.duong_dan_gxd = url;
-          doc.co_toan_van_html = true;
-          doc.is_external_managed = true;
-          doc.noi_dung_toan_van = data.snippet;
-          window.LawSyncEngine.saveDocumentLocally(doc);
+        const engine = window.LawSyncEngine;
+        if (engine && engine.laws) {
+          const doc = engine.laws.find(d => d.id === docId);
+          if (doc) {
+            doc.linkGoc = url;
+            doc.duong_dan_gxd = url;
+            doc.co_toan_van_html = true;
+            doc.is_external_managed = true;
+            doc.noi_dung_toan_van = data.snippet;
+            engine.saveLocalData();
+          }
         }
 
         const colStatus = tr.querySelector('.col-status');
