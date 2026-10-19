@@ -1423,8 +1423,16 @@ function extractOnlyDate(dateStr) {
   return match ? match[0] : dateStr;
 }
 
+function toTitleCaseVietnamese(str) {
+  if (!str || typeof str !== "string") return "";
+  return str.trim().split(/\s+/).map(word => {
+    if (!word) return "";
+    return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+  }).join(" ");
+}
+
 /**
- * Định dạng tên người ký gọn gàng chuẩn Nghị định 30 (bỏ tiền tố Ông/Bà và phần chức vụ phía sau)
+ * Định dạng tên người ký gọn gàng chuẩn Nghị định 30 (bỏ tiền tố Ông/Bà và phần chức vụ phía sau, in hoa chữ cái đầu)
  */
 function formatSignerName(repStr) {
   if (!repStr || typeof repStr !== "string") return "Họ và tên người ký";
@@ -1432,7 +1440,72 @@ function formatSignerName(repStr) {
   let name = repStr.split(/[-:]/)[0].trim();
   // Loại bỏ các danh xưng ở đầu như Ông, Bà
   name = name.replace(/^(ông|bà|ong|ba)\.?\s+/i, "").trim();
-  return name || "Họ và tên người ký";
+  return toTitleCaseVietnamese(name) || "Họ và tên người ký";
+}
+
+function formatRecipientsList(raw) {
+  if (!raw) return ["- Như trên;", "- Lưu: VT."];
+  let items = [];
+  if (Array.isArray(raw)) {
+    raw.forEach(r => {
+      if (typeof r === "string") {
+        items.push(...r.split(/;/).map(s => s.trim()).filter(Boolean));
+      }
+    });
+  } else if (typeof raw === "string") {
+    items = raw.split(/[;\n]/).map(s => s.trim()).filter(Boolean);
+  }
+  if (items.length === 0) return ["- Như trên;", "- Lưu: VT."];
+
+  return items.map((item, idx) => {
+    let clean = item.replace(/^[-•*–—]\s*/, '').trim();
+    clean = clean.replace(/[;.]+$/, '').trim();
+    if (!clean) return "";
+    const isLast = (idx === items.length - 1);
+    const endChar = isLast ? "." : ";";
+    return `- ${clean}${endChar}`;
+  }).filter(Boolean);
+}
+
+function formatGroundsList(raw) {
+  if (!raw) return [];
+  let lines = [];
+  if (Array.isArray(raw)) {
+    raw.forEach(r => {
+      if (typeof r === "string") {
+        lines.push(...r.split(/\r?\n/).map(s => s.trim()).filter(Boolean));
+      }
+    });
+  } else if (typeof raw === "string") {
+    lines = raw.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+  }
+
+  return lines.map((line, idx) => {
+    let clean = line.replace(/^[-•*–—]\s*/, '').trim();
+    clean = clean.replace(/[;.]+$/, '').trim();
+    if (!clean) return "";
+    if (!/^căn cứ\b/i.test(clean)) {
+      clean = "Căn cứ " + clean;
+    }
+    const isLast = (idx === lines.length - 1);
+    const endChar = isLast ? "." : ";";
+    return `- ${clean}${endChar}`;
+  }).filter(Boolean);
+}
+
+function formatArticleContentLines(content) {
+  if (!content) return [];
+  const rawLines = String(content).split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+  return rawLines.map(line => {
+    const isHeaderOrNumbered = /^(\b(Phần|Mục|Điều|Khoản)\b|\d+[\.\)]|[a-zA-Z]\))\s*/i.test(line);
+    if (isHeaderOrNumbered) {
+      return line;
+    }
+    if (!/^[-•*–—]\s*/.test(line)) {
+      return `- ${line}`;
+    }
+    return line.replace(/^[-•*–—]\s*/, '- ');
+  });
 }
 
 /* ==========================================================================
@@ -2743,7 +2816,7 @@ function insertArticlesOrTablesToWordBody(body, articles, bodyLines) {
 
         const content = art.content || art.noiDungChitiet || "";
         if (content) {
-          const subLines = String(content).split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+          const subLines = formatArticleContentLines(content);
           for (const sl of subLines) {
             const pArtContent = body.insertParagraph(sl, Word.InsertLocation.end);
             pArtContent.font.name = "Times New Roman";
@@ -2844,11 +2917,11 @@ async function insertStructuredTemplateToWord(tpl, tplTitle) {
         }
 
         // Căn cứ pháp lý
-        const grounds = tpl.grounds && tpl.grounds.length > 0 ? tpl.grounds : [
+        const grounds = formatGroundsList(tpl.grounds && tpl.grounds.length > 0 ? tpl.grounds : [
           "- Căn cứ Bộ luật Dân sự số 91/2015/QH13 ngày 24/11/2015 của Quốc hội;",
           "- Căn cứ Luật Thương mại số 36/2005/QH11 ngày 14/06/2005 của Quốc hội;",
           "- Căn cứ nhu cầu và sự thỏa thuận tự nguyện giữa hai bên."
-        ];
+        ]);
         for (const g of grounds) {
           const pG = body.insertParagraph(g, Word.InsertLocation.end);
           pG.font.name = "Times New Roman"; pG.font.size = 12; pG.font.italic = true; pG.font.bold = false;
@@ -2861,14 +2934,16 @@ async function insertStructuredTemplateToWord(tpl, tplTitle) {
         pIntro.font.name = "Times New Roman"; pIntro.font.size = 13; pIntro.font.bold = false;
         pIntro.firstLineIndent = 36; pIntro.spaceBefore = 6; pIntro.spaceAfter = 6;
 
-        // Thông tin Bên A
+        // Thông tin Bên A (In hoa tên công ty, Title Case đại diện)
         const partyA = tpl.partyA || {};
+        const partyAName = (partyA.name || "").toUpperCase();
+        const partyARep = toTitleCaseVietnamese(partyA.rep || "");
         const pPA = body.insertParagraph(partyA.title || "BÊN A (CHỦ ĐẦU TƯ / BÊN SỬ DỤNG DỊCH VỤ):", Word.InsertLocation.end);
         pPA.font.name = "Times New Roman"; pPA.font.bold = true; pPA.font.size = 13; pPA.spaceBefore = 6; pPA.spaceAfter = 2;
 
         const linesA = [
-          partyA.name ? `• Tên đơn vị: ${partyA.name}` : "",
-          partyA.rep ? `• Đại diện: ${partyA.rep}` : "",
+          partyAName ? `• Tên đơn vị: ${partyAName}` : "",
+          partyARep ? `• Đại diện: ${partyARep}` : "",
           partyA.address ? `• Địa chỉ: ${partyA.address}` : ""
         ].filter(Boolean);
         for (const l of linesA) {
@@ -2877,14 +2952,16 @@ async function insertStructuredTemplateToWord(tpl, tplTitle) {
           p.firstLineIndent = 18; p.spaceAfter = 2;
         }
 
-        // Thông tin Bên B
+        // Thông tin Bên B (In hoa tên công ty, Title Case đại diện)
         const partyB = tpl.partyB || {};
+        const partyBName = (partyB.name || "").toUpperCase();
+        const partyBRep = toTitleCaseVietnamese(partyB.rep || "");
         const pPB = body.insertParagraph(partyB.title || "BÊN B (NHÀ THẦU / BÊN CUNG CẤP):", Word.InsertLocation.end);
         pPB.font.name = "Times New Roman"; pPB.font.bold = true; pPB.font.size = 13; pPB.spaceBefore = 6; pPB.spaceAfter = 2;
 
         const linesB = [
-          partyB.name ? `• Tên đơn vị: ${partyB.name}` : "",
-          partyB.rep ? `• Đại diện: ${partyB.rep}` : "",
+          partyBName ? `• Tên đơn vị: ${partyBName}` : "",
+          partyBRep ? `• Đại diện: ${partyBRep}` : "",
           partyB.address ? `• Địa chỉ: ${partyB.address}` : ""
         ].filter(Boolean);
         for (const l of linesB) {
@@ -2934,8 +3011,8 @@ async function insertStructuredTemplateToWord(tpl, tplTitle) {
 
       } else {
         // === LOẠI CÔNG VĂN / TỜ TRÌNH / BIÊN BẢN / QUYẾT ĐỊNH / THÔNG BÁO ===
-        const supOrg = tpl.superiorOrg || "";
-        const pubOrg = tpl.publishingOrg || "TÊN CƠ QUAN, ĐƠN VỊ BAN HÀNH";
+        const supOrg = (tpl.superiorOrg || "").toUpperCase();
+        const pubOrg = (tpl.publishingOrg || "TÊN CƠ QUAN, ĐƠN VỊ BAN HÀNH").toUpperCase();
         const docNum = tpl.docNumber || "Số: 01/CV-CQ";
         const locDate = tpl.locationDate || generateCurrentDateString();
 
@@ -2974,7 +3051,8 @@ async function insertStructuredTemplateToWord(tpl, tplTitle) {
 
         // Căn cứ
         if (tpl.grounds && tpl.grounds.length > 0) {
-          for (const g of tpl.grounds) {
+          const grounds = formatGroundsList(tpl.grounds);
+          for (const g of grounds) {
             const pG = body.insertParagraph(g, Word.InsertLocation.end);
             pG.font.name = "Times New Roman"; pG.font.size = 12; pG.font.italic = true; pG.font.bold = false;
             pG.firstLineIndent = 36; pG.spaceAfter = 2;
@@ -2998,13 +3076,13 @@ async function insertStructuredTemplateToWord(tpl, tplTitle) {
           sCols.items[1].setWidth(260, "None");
         }
 
-        // Cột trái: Nơi nhận
+        // Cột trái: Nơi nhận (Không dùng Bullets, dùng dấu '-' chữ thường)
         const signLeft = signTable.getCell(0, 0);
         signLeft.body.clear();
         const pRecTitle = signLeft.body.insertParagraph("Nơi nhận:", Word.InsertLocation.end);
         pRecTitle.font.name = "Times New Roman"; pRecTitle.font.bold = true; pRecTitle.font.italic = true; pRecTitle.font.size = 12; pRecTitle.spaceAfter = 2;
 
-        const recLines = tpl.recipients && tpl.recipients.length > 0 ? tpl.recipients : ["- Như trên;", "- Lưu: VT."];
+        const recLines = formatRecipientsList(tpl.recipients);
         for (const r of recLines) {
           const pR = signLeft.body.insertParagraph(r, Word.InsertLocation.end);
           pR.font.name = "Times New Roman"; pR.font.bold = false; pR.font.size = 11; pR.spaceAfter = 1;
