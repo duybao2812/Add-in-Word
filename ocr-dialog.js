@@ -62,7 +62,9 @@ const btnStartOcr = document.getElementById('btnStartOcr');
 const cboExtractScope = document.getElementById('cboExtractScope');
 const btnTransferToWord = document.getElementById('btnTransferToWord');
 const btnCopyResult = document.getElementById('btnCopyResult');
-const btnStopAi = document.getElementById('btnStopAi');
+const btnToggleAi = document.getElementById('btnToggleAi');
+const btnToggleAiIcon = document.getElementById('btnToggleAiIcon');
+const btnToggleAiText = document.getElementById('btnToggleAiText');
 const btnReload = document.getElementById('btnReload');
 const cboModelSelect = document.getElementById('cboModelSelect');
 const aiStatusBadge = document.getElementById('aiStatusBadge');
@@ -130,12 +132,30 @@ async function checkAiStatus() {
       aiStatusDot.className = 'status-dot online';
       aiStatusText.textContent = `AI Online (${data.currentModel === 'qwen3b' ? '3B' : '7B'})`;
       if (modelInfo) modelInfo.textContent = `AI: ${data.modelLabel || 'Qwen2.5-VL'}`;
+      if (btnToggleAi) {
+        btnToggleAi.className = 'win-btn win-btn-danger';
+        btnToggleAiIcon.textContent = '🛑';
+        btnToggleAiText.textContent = 'Tắt AI (Tiết kiệm RAM)';
+        btnToggleAi.title = 'Tắt tiến trình AI để giải phóng RAM';
+      }
     } else if (data.isStarting) {
       aiStatusDot.className = 'status-dot starting';
-      aiStatusText.textContent = 'AI đang khởi động...';
+      aiStatusText.textContent = 'AI đang nạp vào RAM...';
+      if (btnToggleAi) {
+        btnToggleAi.className = 'win-btn';
+        btnToggleAiIcon.textContent = '⏳';
+        btnToggleAiText.textContent = 'Đang nạp AI...';
+        btnToggleAi.title = 'Đang nạp mô hình vào RAM, vui lòng chờ vài giây';
+      }
     } else {
       aiStatusDot.className = 'status-dot offline';
       aiStatusText.textContent = 'AI Sẵn sàng (Chế độ chờ)';
+      if (btnToggleAi) {
+        btnToggleAi.className = 'win-btn win-btn-primary';
+        btnToggleAiIcon.textContent = '⚡';
+        btnToggleAiText.textContent = 'Bật AI';
+        btnToggleAi.title = 'Nhấn để nạp trước mô hình AI vào RAM';
+      }
     }
 
     return data;
@@ -895,8 +915,27 @@ function initEvents() {
     }
   });
 
-  // Nút tắt AI
-  btnStopAi.addEventListener('click', stopAiServer);
+  // Nút Bật / Tắt AI
+  if (btnToggleAi) {
+    btnToggleAi.addEventListener('click', async () => {
+      if (state.isServerOnline) {
+        await stopAiServer();
+      } else {
+        await startAiServer(cboModelSelect.value);
+      }
+    });
+  }
+
+  // Nhấn vào Huy hiệu trạng thái cũng hỗ trợ Bật / Tắt AI nhanh
+  if (aiStatusBadge) {
+    aiStatusBadge.addEventListener('click', async () => {
+      if (state.isServerOnline) {
+        await stopAiServer();
+      } else {
+        await startAiServer(cboModelSelect.value);
+      }
+    });
+  }
 
   // Nút nạp lại
   btnReload.addEventListener('click', () => window.location.reload());

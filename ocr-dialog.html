@@ -61,12 +61,12 @@
 
       <div class="win-separator"></div>
 
-      <button class="win-btn win-btn-danger" id="btnStopAi" title="Tắt hoàn toàn tiến trình AI để giải phóng RAM/VRAM">
-        <span>🛑</span> Tắt AI (Tiết kiệm RAM)
+      <button class="win-btn" id="btnToggleAi" title="Bật hoặc Tắt tiến trình AI để tiết kiệm RAM">
+        <span id="btnToggleAiIcon">⚡</span> <span id="btnToggleAiText">Bật AI</span>
       </button>
 
-      <button class="win-btn" id="btnReload" title="Nạp lại giao diện">
-        <span>🔄</span> Nạp lại
+      <button class="win-btn" id="btnReload" title="Tải lại giao diện (F5)">
+        <span>🔄</span> Làm mới
       </button>
 
       <!-- Model Selector & Status Badge -->
@@ -77,7 +77,7 @@
           <option value="qwen">Qwen2.5-VL-7B (Toàn Năng - Bảng Biểu Chuẩn)</option>
         </select>
 
-        <div id="aiStatusBadge" class="ai-status-badge">
+        <div id="aiStatusBadge" class="ai-status-badge" title="Nhấp để Bật / Tắt AI nhanh" style="cursor: pointer;">
           <span class="status-dot" id="aiStatusDot"></span>
           <span id="aiStatusText">Kiểm tra AI...</span>
         </div>

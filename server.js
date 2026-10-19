@@ -55,11 +55,14 @@ const MIME_TYPES = {
 
 function checkLlamaHealth() {
   return new Promise((resolve) => {
-    const req = http.get('http://127.0.0.1:8080/health', { timeout: 1200 }, (res) => {
-      resolve(res.statusCode === 200);
+    const req = http.get('http://127.0.0.1:8080/health', { timeout: 1500 }, (res) => {
+      resolve({
+        ready: res.statusCode === 200,
+        loading: res.statusCode === 503
+      });
     });
-    req.on('error', () => resolve(false));
-    req.on('timeout', () => { req.destroy(); resolve(false); });
+    req.on('error', () => resolve({ ready: false, loading: false }));
+    req.on('timeout', () => { req.destroy(); resolve({ ready: false, loading: false }); });
   });
 }
 
@@ -70,7 +73,7 @@ function killLlamaProcess() {
 }
 
 async function handleApiOcrStatus(req, res) {
-  const isHealthy = await checkLlamaHealth();
+  const health = await checkLlamaHealth();
   const modelsStatus = {};
   for (const [k, v] of Object.entries(OCR_MODELS)) {
     modelsStatus[k] = {
@@ -82,8 +85,8 @@ async function handleApiOcrStatus(req, res) {
 
   res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
   res.end(JSON.stringify({
-    running: isHealthy,
-    isStarting: isStartingServer,
+    running: health.ready,
+    isStarting: isStartingServer || health.loading,
     currentModel: activeModelKey,
     modelLabel: OCR_MODELS[activeModelKey]?.label || activeModelKey,
     models: modelsStatus
@@ -111,7 +114,7 @@ async function handleApiOcrStart(req, res, body) {
 
   // Nếu server đang chạy sẵn sàng và đúng model, không cần khởi động lại!
   const alreadyHealthy = await checkLlamaHealth();
-  if (alreadyHealthy && activeModelKey === modelKey) {
+  if (alreadyHealthy.ready && activeModelKey === modelKey) {
     console.log(`[OK] AI Server đã chạy sẵn sàng với model [${cfg.name}]. Không cần khởi động lại.`);
     res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
     res.end(JSON.stringify({
@@ -150,7 +153,7 @@ async function handleApiOcrStart(req, res, body) {
   for (let i = 0; i < 60; i++) {
     await new Promise(r => setTimeout(r, 1000));
     const healthy = await checkLlamaHealth();
-    if (healthy) {
+    if (healthy.ready) {
       isStartingServer = false;
       console.log(`[OK] AI Server đã nạp xong [${cfg.name}] và sẵn sàng!`);
       res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
