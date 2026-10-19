@@ -188,23 +188,53 @@
     .win-preview-scroll {
       flex: 1 1 auto;
       overflow-y: auto;
-      padding: 16px 20px;
+      overflow-x: auto;
+      padding: 24px;
       background-color: #555555;
       display: flex;
       justify-content: center;
+      align-items: flex-start;
     }
 
     .win-paper {
-      width: 100%;
-      max-width: 680px;
+      width: 210mm;
+      min-height: 297mm;
+      padding: 20mm 15mm 20mm 30mm; /* Top 20mm, Right 15mm, Bottom 20mm, Left 30mm theo Nghị định 30/2020 */
       background-color: #FFFFFF;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-      padding: 30px 35px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.45);
       font-family: "Times New Roman", Times, serif;
-      font-size: 13px;
+      font-size: 13pt;
       line-height: 1.35;
       color: #000000;
       user-select: text;
+      box-sizing: border-box;
+      margin-bottom: 24px;
+    }
+
+    /* Nhãn trạng thái hiệu lực văn bản pháp luật */
+    .badge-status {
+      display: inline-block;
+      padding: 2px 6px;
+      font-size: 10px;
+      font-weight: 600;
+      text-align: center;
+      white-space: nowrap;
+    }
+    .badge-active {
+      background-color: #E8F5E9;
+      color: #1B5E20;
+      border: 1px solid #81C784;
+    }
+    .badge-expired {
+      background-color: #FFEBEE;
+      color: #C62828;
+      border: 1px solid #E57373;
+      font-weight: bold;
+    }
+    .badge-amended {
+      background-color: #FFF8E1;
+      color: #F57F17;
+      border: 1px solid #FFE082;
     }
 
     /* Các thành phần văn bản NĐ 30 */
@@ -424,6 +454,9 @@
       <div class="win-menu-item">Hệ thống</div>
       <div class="win-menu-item">Danh mục mẫu</div>
       <div class="win-menu-item" id="menuItemAddNew" style="cursor: pointer; font-weight: 600; color: #005499;" title="Thêm mẫu văn bản mới vào hệ thống">Thêm mẫu mới (<u>N</u>)</div>
+      <div class="win-menu-item" id="menuItemEdit" style="cursor: pointer; font-weight: 600; color: #0078D7;" title="Chỉnh sửa mẫu văn bản đang chọn">Sửa mẫu (<u>E</u>)</div>
+      <div class="win-menu-item" id="menuItemDelete" style="cursor: pointer; font-weight: 600; color: #B00000;" title="Xóa mẫu văn bản đang chọn">Xóa mẫu (<u>D</u>)</div>
+      <div class="win-menu-item" id="menuItemLawLibrary" style="cursor: pointer; font-weight: 600; color: #8A3800;" title="Tra cứu thư viện quy phạm pháp luật và căn cứ chuẩn">Tra cứu điều luật (<u>L</u>)</div>
       <div class="win-menu-item" id="menuItemHelp" style="cursor: pointer; font-weight: 600; color: #003399;" title="Bấm để xem danh sách chức năng các nút">Trợ giúp (<u>H</u>)</div>
     </nav>
 
@@ -441,14 +474,24 @@
         3. Thêm mẫu mới
       </button>
 
-      <button class="win-btn" id="btnToolDeleteCustom" title="Xóa mẫu tự tạo đang chọn khỏi hệ thống" style="display: none; color: #B00000; font-weight: 600;">
-        4. Xóa mẫu tự tạo
+      <button class="win-btn" id="btnToolEdit" title="Chỉnh sửa mẫu văn bản đang chọn (Cả mẫu tự tạo và mẫu có sẵn)" style="color: #004D99; font-weight: 600;">
+        4. Sửa mẫu
+      </button>
+
+      <button class="win-btn" id="btnToolDelete" title="Xóa mẫu văn bản đang chọn" style="color: #B00000; font-weight: 600;">
+        5. Xóa mẫu
+      </button>
+
+      <div class="win-separator"></div>
+
+      <button class="win-btn" id="btnToolLawLibrary" title="Tra cứu văn bản quy phạm pháp luật & Căn cứ chuẩn (Hệ thống GXD)" style="color: #7B3800; font-weight: 600; background: #FFF7EC; border-color: #F0A500;">
+        6. Tra cứu điều luật
       </button>
 
       <div class="win-separator"></div>
 
       <button class="win-btn" id="btnToolClose" title="Đóng cửa sổ">
-        5. Đóng
+        7. Đóng
       </button>
     </header>
 
@@ -533,20 +576,35 @@
                 <td><span class="win-btn-tag" style="background: #005499;">3. Thêm mẫu mới</span></td>
                 <td>
                   <strong>Thêm mẫu văn bản mới vào hệ thống:</strong><br />
-                  - Mở hộp thoại nhập thông tin mẫu văn bản mới (Tên mẫu, Thể thức, Đơn vị, Nội dung các điều khoản...).<br />
+                  - Mở hộp thoại nhập thông tin mẫu văn bản mới (Tên mẫu, Thể thức, Đơn vị, Căn cứ pháp lý, Nội dung điều khoản, Bảng giá...).<br />
                   - Hệ thống tự động định dạng chuẩn A4 theo Nghị định 30 và lưu trữ vĩnh viễn trong hệ thống (LocalStorage).<br />
                   - Mẫu mới sẽ tự động cập nhật vào danh sách bên trái để bạn xem trước và chèn vào Word bất kỳ lúc nào.
                 </td>
               </tr>
               <tr>
-                <td><span class="win-btn-tag" style="background: #A00000;">4. Xóa mẫu tự tạo</span></td>
+                <td><span class="win-btn-tag" style="background: #0078D7;">4. Sửa mẫu</span></td>
                 <td>
-                  <strong>Xóa mẫu do người dùng tự tạo:</strong><br />
-                  - Xóa mẫu văn bản bạn đã tự thêm ra khỏi danh sách hệ thống khi không còn nhu cầu sử dụng.
+                  <strong>Chỉnh sửa mẫu văn bản:</strong><br />
+                  - Chỉnh sửa toàn bộ thông tin hành chính, pháp lý, căn cứ luật, điều khoản chữ và bảng giá của mẫu đang chọn (hỗ trợ cả mẫu tự tạo và mẫu chuẩn có sẵn của hệ thống).
                 </td>
               </tr>
               <tr>
-                <td><span class="win-btn-tag" style="background: #666666;">5. Đóng</span></td>
+                <td><span class="win-btn-tag" style="background: #A00000;">5. Xóa mẫu</span></td>
+                <td>
+                  <strong>Xóa mẫu văn bản:</strong><br />
+                  - Xóa mẫu tự tạo hoặc ẩn mẫu khỏi danh sách khi không có nhu cầu sử dụng.
+                </td>
+              </tr>
+              <tr>
+                <td><span class="win-btn-tag" style="background: #8A3800;">6. Tra cứu điều luật</span></td>
+                <td>
+                  <strong>Thư viện tra cứu văn bản pháp luật chuẩn (GXD):</strong><br />
+                  - Tra cứu các Luật (Xây dựng, Đấu thầu, Doanh nghiệp, Dân sự), Nghị định (10, 15, 35, 06, 24, 30...) và Thông tư chuẩn.<br />
+                  - Cảnh báo trực quan văn bản Còn hiệu lực / Hết hiệu lực; chọn nhiều văn bản để gán nhanh vào Căn cứ pháp lý hoặc chèn trực tiếp vào Word.
+                </td>
+              </tr>
+              <tr>
+                <td><span class="win-btn-tag" style="background: #666666;">7. Đóng</span></td>
                 <td>
                   <strong>Đóng cửa sổ:</strong><br />
                   - Đóng cửa sổ Thư viện Mẫu Văn bản để quay lại văn bản Word.
@@ -564,7 +622,7 @@
       </div>
     </div>
 
-    <!-- 6. WinForms Modal Thêm Mẫu Văn Bản Mới Vào Hệ Thống (Dynamic List, Dynamic Tables & Full ND30) -->
+    <!-- 6. WinForms Modal Thêm / Chỉnh Sửa Mẫu Văn Bản (Dynamic List, Dynamic Tables & Full ND30) -->
     <div id="dlgAddTemplateOverlay" class="win-modal-overlay hidden" style="display: none;">
       <div class="win-modal-dialog" id="dlgAddTemplateDialog" role="dialog" aria-labelledby="dlgAddTitle" style="width: 860px; max-width: 96vw; height: 88vh; max-height: 94vh; display: flex; flex-direction: column;">
         
@@ -659,6 +717,19 @@
               <label for="txtNewTplSubject" id="lblSubject" style="font-weight: 600; display: block; margin-bottom: 1px; font-size: 11px;">Trích yếu / Tiêu đề văn bản (*):</label>
               <input type="text" id="txtNewTplSubject" placeholder="VD: V/v tư vấn giám sát chất lượng và tiến độ thi công công trình" style="border: 1px solid #7F9DB9; padding: 2px 5px; height: 23px; width: 100%; font-size: 11px;" />
             </div>
+
+            <!-- Dòng Căn cứ pháp lý & Nút tra cứu nhanh điều luật -->
+            <div style="margin-top: 4px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
+                <label for="txtNewTplGrounds" style="font-weight: 600; font-size: 11px; color: #003399;">
+                  Căn cứ pháp lý (Mỗi dòng một căn cứ):
+                </label>
+                <button type="button" class="win-btn" id="btnOpenLawFromAddDialog" style="height: 20px; font-size: 10.5px; padding: 1px 6px; font-weight: 600; color: #8A3800; background: #FFF4E5; border-color: #F0A500;" title="Mở thư viện tra cứu quy phạm pháp luật để chọn và chèn nhanh">
+                  🔍 Tra cứu &amp; Gán nhanh điều luật
+                </button>
+              </div>
+              <textarea id="txtNewTplGrounds" rows="2" placeholder="- Căn cứ Bộ luật Dân sự số 91/2015/QH13...&#10;- Căn cứ Luật Xây dựng số 62/2020/QH14..." style="width: 100%; border: 1px solid #7F9DB9; padding: 3px 5px; font-size: 11px; resize: vertical;"></textarea>
+            </div>
           </div>
 
           <!-- Phân vùng 2: Nội dung / Các Điều khoản văn bản & Bảng giá động (Tối đa hóa không gian hiển thị) -->
@@ -706,6 +777,94 @@
         <div class="win-modal-actions" style="gap: 6px; flex-shrink: 0; padding: 6px 12px; background: #E1E1E1; border-top: 1px solid #B5B5B5;">
           <button class="win-btn win-btn-primary" id="btnSaveNewTemplate" style="min-width: 160px; height: 26px; font-weight: 600;">1. Lưu &amp; Cập nhật hệ thống</button>
           <button class="win-btn" id="btnCancelNewTemplate" style="min-width: 85px; height: 26px;">2. Hủy bỏ</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 7. WinForms Modal Tra Cứu & Gán Văn Bản Pháp Luật Chuẩn (GXD Database & Hiệu lực) -->
+    <div id="dlgLawLibraryOverlay" class="win-modal-overlay hidden" style="display: none;">
+      <div class="win-modal-dialog" id="dlgLawLibraryDialog" role="dialog" aria-labelledby="dlgLawTitle" style="width: 960px; max-width: 96vw; height: 86vh; max-height: 92vh; display: flex; flex-direction: column;">
+        <div class="win-modal-titlebar" style="flex-shrink: 0;">
+          <span id="dlgLawTitle">Tra cứu &amp; Gán văn bản pháp luật chuẩn - [Hệ thống Dữ liệu Pháp luật Xây dựng GXD]</span>
+          <div style="display: flex; align-items: center; gap: 3px;">
+            <button type="button" class="win-modal-btn-sys" id="btnMaxRestoreLaw" title="Phóng to toàn màn hình">🗖</button>
+            <button type="button" class="win-modal-close-x" id="btnCloseLawX" title="Đóng">✕</button>
+          </div>
+        </div>
+
+        <!-- Thanh tìm kiếm & lọc nhanh -->
+        <div style="background: #EAEAEA; border-bottom: 1px solid #B5B5B5; padding: 6px 10px; display: flex; gap: 8px; align-items: center; flex-shrink: 0;">
+          <span style="font-weight: 600; font-size: 11.5px; color: #003399;">🔍 Tra cứu:</span>
+          <input type="text" id="txtLawSearch" placeholder="Nhập số hiệu (VD: 10/2021, 22/2023, 30/2020) hoặc tên trích yếu văn bản..." style="flex: 1; border: 1px solid #7F9DB9; padding: 3px 6px; height: 24px; font-size: 11.5px;" />
+          <button type="button" class="win-btn" id="btnClearLawSearch" style="height: 24px;">Xóa tìm kiếm</button>
+        </div>
+
+        <!-- Thân Modal: Phân vùng Trái (Nhóm chủ đề) / Phải (Bảng văn bản chi tiết) -->
+        <div class="win-modal-body" style="padding: 6px; flex: 1 1 0; min-height: 0; display: flex; gap: 6px; overflow: hidden; background: #F0F0F0;">
+          
+          <!-- Phân vùng bên trái: Danh mục nhóm chủ đề lớn -->
+          <div style="width: 230px; flex-shrink: 0; background: #FFFFFF; border: 1px solid #7F9DB9; display: flex; flex-direction: column;">
+            <div style="background: #E6E6E6; border-bottom: 1px solid #B5B5B5; padding: 4px 6px; font-weight: 600; font-size: 11px; color: #003399;">
+              NHÓM CHỦ ĐỀ VĂN BẢN
+            </div>
+            <ul id="lawCategoryList" class="win-listbox" style="margin: 0; padding: 2px 0;">
+              <li class="win-list-item selected" data-cat="all">📁 Tất cả văn bản quy phạm</li>
+              <li class="win-list-item" data-cat="chi-phi-hop-dong">📁 Quản lý Chi phí &amp; Hợp đồng XD</li>
+              <li class="win-list-item" data-cat="du-an-chat-luong">📁 Quản lý Dự án &amp; Chất lượng CT</li>
+              <li class="win-list-item" data-cat="dau-thau">📁 Quản lý Đấu thầu &amp; Mua sắm</li>
+              <li class="win-list-item" data-cat="doanh-nghiep-dan-su">📁 Bộ luật Dân sự, DN &amp; TM</li>
+              <li class="win-list-item" data-cat="the-thuc-van-thu">📁 Thể thức văn bản (Nghị định 30)</li>
+            </ul>
+          </div>
+
+          <!-- Phân vùng bên phải: Bảng dữ liệu chi tiết văn bản -->
+          <div style="flex: 1 1 0; background: #FFFFFF; border: 1px solid #7F9DB9; display: flex; flex-direction: column; overflow: hidden;">
+            <div style="background: #F4F4F4; border-bottom: 1px solid #D0D0D0; padding: 4px 8px; font-size: 11px; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;">
+              <span id="lblLawTableTitle" style="font-weight: 600; color: #003399;">Danh sách văn bản quy phạm pháp luật</span>
+              <span id="lblLawSelectedCount" style="color: #666; font-size: 11px;">Đã chọn: 0 văn bản</span>
+            </div>
+
+            <div style="flex: 1 1 auto; overflow-y: auto; overflow-x: auto;">
+              <table id="tblLawDataGrid" style="width: 100%; border-collapse: collapse; font-size: 11px;">
+                <thead>
+                  <tr style="background: #EAEAEA; position: sticky; top: 0; z-index: 10; border-bottom: 1px solid #B5B5B5;">
+                    <th style="width: 30px; text-align: center; padding: 4px; border: 1px solid #D0D0D0;">
+                      <input type="checkbox" id="chkLawSelectAll" title="Chọn / Bỏ chọn tất cả" />
+                    </th>
+                    <th style="width: 32px; text-align: center; padding: 4px; border: 1px solid #D0D0D0;">STT</th>
+                    <th style="width: 145px; text-align: left; padding: 4px; border: 1px solid #D0D0D0;">Số hiệu văn bản</th>
+                    <th style="text-align: left; padding: 4px; border: 1px solid #D0D0D0;">Tên loại &amp; Trích yếu nội dung</th>
+                    <th style="width: 100px; text-align: center; padding: 4px; border: 1px solid #D0D0D0;">Ngày ban hành</th>
+                    <th style="width: 110px; text-align: center; padding: 4px; border: 1px solid #D0D0D0;">Tình trạng hiệu lực</th>
+                  </tr>
+                </thead>
+                <tbody id="lawTableBody">
+                  <!-- Dữ liệu nạp từ JavaScript -->
+                </tbody>
+              </table>
+            </div>
+
+            <div style="background: #FFF9E6; border-top: 1px solid #FFE082; padding: 4px 8px; font-size: 11px; color: #8D6E63; flex-shrink: 0;">
+              ⚠️ <strong>Cảnh báo hiệu lực:</strong> Các văn bản có nhãn màu <span style="background: #FFEBEE; color: #C62828; font-weight: bold; padding: 1px 4px; border: 1px solid #E57373;">Hết hiệu lực</span> đã có văn bản mới thay thế (ví dụ: Luật Đấu thầu 22/2023 thay thế 43/2013). Hãy lưu ý khi trích dẫn vào căn cứ pháp lý!
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Cố định thanh chức năng ở đáy -->
+        <div class="win-modal-actions" style="gap: 6px; flex-shrink: 0; padding: 6px 12px; background: #E1E1E1; border-top: 1px solid #B5B5B5;">
+          <button class="win-btn win-btn-primary" id="btnAssignLawToDocument" style="min-width: 170px; height: 26px; font-weight: 600;">
+            ✓ Gán vào Căn cứ pháp lý
+          </button>
+          <button class="win-btn" id="btnInsertLawDirectToWord" style="min-width: 130px; height: 26px; color: #003399; font-weight: 600;">
+            📄 Chèn thẳng vào Word
+          </button>
+          <button class="win-btn" id="btnCopyLawCitations" style="min-width: 120px; height: 26px;">
+            📋 Sao chép căn cứ
+          </button>
+          <button class="win-btn" id="btnCloseLawModal" style="min-width: 80px; height: 26px;">
+            Đóng
+          </button>
         </div>
       </div>
     </div>
@@ -1037,6 +1196,321 @@
       if (lbl) lbl.textContent = customCount > 0 ? `(${customCount} tự tạo)` : "";
     }
 
+    /**
+     * Chuyển đổi số tiền thành chữ Tiếng Việt chuẩn tài chính kế toán
+     */
+    function numberToWordsVietnamese(num) {
+      if (num === null || num === undefined || isNaN(num)) return "";
+      let n = Math.round(Number(num));
+      if (n === 0) return "Không đồng chẵn./.";
+      if (n < 0) return "Âm " + numberToWordsVietnamese(-n);
+
+      const digits = ["không", "một", "hai", "ba", "bốn", "năm", "sáu", "bảy", "tám", "chín"];
+      const units = ["", "nghìn", "triệu", "tỷ", "nghìn tỷ", "triệu tỷ"];
+
+      function readGroupThree(group, isFirst) {
+        let h = Math.floor(group / 100);
+        let t = Math.floor((group % 100) / 10);
+        let u = group % 10;
+        let res = "";
+
+        if (h > 0 || !isFirst) {
+          res += digits[h] + " trăm ";
+        }
+
+        if (t === 0) {
+          if (u > 0 && (h > 0 || !isFirst)) {
+            res += "lẻ " + digits[u];
+          } else if (u > 0) {
+            res += digits[u];
+          }
+        } else if (t === 1) {
+          res += "mười ";
+          if (u === 1) res += "một";
+          else if (u === 5) res += "lăm";
+          else if (u > 0) res += digits[u];
+        } else {
+          res += digits[t] + " mươi ";
+          if (u === 1) res += "mốt";
+          else if (u === 4) res += "tư";
+          else if (u === 5) res += "lăm";
+          else if (u > 0) res += digits[u];
+        }
+        return res.trim();
+      }
+
+      let groups = [];
+      let temp = n;
+      while (temp > 0) {
+        groups.push(temp % 1000);
+        temp = Math.floor(temp / 1000);
+      }
+
+      let strWords = "";
+      for (let i = groups.length - 1; i >= 0; i--) {
+        let grp = groups[i];
+        if (grp > 0) {
+          let read = readGroupThree(grp, i === groups.length - 1);
+          strWords += read + " " + units[i] + " ";
+        }
+      }
+
+      strWords = strWords.trim();
+      if (strWords.length > 0) {
+        strWords = strWords.charAt(0).toUpperCase() + strWords.slice(1);
+      }
+      return strWords + " đồng chẵn./.";
+    }
+
+    /**
+     * Dữ liệu Thư viện Văn bản Quy phạm Pháp luật chuẩn (Hệ thống Xây dựng & Hợp đồng GXD)
+     */
+    const LAW_DATABASE = [
+      // 1. Quản lý Chi phí & Hợp đồng XD
+      {
+        cat: "chi-phi-hop-dong",
+        code: "Luật 62/2020/QH14",
+        name: "Luật sửa đổi, bổ sung một số điều của Luật Xây dựng (Luật số 62/2020/QH14)",
+        issueDate: "17/06/2020",
+        effectDate: "01/01/2021",
+        status: "Còn hiệu lực",
+        citation: "- Căn cứ Luật Xây dựng số 50/2014/QH13 ngày 18 tháng 6 năm 2014 và Luật số 62/2020/QH14 ngày 17 tháng 6 năm 2020 sửa đổi, bổ sung một số điều của Luật Xây dựng;"
+      },
+      {
+        cat: "chi-phi-hop-dong",
+        code: "Luật 50/2014/QH13",
+        name: "Luật Xây dựng số 50/2014/QH13 (Đã sửa đổi, bổ sung bởi Luật số 62/2020/QH14)",
+        issueDate: "18/06/2014",
+        effectDate: "01/01/2015",
+        status: "Đã sửa đổi",
+        citation: "- Căn cứ Luật Xây dựng số 50/2014/QH13 ngày 18 tháng 6 năm 2014 của Quốc hội;"
+      },
+      {
+        cat: "chi-phi-hop-dong",
+        code: "NĐ 10/2021/NĐ-CP",
+        name: "Nghị định số 10/2021/NĐ-CP về quản lý chi phí đầu tư xây dựng",
+        issueDate: "09/02/2021",
+        effectDate: "09/02/2021",
+        status: "Còn hiệu lực",
+        citation: "- Căn cứ Nghị định số 10/2021/NĐ-CP ngày 09 tháng 02 năm 2021 của Chính phủ về quản lý chi phí đầu tư xây dựng;"
+      },
+      {
+        cat: "chi-phi-hop-dong",
+        code: "NĐ 37/2015/NĐ-CP",
+        name: "Nghị định số 37/2015/NĐ-CP quy định chi tiết về hợp đồng xây dựng",
+        issueDate: "22/04/2015",
+        effectDate: "15/06/2015",
+        status: "Còn hiệu lực",
+        citation: "- Căn cứ Nghị định số 37/2015/NĐ-CP ngày 22 tháng 4 năm 2015 của Chính phủ quy định chi tiết về hợp đồng xây dựng;"
+      },
+      {
+        cat: "chi-phi-hop-dong",
+        code: "NĐ 50/2021/NĐ-CP",
+        name: "Nghị định số 50/2021/NĐ-CP sửa đổi, bổ sung một số điều của Nghị định số 37/2015/NĐ-CP về hợp đồng xây dựng",
+        issueDate: "01/04/2021",
+        effectDate: "01/04/2021",
+        status: "Còn hiệu lực",
+        citation: "- Căn cứ Nghị định số 50/2021/NĐ-CP ngày 01 tháng 4 năm 2021 của Chính phủ sửa đổi, bổ sung một số điều của Nghị định số 37/2015/NĐ-CP;"
+      },
+      {
+        cat: "chi-phi-hop-dong",
+        code: "TT 11/2021/TT-BXD",
+        name: "Thông tư số 11/2021/TT-BXD hướng dẫn một số nội dung xác định và quản lý chi phí đầu tư xây dựng",
+        issueDate: "31/08/2021",
+        effectDate: "15/10/2021",
+        status: "Còn hiệu lực",
+        citation: "- Căn cứ Thông tư số 11/2021/TT-BXD ngày 31 tháng 8 năm 2021 của Bộ trưởng Bộ Xây dựng hướng dẫn xác định và quản lý chi phí đầu tư xây dựng;"
+      },
+      {
+        cat: "chi-phi-hop-dong",
+        code: "TT 12/2021/TT-BXD",
+        name: "Thông tư số 12/2021/TT-BXD ban hành định mức xây dựng",
+        issueDate: "31/08/2021",
+        effectDate: "15/10/2021",
+        status: "Còn hiệu lực",
+        citation: "- Căn cứ Thông tư số 12/2021/TT-BXD ngày 31 tháng 8 năm 2021 của Bộ trưởng Bộ Xây dựng ban hành định mức xây dựng;"
+      },
+      {
+        cat: "chi-phi-hop-dong",
+        code: "TT 14/2023/TT-BXD",
+        name: "Thông tư số 14/2023/TT-BXD sửa đổi, bổ sung một số điều của Thông tư số 11/2021/TT-BXD",
+        issueDate: "29/12/2023",
+        effectDate: "15/02/2024",
+        status: "Còn hiệu lực",
+        citation: "- Căn cứ Thông tư số 14/2023/TT-BXD ngày 29 tháng 12 năm 2023 của Bộ trưởng Bộ Xây dựng sửa đổi, bổ sung Thông tư số 11/2021/TT-BXD;"
+      },
+      {
+        cat: "chi-phi-hop-dong",
+        code: "NĐ 68/2019/NĐ-CP",
+        name: "Nghị định số 68/2019/NĐ-CP về quản lý chi phí ĐTXD (Thay thế bởi Nghị định 10/2021/NĐ-CP)",
+        issueDate: "14/08/2019",
+        effectDate: "01/10/2019",
+        status: "Hết hiệu lực",
+        citation: "- Căn cứ Nghị định số 68/2019/NĐ-CP ngày 14 tháng 8 năm 2019 của Chính phủ (Đã hết hiệu lực);"
+      },
+
+      // 2. Quản lý Dự án & Chất lượng CT
+      {
+        cat: "du-an-chat-luong",
+        code: "NĐ 15/2021/NĐ-CP",
+        name: "Nghị định số 15/2021/NĐ-CP quy định chi tiết một số nội dung về quản lý dự án đầu tư xây dựng",
+        issueDate: "03/03/2021",
+        effectDate: "03/03/2021",
+        status: "Còn hiệu lực",
+        citation: "- Căn cứ Nghị định số 15/2021/NĐ-CP ngày 03 tháng 3 năm 2021 của Chính phủ quy định chi tiết một số nội dung về quản lý dự án đầu tư xây dựng;"
+      },
+      {
+        cat: "du-an-chat-luong",
+        code: "NĐ 35/2023/NĐ-CP",
+        name: "Nghị định số 35/2023/NĐ-CP sửa đổi, bổ sung một số điều của các Nghị định thuộc lĩnh vực QLNN của Bộ Xây dựng",
+        issueDate: "20/06/2023",
+        effectDate: "20/06/2023",
+        status: "Còn hiệu lực",
+        citation: "- Căn cứ Nghị định số 35/2023/NĐ-CP ngày 20 tháng 6 năm 2023 của Chính phủ sửa đổi, bổ sung các nghị định thuộc lĩnh vực quản lý nhà nước của Bộ Xây dựng;"
+      },
+      {
+        cat: "du-an-chat-luong",
+        code: "NĐ 06/2021/NĐ-CP",
+        name: "Nghị định số 06/2021/NĐ-CP quy định chi tiết về quản lý chất lượng, thi công xây dựng và bảo trì công trình",
+        issueDate: "26/01/2021",
+        effectDate: "26/01/2021",
+        status: "Còn hiệu lực",
+        citation: "- Căn cứ Nghị định số 06/2021/NĐ-CP ngày 26 tháng 01 năm 2021 của Chính phủ quy định chi tiết về quản lý chất lượng, thi công xây dựng và bảo trì công trình xây dựng;"
+      },
+      {
+        cat: "du-an-chat-luong",
+        code: "TT 10/2021/TT-BXD",
+        name: "Thông tư số 10/2021/TT-BXD hướng dẫn một số điều của Nghị định số 06/2021/NĐ-CP và Nghị định số 15/2021/NĐ-CP",
+        issueDate: "25/08/2021",
+        effectDate: "15/10/2021",
+        status: "Còn hiệu lực",
+        citation: "- Căn cứ Thông tư số 10/2021/TT-BXD ngày 25 tháng 8 năm 2021 của Bộ trưởng Bộ Xây dựng hướng dẫn một số điều của Nghị định số 06/2021/NĐ-CP và Nghị định số 15/2021/NĐ-CP;"
+      },
+      {
+        cat: "du-an-chat-luong",
+        code: "NĐ 59/2015/NĐ-CP",
+        name: "Nghị định số 59/2015/NĐ-CP về quản lý dự án ĐTXD (Thay thế bởi Nghị định 15/2021/NĐ-CP)",
+        issueDate: "18/06/2015",
+        effectDate: "05/08/2015",
+        status: "Hết hiệu lực",
+        citation: "- Căn cứ Nghị định số 59/2015/NĐ-CP ngày 18 tháng 6 năm 2015 của Chính phủ về quản lý dự án đầu tư xây dựng (Đã hết hiệu lực);"
+      },
+      {
+        cat: "du-an-chat-luong",
+        code: "NĐ 46/2015/NĐ-CP",
+        name: "Nghị định số 46/2015/NĐ-CP về quản lý chất lượng và bảo trì công trình (Thay thế bởi NĐ 06/2021/NĐ-CP)",
+        issueDate: "12/05/2015",
+        effectDate: "01/07/2015",
+        status: "Hết hiệu lực",
+        citation: "- Căn cứ Nghị định số 46/2015/NĐ-CP ngày 12 tháng 5 năm 2015 của Chính phủ (Đã hết hiệu lực);"
+      },
+
+      // 3. Quản lý Đấu thầu
+      {
+        cat: "dau-thau",
+        code: "Luật 22/2023/QH15",
+        name: "Luật Đấu thầu số 22/2023/QH15 (Có hiệu lực thi hành từ ngày 01/01/2024)",
+        issueDate: "23/06/2023",
+        effectDate: "01/01/2024",
+        status: "Còn hiệu lực",
+        citation: "- Căn cứ Luật Đấu thầu số 22/2023/QH15 ngày 23 tháng 6 năm 2023 của Quốc hội;"
+      },
+      {
+        cat: "dau-thau",
+        code: "NĐ 24/2024/NĐ-CP",
+        name: "Nghị định số 24/2024/NĐ-CP quy định chi tiết một số điều và biện pháp thi hành Luật Đấu thầu",
+        issueDate: "27/02/2024",
+        effectDate: "27/02/2024",
+        status: "Còn hiệu lực",
+        citation: "- Căn cứ Nghị định số 24/2024/NĐ-CP ngày 27 tháng 02 năm 2024 của Chính phủ quy định chi tiết một số điều và biện pháp thi hành Luật Đấu thầu về lựa chọn nhà thầu;"
+      },
+      {
+        cat: "dau-thau",
+        code: "TT 06/2024/TT-BKHĐT",
+        name: "Thông tư số 06/2024/TT-BKHĐT hướng dẫn đăng tải thông tin và mẫu hồ sơ đấu thầu trên Hệ thống mạng đấu thầu quốc gia",
+        issueDate: "26/04/2024",
+        effectDate: "26/04/2024",
+        status: "Còn hiệu lực",
+        citation: "- Căn cứ Thông tư số 06/2024/TT-BKHĐT ngày 26 tháng 4 năm 2024 của Bộ trưởng Bộ Kế hoạch và Đầu tư;"
+      },
+      {
+        cat: "dau-thau",
+        code: "Luật 43/2013/QH13",
+        name: "Luật Đấu thầu số 43/2013/QH13 (Thay thế bởi Luật Đấu thầu số 22/2023/QH15 từ ngày 01/01/2024)",
+        issueDate: "26/11/2013",
+        effectDate: "01/07/2014",
+        status: "Hết hiệu lực",
+        citation: "- Căn cứ Luật Đấu thầu số 43/2013/QH13 ngày 26 tháng 11 năm 2013 của Quốc hội (Đã hết hiệu lực);"
+      },
+      {
+        cat: "dau-thau",
+        code: "NĐ 63/2014/NĐ-CP",
+        name: "Nghị định số 63/2014/NĐ-CP quy định chi tiết thi hành một số điều của Luật Đấu thầu (Thay thế bởi NĐ 24/2024/NĐ-CP)",
+        issueDate: "26/06/2014",
+        effectDate: "15/08/2014",
+        status: "Hết hiệu lực",
+        citation: "- Căn cứ Nghị định số 63/2014/NĐ-CP ngày 26 tháng 6 năm 2014 của Chính phủ (Đã hết hiệu lực);"
+      },
+
+      // 4. Doanh nghiệp, Dân sự & Thương mại
+      {
+        cat: "doanh-nghiep-dan-su",
+        code: "Luật 91/2015/QH13",
+        name: "Bộ luật Dân sự số 91/2015/QH13",
+        issueDate: "24/11/2015",
+        effectDate: "01/01/2017",
+        status: "Còn hiệu lực",
+        citation: "- Căn cứ Bộ luật Dân sự số 91/2015/QH13 ngày 24 tháng 11 năm 2015 của Quốc hội;"
+      },
+      {
+        cat: "doanh-nghiep-dan-su",
+        code: "Luật 36/2005/QH11",
+        name: "Luật Thương mại số 36/2005/QH11",
+        issueDate: "14/06/2005",
+        effectDate: "01/01/2006",
+        status: "Còn hiệu lực",
+        citation: "- Căn cứ Luật Thương mại số 36/2005/QH11 ngày 14 tháng 6 năm 2005 của Quốc hội;"
+      },
+      {
+        cat: "doanh-nghiep-dan-su",
+        code: "Luật 59/2020/QH14",
+        name: "Luật Doanh nghiệp số 59/2020/QH14",
+        issueDate: "17/06/2020",
+        effectDate: "01/01/2021",
+        status: "Còn hiệu lực",
+        citation: "- Căn cứ Luật Doanh nghiệp số 59/2020/QH14 ngày 17 tháng 6 năm 2020 của Quốc hội;"
+      },
+      {
+        cat: "doanh-nghiep-dan-su",
+        code: "Luật 45/2019/QH14",
+        name: "Bộ luật Lao động số 45/2019/QH14",
+        issueDate: "20/11/2019",
+        effectDate: "01/01/2021",
+        status: "Còn hiệu lực",
+        citation: "- Căn cứ Bộ luật Lao động số 45/2019/QH14 ngày 20 tháng 11 năm 2019 của Quốc hội;"
+      },
+
+      // 5. Thể thức văn bản (Nghị định 30)
+      {
+        cat: "the-thuc-van-thu",
+        code: "NĐ 30/2020/NĐ-CP",
+        name: "Nghị định số 30/2020/NĐ-CP về công tác văn thư (Chuẩn thể thức, kỹ thuật trình bày)",
+        issueDate: "05/03/2020",
+        effectDate: "05/03/2020",
+        status: "Còn hiệu lực",
+        citation: "- Căn cứ Nghị định số 30/2020/NĐ-CP ngày 05 tháng 3 năm 2020 của Chính phủ về công tác văn thư;"
+      },
+      {
+        cat: "the-thuc-van-thu",
+        code: "NĐ 110/2004/NĐ-CP",
+        name: "Nghị định số 110/2004/NĐ-CP về công tác văn thư (Thay thế bởi Nghị định số 30/2020/NĐ-CP)",
+        issueDate: "08/04/2004",
+        effectDate: "03/05/2004",
+        status: "Hết hiệu lực",
+        citation: "- Căn cứ Nghị định số 110/2004/NĐ-CP ngày 08 tháng 4 năm 2004 của Chính phủ (Đã hết hiệu lực);"
+      }
+    ];
+
     function formatNumberWithDots(val) {
       if (val === null || val === undefined || isNaN(val)) return "0";
       const num = Math.round(Number(val));
@@ -1062,12 +1536,18 @@
         articles.forEach(art => {
           if (art.type === "table" || Array.isArray(art.data)) {
             const rows = art.data || [];
-            const sumVal = art.tongCong !== undefined ? art.tongCong : rows.reduce((s, r) => s + (Number(r.thanhTien) || 0), 0);
+            const rawSum = rows.reduce((s, r) => s + (Number(r.thanhTien) || 0), 0);
+            const subTotal = art.subTotal !== undefined ? Number(art.subTotal) : (art.tongCong !== undefined ? Number(art.tongCong) : rawSum);
+            const vatRate = Number(art.vatRate) || 0;
+            const vatAmount = art.vatAmount !== undefined ? Number(art.vatAmount) : Math.round(subTotal * vatRate / 100);
+            const grandTotal = art.grandTotal !== undefined ? Number(art.grandTotal) : (subTotal + vatAmount);
+            const words = art.amountInWords || numberToWordsVietnamese(grandTotal);
+
             resHtml += `
               <div class="font-bold text-center" style="font-size: 13px; margin-top: 14px; margin-bottom: 6px;">
-                ${escapeHtml((art.title || art.tieuDe || "BẢNG DỰ TOÁN / GIÁ TRỊ HỢP ĐỒNG").toUpperCase())}
+                ${escapeHtml((art.title || art.tieuDe || "BẢNG DỰ TOÁN CHI PHÍ / GIÁ TRỊ HỢP ĐỒNG").toUpperCase())}
               </div>
-              <table style="width: 100%; border-collapse: collapse; margin-bottom: 12px; font-size: 11.5px; border: 1px solid #000;">
+              <table style="width: 100%; border-collapse: collapse; margin-bottom: 4px; font-size: 11.5px; border: 1px solid #000;">
                 <thead>
                   <tr style="background: #F2F2F2; font-weight: bold; text-align: center;">
                     <th style="border: 1px solid #000; padding: 4px; width: 32px;">STT</th>
@@ -1093,13 +1573,34 @@
                   `).join("")}
                 </tbody>
                 <tfoot>
-                  <tr style="font-weight: bold; background: #F9F9F9;">
-                    <td colspan="5" style="border: 1px solid #000; padding: 5px; text-align: right; color: #003399;">TỔNG CỘNG:</td>
-                    <td style="border: 1px solid #000; padding: 5px; text-align: right; color: #B00000; font-size: 12px;">${formatNumberWithDots(sumVal)} đ</td>
-                    <td style="border: 1px solid #000; padding: 5px;"></td>
-                  </tr>
+                  ${vatRate > 0 ? `
+                    <tr style="font-weight: bold; background: #F9F9F9;">
+                      <td colspan="5" style="border: 1px solid #000; padding: 4px 6px; text-align: right; color: #003399;">CỘNG TIỀN TRƯỚC THUẾ:</td>
+                      <td style="border: 1px solid #000; padding: 4px 6px; text-align: right; font-size: 11.5px;">${formatNumberWithDots(subTotal)} đ</td>
+                      <td style="border: 1px solid #000; padding: 4px 6px;"></td>
+                    </tr>
+                    <tr style="font-weight: bold; background: #F9F9F9;">
+                      <td colspan="5" style="border: 1px solid #000; padding: 4px 6px; text-align: right; color: #E65100;">THUẾ GTGT (${vatRate}%):</td>
+                      <td style="border: 1px solid #000; padding: 4px 6px; text-align: right; color: #E65100; font-size: 11.5px;">${formatNumberWithDots(vatAmount)} đ</td>
+                      <td style="border: 1px solid #000; padding: 4px 6px;"></td>
+                    </tr>
+                    <tr style="font-weight: bold; background: #F0F4F8;">
+                      <td colspan="5" style="border: 1px solid #000; padding: 5px 6px; text-align: right; color: #B00000;">TỔNG CỘNG THANH TOÁN:</td>
+                      <td style="border: 1px solid #000; padding: 5px 6px; text-align: right; color: #B00000; font-size: 12px;">${formatNumberWithDots(grandTotal)} đ</td>
+                      <td style="border: 1px solid #000; padding: 5px 6px;"></td>
+                    </tr>
+                  ` : `
+                    <tr style="font-weight: bold; background: #F0F4F8;">
+                      <td colspan="5" style="border: 1px solid #000; padding: 5px 6px; text-align: right; color: #B00000;">TỔNG CỘNG THANH TOÁN:</td>
+                      <td style="border: 1px solid #000; padding: 5px 6px; text-align: right; color: #B00000; font-size: 12px;">${formatNumberWithDots(subTotal)} đ</td>
+                      <td style="border: 1px solid #000; padding: 5px 6px;"></td>
+                    </tr>
+                  `}
                 </tfoot>
               </table>
+              <div class="font-italic" style="margin-bottom: 10px; font-size: 12px;">
+                Số tiền bằng chữ: <strong>${escapeHtml(words)}</strong>
+              </div>
             `;
           } else {
             const title = art.title || art.tieuDe || "";
@@ -1383,13 +1884,11 @@
     }
 
     // 4. Thêm khối Bảng giá / Phụ lục (Dynamic Table Grid)
-    function addTableArticleRow(defaultTitle, defaultRows) {
+    function addTableArticleRow(defaultTitle, defaultRows, defaultVatRate) {
       const container = document.getElementById("dynamicArticlesContainer");
       if (!container) return;
 
-      const tableBlocks = container.querySelectorAll('.article-item-row[data-type="table"]');
-      const nextNum = tableBlocks.length + 1;
-      const autoTitle = defaultTitle || `BẢNG DỰ TOÁN / GIÁ TRỊ HỢP ĐỒNG (PHỤ LỤC 0${nextNum})`;
+      const autoTitle = defaultTitle || "BẢNG DỰ TOÁN CHI PHÍ / GIÁ TRỊ HỢP ĐỒNG";
 
       const block = document.createElement("div");
       block.className = "article-item-row";
@@ -1404,7 +1903,7 @@
       block.innerHTML = `
         <div style="display: flex; gap: 6px; align-items: center; border-bottom: 1px solid #C8E6C9; padding-bottom: 4px;">
           <span style="font-weight: 600; color: #1B5E20; font-size: 11px; white-space: nowrap;">📊 [Bảng giá / Phụ lục]</span>
-          <input type="text" class="win-input art-title" value="${escapeHtml(autoTitle)}" style="flex: 1; font-weight: bold; border: 1px solid #7F9DB9; padding: 3px 6px; font-size: 11.5px; color: #003399;" placeholder="Tiêu đề bảng giá..." />
+          <input type="text" class="win-input art-title" value="${escapeHtml(autoTitle)}" style="flex: 1; font-weight: bold; border: 1px solid #7F9DB9; padding: 3px 6px; font-size: 11.5px; color: #003399; text-align: center;" placeholder="Tiêu đề bảng giá..." />
           <button type="button" class="win-btn btn-move-up" title="Di chuyển lên trên" style="padding: 2px 6px; font-size: 11px;">🔼</button>
           <button type="button" class="win-btn btn-move-down" title="Di chuyển xuống dưới" style="padding: 2px 6px; font-size: 11px;">🔽</button>
           <button type="button" class="win-btn btn-del-article" style="color: #A00000; font-weight: bold; padding: 2px 8px; font-size: 11px;" title="Xóa toàn bộ bảng giá này">🗑️ Xóa bảng</button>
@@ -1425,10 +1924,43 @@
             </thead>
             <tbody class="table-rows-body"></tbody>
             <tfoot>
-              <tr style="background: #F1F8E9; font-weight: bold;">
-                <td colspan="5" style="border: 1px solid #B5B5B5; padding: 4px 8px; text-align: right; color: #1B5E20;">TỔNG CỘNG:</td>
-                <td class="col-table-total" style="border: 1px solid #B5B5B5; padding: 4px 6px; text-align: right; color: #B00000; font-size: 11.5px;">0 đ</td>
+              <!-- Dòng 1: Tiền trước thuế -->
+              <tr style="background: #F9FDF9; font-weight: bold;">
+                <td colspan="5" style="border: 1px solid #B5B5B5; padding: 3px 6px; text-align: right; color: #1B5E20;">
+                  CỘNG TIỀN TRƯỚC THUẾ:
+                </td>
+                <td class="col-table-subtotal" style="border: 1px solid #B5B5B5; padding: 3px 6px; text-align: right; color: #003399; font-size: 11px;">0 đ</td>
+                <td colspan="2" style="border: 1px solid #B5B5B5; padding: 3px;"></td>
+              </tr>
+              <!-- Dòng 2: Thuế GTGT có dropdown nhiều lựa chọn -->
+              <tr style="background: #F9FDF9; font-weight: bold;">
+                <td colspan="5" style="border: 1px solid #B5B5B5; padding: 3px 6px; text-align: right; color: #1B5E20;">
+                  <span style="margin-right: 6px;">THUẾ GTGT:</span>
+                  <select class="tbl-vat-rate" style="border: 1px solid #7F9DB9; font-size: 11px; padding: 1px 3px; height: 21px; background: #FFF;">
+                    <option value="0">0% (Không chịu thuế)</option>
+                    <option value="5">5% (Thuế suất 5%)</option>
+                    <option value="8">8% (Giảm thuế GTGT)</option>
+                    <option value="10" selected>10% (Phổ thông)</option>
+                    <option value="custom">Tùy chỉnh %...</option>
+                  </select>
+                  <input type="number" class="tbl-vat-custom" min="0" max="100" step="any" value="10" style="display: none; width: 45px; height: 21px; font-size: 11px; border: 1px solid #7F9DB9; padding: 1px 3px; text-align: right;" />
+                </td>
+                <td class="col-table-vat" style="border: 1px solid #B5B5B5; padding: 3px 6px; text-align: right; color: #E65100; font-size: 11px;">0 đ</td>
+                <td colspan="2" style="border: 1px solid #B5B5B5; padding: 3px;"></td>
+              </tr>
+              <!-- Dòng 3: Tổng cộng thanh toán -->
+              <tr style="background: #E8F5E9; font-weight: bold;">
+                <td colspan="5" style="border: 1px solid #B5B5B5; padding: 4px 6px; text-align: right; color: #B00000; font-size: 11.5px;">
+                  TỔNG CỘNG THANH TOÁN:
+                </td>
+                <td class="col-table-total" style="border: 1px solid #B5B5B5; padding: 4px 6px; text-align: right; color: #B00000; font-size: 12px;">0 đ</td>
                 <td colspan="2" style="border: 1px solid #B5B5B5; padding: 4px;"></td>
+              </tr>
+              <!-- Dòng 4: Bằng chữ -->
+              <tr style="background: #FFFFFF; font-style: italic;">
+                <td colspan="8" style="border: 1px solid #B5B5B5; padding: 4px 8px; text-align: left; color: #003399; font-size: 11px;">
+                  Số tiền bằng chữ: <strong class="col-table-words" style="color: #003399; font-style: normal;">Không đồng chẵn./.</strong>
+                </td>
               </tr>
             </tfoot>
           </table>
@@ -1447,6 +1979,32 @@
         addTableRowToGrid(block);
       });
 
+      const selVat = block.querySelector(".tbl-vat-rate");
+      const inpCustom = block.querySelector(".tbl-vat-custom");
+      if (defaultVatRate !== undefined) {
+        if ([0, 5, 8, 10].includes(Number(defaultVatRate))) {
+          selVat.value = String(defaultVatRate);
+        } else {
+          selVat.value = "custom";
+          inpCustom.style.display = "inline-block";
+          inpCustom.value = String(defaultVatRate);
+        }
+      }
+
+      selVat.addEventListener("change", () => {
+        if (selVat.value === "custom") {
+          inpCustom.style.display = "inline-block";
+          inpCustom.focus();
+        } else {
+          inpCustom.style.display = "none";
+        }
+        calcTableSum(block);
+      });
+
+      inpCustom.addEventListener("input", () => {
+        calcTableSum(block);
+      });
+
       if (defaultRows && defaultRows.length > 0) {
         defaultRows.forEach(r => addTableRowToGrid(block, r));
       } else {
@@ -1457,6 +2015,7 @@
 
       container.appendChild(block);
       updateArticleCountLabel();
+      calcTableSum(block);
       if (!defaultTitle && !defaultRows) {
         container.scrollTop = container.scrollHeight;
       }
@@ -1537,18 +2096,45 @@
     }
 
     function calcTableSum(tableBlock) {
-      let sum = 0;
+      let subTotal = 0;
       const rows = tableBlock.querySelectorAll(".table-rows-body tr");
       rows.forEach(r => {
         const q = parseFloat(r.querySelector(".tbl-item-qty")?.value) || 0;
         const p = parseFloat(r.querySelector(".tbl-item-price")?.value) || 0;
-        sum += Math.round(q * p);
+        subTotal += Math.round(q * p);
       });
-      const totalCell = tableBlock.querySelector(".col-table-total");
-      if (totalCell) {
-        totalCell.textContent = formatNumberWithDots(sum) + " đ";
-        tableBlock.dataset.tableTotal = String(sum);
+
+      const selVat = tableBlock.querySelector(".tbl-vat-rate");
+      const inpCustom = tableBlock.querySelector(".tbl-vat-custom");
+      let vatRate = 10;
+      if (selVat) {
+        if (selVat.value === "custom") {
+          vatRate = parseFloat(inpCustom?.value) || 0;
+        } else {
+          vatRate = parseFloat(selVat.value) || 0;
+        }
       }
+
+      const vatAmount = Math.round(subTotal * vatRate / 100);
+      const grandTotal = subTotal + vatAmount;
+      const words = numberToWordsVietnamese(grandTotal);
+
+      const subTotalCell = tableBlock.querySelector(".col-table-subtotal");
+      const vatCell = tableBlock.querySelector(".col-table-vat");
+      const totalCell = tableBlock.querySelector(".col-table-total");
+      const wordsCell = tableBlock.querySelector(".col-table-words");
+
+      if (subTotalCell) subTotalCell.textContent = formatNumberWithDots(subTotal) + " đ";
+      if (vatCell) vatCell.textContent = formatNumberWithDots(vatAmount) + " đ";
+      if (totalCell) totalCell.textContent = formatNumberWithDots(grandTotal) + " đ";
+      if (wordsCell) wordsCell.textContent = words;
+
+      tableBlock.dataset.subtotal = String(subTotal);
+      tableBlock.dataset.vatRate = String(vatRate);
+      tableBlock.dataset.vatAmount = String(vatAmount);
+      tableBlock.dataset.grandTotal = String(grandTotal);
+      tableBlock.dataset.tableTotal = String(grandTotal);
+      tableBlock.dataset.amountInWords = words;
     }
 
     function updateArticleCountLabel() {
@@ -1655,9 +2241,38 @@
       updateTemplateCount();
     }
 
+    let editingTemplateKey = null;
+
     function openAddTemplateModal() {
+      editingTemplateKey = null;
       const modal = document.getElementById("dlgAddTemplateOverlay");
+      const titleBar = document.getElementById("dlgAddTitle");
+      const btnSave = document.getElementById("btnSaveNewTemplate");
       if (!modal) return;
+
+      if (titleBar) titleBar.textContent = "Thêm Mẫu Văn Bản Mới Vào Hệ Thống - [Nghị Định 30/2020/NĐ-CP]";
+      if (btnSave) btnSave.textContent = "1. Lưu & Cập nhật hệ thống";
+
+      // Reset các trường
+      const titleInput = document.getElementById("txtNewTplTitle");
+      const subjInput = document.getElementById("txtNewTplSubject");
+      const partyAInput = document.getElementById("txtNewTplPartyA");
+      const partyBInput = document.getElementById("txtNewTplPartyB");
+      const signerInput = document.getElementById("txtNewTplSigner");
+      const recInput = document.getElementById("txtNewTplRecipients");
+      const groundsInput = document.getElementById("txtNewTplGrounds");
+      const docNumInput = document.getElementById("txtNewTplDocNum");
+
+      if (titleInput) titleInput.value = "";
+      if (subjInput) subjInput.value = "";
+      if (partyAInput) partyAInput.value = "";
+      if (partyBInput) partyBInput.value = "";
+      if (signerInput) signerInput.value = "";
+      if (recInput) recInput.value = "";
+      if (docNumInput) docNumInput.value = "";
+      if (groundsInput) {
+        groundsInput.value = "- Căn cứ Bộ luật Dân sự số 91/2015/QH13 của Quốc hội;\n- Căn cứ nhu cầu và sự thỏa thuận tự nguyện giữa hai bên.";
+      }
 
       modal.style.display = "flex";
       modal.classList.remove("hidden");
@@ -1670,18 +2285,85 @@
       }
 
       // Khởi tạo 2 điều khoản mẫu nếu danh sách đang rỗng
-      const container = document.getElementById("dynamicArticlesContainer");
-      if (container && container.children.length === 0) {
-        addTextArticleRow("Điều 1: PHẠM VI CÔNG VIỆC VÀ YÊU CẦU", "Bên B cam kết thực hiện đúng tiêu chuẩn kỹ thuật, quy trình và tiến độ theo yêu cầu của Bên A.");
-        addTextArticleRow("Điều 2: GIÁ TRỊ VÀ PHƯƠNG THỨC THANH TOÁN", "Giá trị thanh toán theo tiến độ từng đợt nghiệm thu thực tế sau khi có biên bản xác nhận hợp lệ.");
-      }
+      clearArticleRows();
+      addTextArticleRow("Điều 1: PHẠM VI CÔNG VIỆC VÀ YÊU CẦU", "Bên B cam kết thực hiện đúng tiêu chuẩn kỹ thuật, quy trình và tiến độ theo yêu cầu của Bên A.");
+      addTextArticleRow("Điều 2: GIÁ TRỊ VÀ PHƯƠNG THỨC THANH TOÁN", "Giá trị thanh toán theo tiến độ từng đợt nghiệm thu thực tế sau khi có biên bản xác nhận hợp lệ.");
 
       // Đảm bảo thanh cuộn luôn ở vị trí đầu tiên
       const modalBody = document.querySelector("#dlgAddTemplateDialog .win-modal-body");
       if (modalBody) modalBody.scrollTop = 0;
+      const container = document.getElementById("dynamicArticlesContainer");
       if (container) container.scrollTop = 0;
 
-      document.getElementById("txtNewTplTitle")?.focus();
+      titleInput?.focus();
+    }
+
+    function openEditTemplateModal() {
+      const item = TEMPLATES_DATA[selectedTemplateKey];
+      if (!item) {
+        alert("Vui lòng chọn một mẫu văn bản từ danh sách bên trái để chỉnh sửa!");
+        return;
+      }
+
+      editingTemplateKey = selectedTemplateKey;
+      const modal = document.getElementById("dlgAddTemplateOverlay");
+      const titleBar = document.getElementById("dlgAddTitle");
+      const btnSave = document.getElementById("btnSaveNewTemplate");
+      if (!modal) return;
+
+      if (titleBar) titleBar.textContent = `Chỉnh Sửa Mẫu Văn Bản: ${item.title}`;
+      if (btnSave) btnSave.textContent = "1. Lưu thay đổi & Cập nhật";
+
+      // Nạp thông tin hành chính & pháp lý
+      const sd = item.structuredData || {};
+      const titleInput = document.getElementById("txtNewTplTitle");
+      const docTypeInput = document.getElementById("cboNewTplDocType");
+      const docNumInput = document.getElementById("txtNewTplDocNum");
+      const locInput = document.getElementById("txtNewTplLocation");
+      const partyAInput = document.getElementById("txtNewTplPartyA");
+      const partyBInput = document.getElementById("txtNewTplPartyB");
+      const signerInput = document.getElementById("txtNewTplSigner");
+      const recInput = document.getElementById("txtNewTplRecipients");
+      const subjInput = document.getElementById("txtNewTplSubject");
+      const groundsInput = document.getElementById("txtNewTplGrounds");
+
+      if (titleInput) titleInput.value = item.title || "";
+      if (docTypeInput) {
+        docTypeInput.value = item.docType || sd.docType || "cong-van";
+        const event = new Event("change");
+        docTypeInput.dispatchEvent(event);
+      }
+      if (docNumInput) docNumInput.value = sd.docNumber || "";
+      if (locInput) locInput.value = sd.locationDate || "";
+      if (partyAInput) partyAInput.value = sd.partyA?.name || sd.publishingOrg || "";
+      if (partyBInput) partyBInput.value = sd.partyB?.name || (sd.dear ? sd.dear.replace(/^Kính gửi:\s*/i, "") : "");
+      if (signerInput) signerInput.value = sd.signName || sd.partyA?.rep || "";
+      if (recInput) recInput.value = (sd.recipients || []).join("\n");
+      if (subjInput) subjInput.value = sd.subject || "";
+      if (groundsInput) groundsInput.value = (sd.grounds || []).join("\n");
+
+      // Nạp danh sách điều khoản chữ và bảng giá
+      clearArticleRows();
+      if (sd.articles && sd.articles.length > 0) {
+        sd.articles.forEach(art => {
+          if (art.type === "table" || Array.isArray(art.data)) {
+            addTableArticleRow(art.title || art.tieuDe, art.data, art.vatRate);
+          } else {
+            addTextArticleRow(art.title || art.tieuDe, art.content || art.noiDungChitiet);
+          }
+        });
+      } else if (sd.bodyLines && sd.bodyLines.length > 0) {
+        sd.bodyLines.forEach(l => {
+          addTextArticleRow("", l);
+        });
+      }
+
+      modal.style.display = "flex";
+      modal.classList.remove("hidden");
+
+      const modalBody = document.querySelector("#dlgAddTemplateDialog .win-modal-body");
+      if (modalBody) modalBody.scrollTop = 0;
+      titleInput?.focus();
     }
 
     function closeAddTemplateModal() {
@@ -1690,6 +2372,7 @@
         modal.style.display = "none";
         modal.classList.add("hidden");
       }
+      editingTemplateKey = null;
     }
 
     function saveNewCustomTemplate() {
@@ -1702,6 +2385,7 @@
       const signerInput = document.getElementById("txtNewTplSigner");
       const recInput = document.getElementById("txtNewTplRecipients");
       const subjInput = document.getElementById("txtNewTplSubject");
+      const groundsInput = document.getElementById("txtNewTplGrounds");
 
       const title = (titleInput?.value || "").trim();
       const docType = docTypeInput?.value || "hd-kinh-te";
@@ -1712,6 +2396,7 @@
       const signer = (signerInput?.value || "").trim() || "Nguyễn Văn A";
       const recipients = (recInput?.value || "").trim();
       const subject = (subjInput?.value || "").trim();
+      const groundsText = (groundsInput?.value || "").trim();
 
       if (!title) {
         alert("Vui lòng nhập Tên mẫu văn bản!");
@@ -1737,8 +2422,6 @@
         if (type === "table") {
           const gridRows = block.querySelectorAll(".table-rows-body tr");
           const tableData = [];
-          let tableSum = 0;
-
           gridRows.forEach((tr, rIdx) => {
             const ten = (tr.querySelector(".tbl-item-name")?.value || "").trim();
             const dvt = (tr.querySelector(".tbl-item-unit")?.value || "").trim();
@@ -1748,7 +2431,6 @@
             const gc = (tr.querySelector(".tbl-item-note")?.value || "").trim();
 
             if (ten || q > 0) {
-              tableSum += tt;
               tableData.push({
                 stt: rIdx + 1,
                 tenHangMuc: ten || `Hạng mục ${rIdx + 1}`,
@@ -1761,14 +2443,25 @@
             }
           });
 
+          const subTotal = Number(block.dataset.subtotal) || 0;
+          const vatRate = Number(block.dataset.vatRate) || 0;
+          const vatAmount = Number(block.dataset.vatAmount) || 0;
+          const grandTotal = Number(block.dataset.grandTotal) || subTotal;
+          const words = block.dataset.amountInWords || numberToWordsVietnamese(grandTotal);
+
           if (titleVal || tableData.length > 0) {
             articles.push({
               id: idx + 1,
               type: "table",
-              title: titleVal || "BẢNG CHI TIẾT GIÁ TRỊ HỢP ĐỒNG",
-              tieuDe: titleVal || "BẢNG CHI TIẾT GIÁ TRỊ HỢP ĐỒNG",
+              title: titleVal || "BẢNG DỰ TOÁN CHI PHÍ / GIÁ TRỊ HỢP ĐỒNG",
+              tieuDe: titleVal || "BẢNG DỰ TOÁN CHI PHÍ / GIÁ TRỊ HỢP ĐỒNG",
               data: tableData,
-              tongCong: tableSum
+              subTotal: subTotal,
+              vatRate: vatRate,
+              vatAmount: vatAmount,
+              grandTotal: grandTotal,
+              tongCong: grandTotal,
+              amountInWords: words
             });
           }
         } else {
@@ -1792,13 +2485,21 @@
         return;
       }
 
-      const key = "custom_" + Date.now();
+      const isEdit = Boolean(editingTemplateKey);
+      const key = isEdit ? editingTemplateKey : ("custom_" + Date.now());
       const isContract = /^(hd-|hop-dong)/i.test(docType);
       const cleanSignerName = signer.split(/[-:]/)[0].replace(/^(ông|bà)\s+/i, "").trim();
 
       const recList = recipients
         ? recipients.split(/[,;\n]/).map(r => r.trim()).filter(Boolean).map(r => r.startsWith("-") ? r : `- ${r};`)
         : ["- Như trên;", "- Lưu: VT, ĐV."];
+
+      const groundsList = groundsText
+        ? groundsText.split(/\r?\n/).map(g => g.trim()).filter(Boolean).map(g => g.startsWith("-") ? g : `- ${g};`)
+        : [
+            "- Căn cứ Bộ luật Dân sự số 91/2015/QH13 của Quốc hội;",
+            "- Căn cứ vào nhu cầu và sự thỏa thuận tự nguyện giữa hai bên."
+          ];
 
       // Cấu trúc dữ liệu chuẩn hóa
       const structuredData = {
@@ -1823,10 +2524,7 @@
           rep: partyB,
           address: "Địa chỉ trụ sở Bên B"
         },
-        grounds: [
-          "- Căn cứ Bộ luật Dân sự số 91/2015/QH13 của Quốc hội;",
-          "- Căn cứ vào nhu cầu và sự thỏa thuận tự nguyện giữa hai bên."
-        ],
+        grounds: groundsList,
         intro: `Hôm nay, ${locationDate}, chúng tôi gồm các bên:`,
         articles: articles,
         recipients: recList,
@@ -1843,83 +2541,302 @@
         key: key,
         title: title,
         docType: docType,
+        isCustom: isEdit ? Boolean(TEMPLATES_DATA[key]?.isCustom) : true,
         structuredData: structuredData,
         html: html
       };
 
-      // 1. Thêm vào TEMPLATES_DATA Runtime
-      TEMPLATES_DATA[key] = {
-        title: title,
-        docType: docType,
-        isCustom: true,
-        structuredData: structuredData,
-        html: html
-      };
+      // 1. Cập nhật TEMPLATES_DATA Runtime
+      TEMPLATES_DATA[key] = customObj;
 
       // 2. Lưu vào LocalStorage
-      const listStorage = getCustomTemplatesFromStorage();
-      listStorage.push(customObj);
+      let listStorage = getCustomTemplatesFromStorage();
+      if (isEdit) {
+        const existIdx = listStorage.findIndex(t => t.key === key);
+        if (existIdx >= 0) {
+          listStorage[existIdx] = customObj;
+        } else {
+          listStorage.push(customObj);
+        }
+      } else {
+        listStorage.push(customObj);
+      }
       saveCustomTemplatesToStorage(listStorage);
 
-      // 3. Thêm vào ListBox giao diện
+      // 3. Cập nhật hoặc Thêm vào ListBox giao diện
       const list = document.getElementById("templateList");
       if (list) {
-        const li = document.createElement("li");
-        li.className = "win-list-item selected";
-        li.dataset.id = key;
-        li.textContent = `★ ${title} [Tự tạo]`;
-        li.addEventListener("click", () => {
+        let li = list.querySelector(`.win-list-item[data-id="${key}"]`);
+        if (!li) {
+          li = document.createElement("li");
+          li.className = "win-list-item selected";
+          li.dataset.id = key;
+          li.textContent = `★ ${title} [Tự tạo]`;
+          li.addEventListener("click", () => {
+            document.querySelectorAll("#templateList .win-list-item").forEach(i => i.classList.remove("selected"));
+            li.classList.add("selected");
+            renderPreview(key);
+          });
           document.querySelectorAll("#templateList .win-list-item").forEach(i => i.classList.remove("selected"));
-          li.classList.add("selected");
-          renderPreview(key);
-        });
-        document.querySelectorAll("#templateList .win-list-item").forEach(i => i.classList.remove("selected"));
-        list.appendChild(li);
+          list.appendChild(li);
+        } else {
+          li.textContent = customObj.isCustom ? `★ ${title} [Tự tạo]` : title;
+        }
         li.scrollIntoView({ behavior: "smooth", block: "nearest" });
       }
 
       // 4. Reset Form & Đóng modal
-      titleInput.value = "";
-      if (subjInput) subjInput.value = "";
-      if (partyAInput) partyAInput.value = "";
-      if (partyBInput) partyBInput.value = "";
-      if (signerInput) signerInput.value = "";
-      if (recInput) recInput.value = "";
-      clearArticleRows();
       closeAddTemplateModal();
 
-      // 5. Render Preview mẫu vừa thêm
+      // 5. Render Preview mẫu vừa thêm / sửa
       renderPreview(key);
       updateTemplateCount();
-      setStatus(`Đã lưu và thêm thành công mẫu [${title}] vào hệ thống!`);
-      alert(`Đã thêm mẫu văn bản [${title}] vào hệ thống thành công!\nMẫu đã sẵn sàng để xem trước và chèn vào Microsoft Word.`);
+      setStatus(`Đã lưu thành công mẫu [${title}] vào hệ thống!`);
+      alert(`Đã lưu và cập nhật mẫu văn bản [${title}] thành công!\nMẫu đã sẵn sàng để xem trước và chèn vào Microsoft Word.`);
     }
 
-    function deleteSelectedCustomTemplate() {
+    function deleteSelectedTemplate() {
       const item = TEMPLATES_DATA[selectedTemplateKey];
-      if (!item || !item.isCustom) return;
+      if (!item) {
+        alert("Vui lòng chọn mẫu văn bản cần xóa!");
+        return;
+      }
 
-      const confirmDel = confirm(`Bạn có chắc chắn muốn xóa mẫu tự tạo:\n"${item.title}" khỏi hệ thống không?`);
-      if (!confirmDel) return;
+      const isCustom = Boolean(item.isCustom);
+      const confirmMsg = isCustom
+        ? `Bạn có chắc chắn muốn xóa mẫu tự tạo:\n"${item.title}" khỏi hệ thống không?`
+        : `Mẫu "${item.title}" là mẫu chuẩn có sẵn của hệ thống.\nBạn có chắc chắn muốn ẩn/xóa mẫu này khỏi danh sách không?`;
 
-      let listStorage = getCustomTemplatesFromStorage();
-      listStorage = listStorage.filter(t => t.key !== selectedTemplateKey);
-      saveCustomTemplatesToStorage(listStorage);
+      if (!confirm(confirmMsg)) return;
+
+      if (isCustom) {
+        let listStorage = getCustomTemplatesFromStorage();
+        listStorage = listStorage.filter(t => t.key !== selectedTemplateKey);
+        saveCustomTemplatesToStorage(listStorage);
+      } else {
+        try {
+          const hidden = JSON.parse(localStorage.getItem("WORD_ADDIN_HIDDEN_TEMPLATES") || "[]");
+          if (!hidden.includes(selectedTemplateKey)) hidden.push(selectedTemplateKey);
+          localStorage.setItem("WORD_ADDIN_HIDDEN_TEMPLATES", JSON.stringify(hidden));
+        } catch (e) {}
+      }
 
       delete TEMPLATES_DATA[selectedTemplateKey];
 
       const li = document.querySelector(`#templateList .win-list-item[data-id="${selectedTemplateKey}"]`);
       if (li) li.remove();
 
-      const firstItem = document.querySelector("#templateList .win-list-item");
-      if (firstItem) {
-        firstItem.classList.add("selected");
-        renderPreview(firstItem.dataset.id);
+      const nextItem = document.querySelector("#templateList .win-list-item");
+      if (nextItem) {
+        document.querySelectorAll("#templateList .win-list-item").forEach(i => i.classList.remove("selected"));
+        nextItem.classList.add("selected");
+        renderPreview(nextItem.dataset.id);
+      } else {
+        const pContent = document.getElementById("paperContent");
+        if (pContent) pContent.innerHTML = "<div style='text-align: center; color: #888; padding: 40px;'>Danh sách mẫu đang trống. Bấm '+ Thêm mẫu mới' để tạo mẫu.</div>";
       }
 
       updateTemplateCount();
-      setStatus("Đã xóa mẫu tự tạo khỏi hệ thống.");
-      alert("Đã xóa mẫu tự tạo thành công!");
+      setStatus("Đã xóa mẫu khỏi danh sách.");
+      alert(`Đã xóa mẫu [${item.title}] thành công!`);
+    }
+
+    /* ==========================================================================
+       QUẢN LÝ THƯ VIỆN VĂN BẢN PHÁP LUẬT VÀ CĂN CỨ PHÁP LÝ (GXD)
+       ========================================================================== */
+    let currentLawCategory = "all";
+    let isLawModalMaximized = false;
+    let lawModalMode = "standalone"; // "standalone" or "for_grounds"
+
+    function openLawLibraryModal(mode = "standalone") {
+      lawModalMode = mode;
+      const modal = document.getElementById("dlgLawLibraryOverlay");
+      if (!modal) return;
+
+      modal.style.display = "flex";
+      modal.classList.remove("hidden");
+
+      currentLawCategory = "all";
+      document.querySelectorAll("#lawCategoryList .win-list-item").forEach(i => {
+        i.classList.toggle("selected", i.dataset.cat === "all");
+      });
+
+      const txtSearch = document.getElementById("txtLawSearch");
+      if (txtSearch) txtSearch.value = "";
+
+      renderLawTable("all", "");
+      txtSearch?.focus();
+    }
+
+    function closeLawLibraryModal() {
+      const modal = document.getElementById("dlgLawLibraryOverlay");
+      if (modal) {
+        modal.style.display = "none";
+        modal.classList.add("hidden");
+      }
+    }
+
+    function toggleMaximizeLawModal() {
+      const modalDialog = document.getElementById("dlgLawLibraryDialog");
+      const btn = document.getElementById("btnMaxRestoreLaw");
+      if (!modalDialog || !btn) return;
+
+      isLawModalMaximized = !isLawModalMaximized;
+      if (isLawModalMaximized) {
+        modalDialog.classList.add("maximized");
+        btn.textContent = "🗗";
+        btn.title = "Thu nhỏ về kích thước ban đầu";
+      } else {
+        modalDialog.classList.remove("maximized");
+        btn.textContent = "🗖";
+        btn.title = "Phóng to toàn màn hình";
+      }
+    }
+
+    function renderLawTable(cat, keyword) {
+      const tbody = document.getElementById("lawTableBody");
+      if (!tbody) return;
+      tbody.innerHTML = "";
+
+      const kw = (keyword || "").toLowerCase().trim();
+      const filtered = LAW_DATABASE.filter(item => {
+        const matchCat = (cat === "all") || (item.cat === cat);
+        const matchKw = !kw ||
+          item.code.toLowerCase().includes(kw) ||
+          item.name.toLowerCase().includes(kw) ||
+          item.citation.toLowerCase().includes(kw);
+        return matchCat && matchKw;
+      });
+
+      const lblTitle = document.getElementById("lblLawTableTitle");
+      if (lblTitle) {
+        lblTitle.textContent = `Danh sách văn bản (${filtered.length} kết quả)`;
+      }
+
+      filtered.forEach((item, idx) => {
+        const tr = document.createElement("tr");
+        tr.style.borderBottom = "1px solid #E0E0E0";
+        tr.style.cursor = "pointer";
+
+        const isExpired = item.status.includes("Hết hiệu lực");
+        const isAmended = item.status.includes("sửa đổi");
+        let badgeHtml = "";
+        if (isExpired) {
+          badgeHtml = `<span class="badge-status badge-expired">Hết hiệu lực ⚠️</span>`;
+        } else if (isAmended) {
+          badgeHtml = `<span class="badge-status badge-amended">Đã sửa đổi</span>`;
+        } else {
+          badgeHtml = `<span class="badge-status badge-active">Còn hiệu lực ✓</span>`;
+        }
+
+        tr.innerHTML = `
+          <td style="text-align: center; padding: 4px; border: 1px solid #E0E0E0;">
+            <input type="checkbox" class="chk-law-item" data-code="${escapeHtml(item.code)}" data-citation="${escapeHtml(item.citation)}" />
+          </td>
+          <td style="text-align: center; padding: 4px; border: 1px solid #E0E0E0; font-weight: 600; color: #555;">${idx + 1}</td>
+          <td style="padding: 4px 6px; border: 1px solid #E0E0E0; font-weight: bold; color: #003399;">${escapeHtml(item.code)}</td>
+          <td style="padding: 4px 6px; border: 1px solid #E0E0E0;">
+            <div style="font-weight: 600; color: #222;">${escapeHtml(item.name)}</div>
+            <div style="font-size: 10px; color: #666; font-style: italic; margin-top: 2px;">Trích dẫn: ${escapeHtml(item.citation)}</div>
+          </td>
+          <td style="text-align: center; padding: 4px; border: 1px solid #E0E0E0; color: #444;">${item.issueDate}</td>
+          <td style="text-align: center; padding: 4px; border: 1px solid #E0E0E0;">${badgeHtml}</td>
+        `;
+
+        const chk = tr.querySelector(".chk-law-item");
+        tr.addEventListener("click", (e) => {
+          if (e.target !== chk) {
+            chk.checked = !chk.checked;
+          }
+          updateLawSelectedCount();
+        });
+
+        tbody.appendChild(tr);
+      });
+
+      const chkAll = document.getElementById("chkLawSelectAll");
+      if (chkAll) chkAll.checked = false;
+      updateLawSelectedCount();
+    }
+
+    function updateLawSelectedCount() {
+      const checked = document.querySelectorAll("#lawTableBody .chk-law-item:checked");
+      const lbl = document.getElementById("lblLawSelectedCount");
+      if (lbl) {
+        lbl.textContent = `Đã chọn: ${checked.length} văn bản`;
+      }
+    }
+
+    function getSelectedLawCitations() {
+      const checked = document.querySelectorAll("#lawTableBody .chk-law-item:checked");
+      const citations = [];
+      checked.forEach(c => {
+        if (c.dataset.citation) citations.push(c.dataset.citation);
+      });
+      return citations;
+    }
+
+    function handleAssignLawToDocument() {
+      const citations = getSelectedLawCitations();
+      if (citations.length === 0) {
+        alert("Vui lòng tích chọn ít nhất một văn bản quy phạm pháp luật trong danh sách!");
+        return;
+      }
+
+      if (lawModalMode === "for_grounds") {
+        const groundsInput = document.getElementById("txtNewTplGrounds");
+        if (groundsInput) {
+          const current = groundsInput.value.trim();
+          groundsInput.value = current ? current + "\n" + citations.join("\n") : citations.join("\n");
+        }
+        closeLawLibraryModal();
+        alert(`Đã gán thành công ${citations.length} căn cứ pháp lý vào mẫu văn bản!`);
+      } else {
+        const payload = {
+          action: "INSERT_LEGAL_BASIS",
+          citations: citations
+        };
+        if (broadcast) {
+          broadcast.postMessage(payload);
+        } else if (window.opener && !window.opener.closed) {
+          window.opener.postMessage(payload, "*");
+        }
+        closeLawLibraryModal();
+        setStatus(`Đã gửi ${citations.length} căn cứ pháp lý sang Microsoft Word.`);
+        alert(`Đã gửi ${citations.length} căn cứ pháp lý chuẩn sang Microsoft Word!`);
+      }
+    }
+
+    function handleInsertLawDirectToWord() {
+      const citations = getSelectedLawCitations();
+      if (citations.length === 0) {
+        alert("Vui lòng tích chọn ít nhất một văn bản quy phạm pháp luật trong danh sách!");
+        return;
+      }
+      const payload = {
+        action: "INSERT_LEGAL_BASIS",
+        citations: citations
+      };
+      if (broadcast) {
+        broadcast.postMessage(payload);
+      } else if (window.opener && !window.opener.closed) {
+        window.opener.postMessage(payload, "*");
+      }
+      setStatus(`Đã gửi ${citations.length} căn cứ pháp lý sang Microsoft Word.`);
+      alert(`Đã gửi ${citations.length} căn cứ pháp lý sang Microsoft Word thành công!`);
+    }
+
+    function handleCopyLawCitations() {
+      const citations = getSelectedLawCitations();
+      if (citations.length === 0) {
+        alert("Vui lòng tích chọn ít nhất một văn bản trong danh sách!");
+        return;
+      }
+      navigator.clipboard.writeText(citations.join("\n")).then(() => {
+        alert(`Đã sao chép ${citations.length} căn cứ pháp lý vào Clipboard!`);
+      }).catch(err => {
+        alert("Không thể sao chép: " + err);
+      });
     }
 
     function showHelpGuide() {
@@ -1939,6 +2856,16 @@
     }
 
     window.addEventListener("DOMContentLoaded", () => {
+      // 0. Ẩn các mẫu hệ thống đã bị người dùng xóa nếu có trong LocalStorage
+      try {
+        const hiddenTemplates = JSON.parse(localStorage.getItem("WORD_ADDIN_HIDDEN_TEMPLATES") || "[]");
+        hiddenTemplates.forEach(hKey => {
+          delete TEMPLATES_DATA[hKey];
+          const li = document.querySelector(`#templateList .win-list-item[data-id="${hKey}"]`);
+          if (li) li.remove();
+        });
+      } catch (e) {}
+
       // 1. Nạp các mẫu do người dùng tạo từ LocalStorage
       loadCustomTemplates();
 
@@ -1953,19 +2880,31 @@
         });
       });
 
-      // 3. Các nút trên ToolStrip
+      // 3. Các nút trên ToolStrip & MenuStrip
       document.getElementById("btnToolInsert")?.addEventListener("click", sendInsertToWord);
       document.getElementById("btnToolCopy")?.addEventListener("click", copyToClipboard);
 
-      // 4. Các nút Thêm mẫu mới & Xóa mẫu
+      // Thêm mẫu mới
       document.getElementById("btnToolAddNew")?.addEventListener("click", openAddTemplateModal);
       document.getElementById("menuItemAddNew")?.addEventListener("click", openAddTemplateModal);
+
+      // Sửa mẫu
+      document.getElementById("btnToolEdit")?.addEventListener("click", openEditTemplateModal);
+      document.getElementById("menuItemEdit")?.addEventListener("click", openEditTemplateModal);
+
+      // Xóa mẫu
+      document.getElementById("btnToolDelete")?.addEventListener("click", deleteSelectedTemplate);
+      document.getElementById("menuItemDelete")?.addEventListener("click", deleteSelectedTemplate);
+
+      // Tra cứu điều luật
+      document.getElementById("btnToolLawLibrary")?.addEventListener("click", () => openLawLibraryModal("standalone"));
+      document.getElementById("menuItemLawLibrary")?.addEventListener("click", () => openLawLibraryModal("standalone"));
+      document.getElementById("btnOpenLawFromAddDialog")?.addEventListener("click", () => openLawLibraryModal("for_grounds"));
+
+      // Lưu & Đóng modal Thêm/Sửa mẫu
       document.getElementById("btnSaveNewTemplate")?.addEventListener("click", saveNewCustomTemplate);
       document.getElementById("btnCloseAddX")?.addEventListener("click", closeAddTemplateModal);
       document.getElementById("btnCancelNewTemplate")?.addEventListener("click", closeAddTemplateModal);
-      document.getElementById("btnToolDeleteCustom")?.addEventListener("click", deleteSelectedCustomTemplate);
-
-      // Nút Phóng to / Thu nhỏ modal
       document.getElementById("btnMaxRestoreAdd")?.addEventListener("click", toggleMaximizeAddModal);
 
       // 5. Thao tác danh sách điều khoản chữ và bảng giá động
@@ -1975,7 +2914,49 @@
       document.getElementById("btnAddTableArticleBottom")?.addEventListener("click", () => addTableArticleRow());
       setupDocTypeChangeHandler();
 
-      // 6. Trợ giúp (H)
+      // 6. Sự kiện Thư viện Văn bản Pháp luật (GXD)
+      document.getElementById("btnCloseLawX")?.addEventListener("click", closeLawLibraryModal);
+      document.getElementById("btnCloseLawModal")?.addEventListener("click", closeLawLibraryModal);
+      document.getElementById("btnMaxRestoreLaw")?.addEventListener("click", toggleMaximizeLawModal);
+      document.getElementById("btnAssignLawToDocument")?.addEventListener("click", handleAssignLawToDocument);
+      document.getElementById("btnInsertLawDirectToWord")?.addEventListener("click", handleInsertLawDirectToWord);
+      document.getElementById("btnCopyLawCitations")?.addEventListener("click", handleCopyLawCitations);
+
+      // Danh mục nhóm văn bản
+      document.querySelectorAll("#lawCategoryList .win-list-item").forEach(li => {
+        li.addEventListener("click", () => {
+          document.querySelectorAll("#lawCategoryList .win-list-item").forEach(i => i.classList.remove("selected"));
+          li.classList.add("selected");
+          currentLawCategory = li.dataset.cat || "all";
+          renderLawTable(currentLawCategory, document.getElementById("txtLawSearch")?.value || "");
+        });
+      });
+
+      // Tìm kiếm văn bản
+      const txtSearch = document.getElementById("txtLawSearch");
+      if (txtSearch) {
+        txtSearch.addEventListener("input", () => {
+          renderLawTable(currentLawCategory, txtSearch.value);
+        });
+      }
+      document.getElementById("btnClearLawSearch")?.addEventListener("click", () => {
+        if (txtSearch) {
+          txtSearch.value = "";
+          renderLawTable(currentLawCategory, "");
+          txtSearch.focus();
+        }
+      });
+
+      // Tích chọn tất cả
+      document.getElementById("chkLawSelectAll")?.addEventListener("change", (e) => {
+        const isChecked = e.target.checked;
+        document.querySelectorAll("#lawTableBody .chk-law-item").forEach(c => {
+          c.checked = isChecked;
+        });
+        updateLawSelectedCount();
+      });
+
+      // 7. Trợ giúp (H)
       document.getElementById("menuItemHelp")?.addEventListener("click", showHelpGuide);
       document.getElementById("btnCloseHelpX")?.addEventListener("click", closeHelpGuide);
       document.getElementById("btnCloseHelpOk")?.addEventListener("click", closeHelpGuide);
@@ -1987,19 +2968,28 @@
       document.getElementById("dlgAddTemplateOverlay")?.addEventListener("click", (e) => {
         if (e.target.id === "dlgAddTemplateOverlay") closeAddTemplateModal();
       });
+      document.getElementById("dlgLawLibraryOverlay")?.addEventListener("click", (e) => {
+        if (e.target.id === "dlgLawLibraryOverlay") closeLawLibraryModal();
+      });
 
       // Phím tắt Esc đóng modals
       window.addEventListener("keydown", (e) => {
         if (e.key === "Escape") {
           closeHelpGuide();
+          closeLawLibraryModal();
           closeAddTemplateModal();
         }
       });
 
       document.getElementById("btnToolClose")?.addEventListener("click", () => window.close());
 
-      // Mặc định nạp mẫu đầu tiên
-      renderPreview("cv-trien-khai");
+      // Mặc định nạp mẫu đầu tiên còn lại
+      const firstAvailableItem = document.querySelector("#templateList .win-list-item");
+      if (firstAvailableItem) {
+        document.querySelectorAll("#templateList .win-list-item").forEach(i => i.classList.remove("selected"));
+        firstAvailableItem.classList.add("selected");
+        renderPreview(firstAvailableItem.dataset.id);
+      }
       updateTemplateCount();
     });
   </script>

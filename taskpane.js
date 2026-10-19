@@ -2585,14 +2585,81 @@ function syncDataToTaskpaneForm(d) {
 }
 
 /**
+ * Chuyển đổi số tiền thành chữ Tiếng Việt chuẩn theo văn phong tài chính kế toán
+ */
+function numberToWordsVietnamese(num) {
+  if (num === null || num === undefined || isNaN(num)) return "";
+  let n = Math.round(Number(num));
+  if (n === 0) return "Không đồng chẵn./.";
+  if (n < 0) return "Âm " + numberToWordsVietnamese(-n);
+
+  const digits = ["không", "một", "hai", "ba", "bốn", "năm", "sáu", "bảy", "tám", "chín"];
+  const units = ["", "nghìn", "triệu", "tỷ", "nghìn tỷ", "triệu tỷ"];
+
+  function readGroupThree(group, isFirst) {
+    let h = Math.floor(group / 100);
+    let t = Math.floor((group % 100) / 10);
+    let u = group % 10;
+    let res = "";
+
+    if (h > 0 || !isFirst) {
+      res += digits[h] + " trăm ";
+    }
+
+    if (t === 0) {
+      if (u > 0 && (h > 0 || !isFirst)) {
+        res += "lẻ " + digits[u];
+      } else if (u > 0) {
+        res += digits[u];
+      }
+    } else if (t === 1) {
+      res += "mười ";
+      if (u === 1) res += "một";
+      else if (u === 5) res += "lăm";
+      else if (u > 0) res += digits[u];
+    } else {
+      res += digits[t] + " mươi ";
+      if (u === 1) res += "mốt";
+      else if (u === 4) res += "tư";
+      else if (u === 5) res += "lăm";
+      else if (u > 0) res += digits[u];
+    }
+    return res.trim();
+  }
+
+  let groups = [];
+  let temp = n;
+  while (temp > 0) {
+    groups.push(temp % 1000);
+    temp = Math.floor(temp / 1000);
+  }
+
+  let strWords = "";
+  for (let i = groups.length - 1; i >= 0; i--) {
+    let grp = groups[i];
+    if (grp > 0) {
+      let read = readGroupThree(grp, i === groups.length - 1);
+      strWords += read + " " + units[i] + " ";
+    }
+  }
+
+  strWords = strWords.trim();
+  if (strWords.length > 0) {
+    strWords = strWords.charAt(0).toUpperCase() + strWords.slice(1);
+  }
+  return strWords + " đồng chẵn./.";
+}
+
+/**
  * Chèn các khối điều khoản chữ hoặc khối bảng giá động vào tài liệu Word
  */
 function insertArticlesOrTablesToWordBody(body, articles, bodyLines) {
   if (articles && articles.length > 0) {
     for (const art of articles) {
       if (art.type === "table" || Array.isArray(art.data)) {
-        // 1. Tiêu đề bảng giá
-        const tableTitle = (art.title || art.tieuDe || "BẢNG DỰ TOÁN / GIÁ TRỊ HỢP ĐỒNG").toUpperCase();
+        // 1. Tiêu đề bảng giá căn giữa
+        const rawTitle = art.title || art.tieuDe || "BẢNG DỰ TOÁN CHI PHÍ / GIÁ TRỊ HỢP ĐỒNG";
+        const tableTitle = rawTitle.toUpperCase();
         const pTableTitle = body.insertParagraph(tableTitle, Word.InsertLocation.end);
         pTableTitle.font.name = "Times New Roman";
         pTableTitle.font.size = 12.5;
@@ -2613,25 +2680,53 @@ function insertArticlesOrTablesToWordBody(body, articles, bodyLines) {
           formatDots(r.thanhTien),
           String(r.ghiChu || "")
         ]);
-        const sumVal = art.tongCong !== undefined ? art.tongCong : rows.reduce((s, r) => s + (Number(r.thanhTien) || 0), 0);
-        const footerRow = ["", "TỔNG CỘNG:", "", "", "", formatDots(sumVal) + " đ", ""];
 
-        const tableValues = [headerRow, ...dataRows, footerRow];
+        const rawSum = rows.reduce((s, r) => s + (Number(r.thanhTien) || 0), 0);
+        const subTotal = art.subTotal !== undefined ? Number(art.subTotal) : (art.tongCong !== undefined ? Number(art.tongCong) : rawSum);
+        const vatRate = Number(art.vatRate) || 0;
+        const vatAmount = art.vatAmount !== undefined ? Number(art.vatAmount) : Math.round(subTotal * vatRate / 100);
+        const grandTotal = art.grandTotal !== undefined ? Number(art.grandTotal) : (subTotal + vatAmount);
+        const amountInWords = art.amountInWords || numberToWordsVietnamese(grandTotal);
+
+        const summaryRows = [];
+        if (vatRate > 0) {
+          summaryRows.push(["", "CỘNG TIỀN TRƯỚC THUẾ:", "", "", "", formatDots(subTotal) + " đ", ""]);
+          summaryRows.push(["", `THUẾ GTGT (${vatRate}%):`, "", "", "", formatDots(vatAmount) + " đ", ""]);
+          summaryRows.push(["", "TỔNG CỘNG THANH TOÁN:", "", "", "", formatDots(grandTotal) + " đ", ""]);
+        } else {
+          summaryRows.push(["", "TỔNG CỘNG THANH TOÁN:", "", "", "", formatDots(subTotal) + " đ", ""]);
+        }
+
+        const tableValues = [headerRow, ...dataRows, ...summaryRows];
         const docTable = body.insertTable(tableValues.length, 7, Word.InsertLocation.end, tableValues);
         docTable.styleBuiltIn = "TableGrid";
         docTable.alignment = Word.Alignment.centered;
         docTable.font.name = "Times New Roman";
         docTable.font.size = 11;
 
-        const hRow = docTable.rows.getFirst();
-        hRow.font.bold = true;
+        try {
+          docTable.rows.getItem(0).font.bold = true;
+          for (let sIdx = tableValues.length - summaryRows.length; sIdx < tableValues.length; sIdx++) {
+            docTable.rows.getItem(sIdx).font.bold = true;
+          }
+        } catch (e) {
+          console.warn("Could not bold table rows:", e);
+        }
 
-        const fRow = docTable.rows.getLast();
-        fRow.font.bold = true;
-
-        const pSpacer = body.insertParagraph("", Word.InsertLocation.end);
-        pSpacer.spaceBefore = 0;
-        pSpacer.spaceAfter = 6;
+        // Chèn dòng Bằng chữ ngay dưới bảng
+        if (amountInWords) {
+          const pWords = body.insertParagraph("Số tiền bằng chữ: " + amountInWords, Word.InsertLocation.end);
+          pWords.font.name = "Times New Roman";
+          pWords.font.size = 12;
+          pWords.font.italic = true;
+          pWords.font.bold = false;
+          pWords.spaceBefore = 4;
+          pWords.spaceAfter = 8;
+        } else {
+          const pSpacer = body.insertParagraph("", Word.InsertLocation.end);
+          pSpacer.spaceBefore = 0;
+          pSpacer.spaceAfter = 6;
+        }
       } else {
         // 2. Khối điều khoản chữ
         const title = art.title || art.tieuDe || "";
@@ -3071,6 +3166,39 @@ async function handleDialogMessage(data) {
     await applyA4MarginsToWord();
   } else if (data.action === "APPLY_TIMES_FONT") {
     await applyTimesFontToWord();
+  } else if (data.action === "INSERT_LEGAL_BASIS") {
+    await insertLegalBasisToWord(data.citations);
+  }
+}
+
+/**
+ * Chèn danh sách Căn cứ pháp lý vào tài liệu Word
+ */
+async function insertLegalBasisToWord(citations) {
+  if (!citations || !citations.length) return;
+  if (!window.Word || !Office.context || !Office.context.document) {
+    setStatus("Microsoft Word API không sẵn sàng.");
+    return;
+  }
+  try {
+    await Word.run(async (context) => {
+      const selection = context.document.getSelection();
+      for (const cit of citations) {
+        const p = selection.insertParagraph(cit, Word.InsertLocation.before);
+        p.font.name = "Times New Roman";
+        p.font.size = 12;
+        p.font.italic = true;
+        p.font.bold = false;
+        p.firstLineIndent = 36;
+        p.spaceAfter = 3;
+      }
+      await context.sync();
+      setStatus(`Đã chèn ${citations.length} căn cứ pháp lý vào Word thành công.`);
+      alert(`Đã chèn ${citations.length} căn cứ pháp lý vào Word thành công!`);
+    });
+  } catch (err) {
+    console.error("Lỗi chèn căn cứ pháp lý:", err);
+    setStatus("Lỗi chèn căn cứ: " + err.message);
   }
 }
 
