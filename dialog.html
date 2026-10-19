@@ -917,12 +917,8 @@
 
       if (broadcast) {
         broadcast.postMessage(payload);
-      }
-      if (window.opener && !window.opener.closed) {
+      } else if (window.opener && !window.opener.closed) {
         window.opener.postMessage(payload, "*");
-        if (typeof window.opener.onReceiveSyncFromDialog === "function") {
-          window.opener.onReceiveSyncFromDialog(payload);
-        }
       }
 
       setStatus("Đã gửi đồng bộ tổng giá trị về Form Taskpane chính!");
@@ -960,12 +956,8 @@
 
       if (broadcast) {
         broadcast.postMessage(payload);
-      }
-      if (window.opener && !window.opener.closed) {
+      } else if (window.opener && !window.opener.closed) {
         window.opener.postMessage(payload, "*");
-        if (typeof window.opener.onReceiveWordTableFromDialog === "function") {
-          window.opener.onReceiveWordTableFromDialog(payload);
-        }
       }
 
       setStatus("Đã gửi lệnh chèn bảng biểu sang Microsoft Word!");

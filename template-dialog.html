@@ -229,6 +229,10 @@
       margin: 2px auto 6px auto;
     }
 
+    .hidden {
+      display: none !important;
+    }
+
     /* WinForms Modal Dialog Box */
     .win-modal-overlay {
       position: fixed;
@@ -424,7 +428,7 @@
     </footer>
 
     <!-- 5. WinForms Modal Trợ giúp Hướng dẫn tính năng các nút -->
-    <div id="dlgHelpGuideOverlay" class="win-modal-overlay hidden">
+    <div id="dlgHelpGuideOverlay" class="win-modal-overlay hidden" style="display: none;">
       <div class="win-modal-dialog" role="dialog" aria-labelledby="dlgHelpTitle">
         <div class="win-modal-titlebar">
           <span id="dlgHelpTitle">Trợ giúp - Danh sách tính năng các nút [Thư viện Mẫu Văn bản]</span>
@@ -840,12 +844,10 @@
         docType: item.docType
       };
 
-      if (broadcast) broadcast.postMessage(payload);
-      if (window.opener && !window.opener.closed) {
+      if (broadcast) {
+        broadcast.postMessage(payload);
+      } else if (window.opener && !window.opener.closed) {
         window.opener.postMessage(payload, "*");
-        if (typeof window.opener.onReceiveTemplateFromDialog === "function") {
-          window.opener.onReceiveTemplateFromDialog(payload);
-        }
       }
 
       setStatus("Đã gửi yêu cầu Chèn mẫu văn bản sang Microsoft Word!");
@@ -866,12 +868,18 @@
 
     function showHelpGuide() {
       const modal = document.getElementById("dlgHelpGuideOverlay");
-      if (modal) modal.classList.remove("hidden");
+      if (modal) {
+        modal.style.display = "flex";
+        modal.classList.remove("hidden");
+      }
     }
 
     function closeHelpGuide() {
       const modal = document.getElementById("dlgHelpGuideOverlay");
-      if (modal) modal.classList.add("hidden");
+      if (modal) {
+        modal.style.display = "none";
+        modal.classList.add("hidden");
+      }
     }
 
     window.addEventListener("DOMContentLoaded", () => {

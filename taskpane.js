@@ -22,6 +22,28 @@ function setStatus(message, isHost = false) {
 }
 
 /**
+ * Hiển thị thông báo an toàn không ném exception trong môi trường Office WebView2
+ */
+function safeAlert(msg) {
+  try {
+    if (typeof window !== "undefined" && typeof window.alert === "function") {
+      window.alert(msg);
+      return;
+    }
+  } catch (e) {
+    console.warn("window.alert không được hỗ trợ trong môi trường này:", e);
+  }
+  setStatus(typeof msg === "string" ? msg.split("\n")[0] : String(msg));
+}
+
+// Thay thế window.alert an toàn cho toàn bộ Taskpane
+window.alert = safeAlert;
+
+// Biến chống gọi trùng lặp (debounce/dedup) các lệnh từ dialog
+let lastProcessedActionId = "";
+let lastProcessedActionTime = 0;
+
+/**
  * Loại bỏ dấu tiếng Việt để tạo ký hiệu văn bản Latin chuẩn
  */
 function removeVietnameseTones(str) {
@@ -2446,6 +2468,16 @@ async function applyTimesFontToWord() {
  */
 async function handleDialogMessage(data) {
   if (!data || !data.action) return;
+
+  // Ngăn chặn gọi lặp cùng 1 hành động trong vòng 1000ms (do BroadcastChannel + window.opener đồng thời bắn)
+  const now = Date.now();
+  const actionSignature = data.action + "_" + (data.templateKey || "") + "_" + (data.data ? JSON.stringify(data.data.docType) : "");
+  if (actionSignature === lastProcessedActionId && (now - lastProcessedActionTime) < 1200) {
+    console.log(`[Dedup] Bỏ qua thông điệp trùng lặp: ${actionSignature}`);
+    return;
+  }
+  lastProcessedActionId = actionSignature;
+  lastProcessedActionTime = now;
 
   if (data.action === "SYNC_TOTAL") {
     const txtVal = document.getElementById("txtContractValue");

@@ -549,12 +549,10 @@
         action: "APPLY_A4_MARGINS"
       };
 
-      if (broadcast) broadcast.postMessage(payload);
-      if (window.opener && !window.opener.closed) {
+      if (broadcast) {
+        broadcast.postMessage(payload);
+      } else if (window.opener && !window.opener.closed) {
         window.opener.postMessage(payload, "*");
-        if (typeof window.opener.onReceiveApplyMarginsFromDialog === "function") {
-          window.opener.onReceiveApplyMarginsFromDialog(payload);
-        }
       }
 
       setStatus("Đã gửi lệnh căn lề trang chuẩn A4 sang Word (Trên 20mm, Dưới 20mm, Trái 30mm, Phải 15mm)!");
@@ -566,12 +564,10 @@
         action: "APPLY_TIMES_FONT"
       };
 
-      if (broadcast) broadcast.postMessage(payload);
-      if (window.opener && !window.opener.closed) {
+      if (broadcast) {
+        broadcast.postMessage(payload);
+      } else if (window.opener && !window.opener.closed) {
         window.opener.postMessage(payload, "*");
-        if (typeof window.opener.onReceiveApplyFontFromDialog === "function") {
-          window.opener.onReceiveApplyFontFromDialog(payload);
-        }
       }
 
       setStatus("Đã gửi lệnh chuẩn hóa phông chữ Times New Roman (size 13) sang Microsoft Word!");
