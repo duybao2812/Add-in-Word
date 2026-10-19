@@ -1401,7 +1401,8 @@ async function standardizeCongVan(context, body, opt) {
     pSignNote.firstLineIndent = 0;
     pSignNote.spaceAfter = 45;
 
-    const pSignName = signRight.body.insertParagraph((opt.parsed.signName || "Họ và tên người ký").toUpperCase(), Word.InsertLocation.end);
+    const cleanSignName = formatSignerName(opt.parsed?.signName || document.getElementById("txtSignerName")?.value || "Nguyễn Văn A");
+    const pSignName = signRight.body.insertParagraph(cleanSignName, Word.InsertLocation.end);
     pSignName.font.name = "Times New Roman";
     pSignName.font.bold = true;
     pSignName.font.size = 13;
@@ -1422,12 +1423,24 @@ function extractOnlyDate(dateStr) {
   return match ? match[0] : dateStr;
 }
 
+/**
+ * Định dạng tên người ký gọn gàng chuẩn Nghị định 30 (bỏ tiền tố Ông/Bà và phần chức vụ phía sau)
+ */
+function formatSignerName(repStr) {
+  if (!repStr || typeof repStr !== "string") return "Họ và tên người ký";
+  // Tách bỏ phần chức vụ phía sau dấu "-" hoặc ":"
+  let name = repStr.split(/[-:]/)[0].trim();
+  // Loại bỏ các danh xưng ở đầu như Ông, Bà
+  name = name.replace(/^(ông|bà|ong|ba)\.?\s+/i, "").trim();
+  return name || "Họ và tên người ký";
+}
+
 /* ==========================================================================
    4b. CHUẨN HÓA HỢP ĐỒNG KINH TẾ / DỊCH VỤ / THI CÔNG (HĐ)
    ========================================================================== */
 
 async function standardizeHopDong(context, body, opt) {
-  const isIndentSpacing = document.getElementById("chkIndentSpacing").checked;
+  const isIndentSpacing = document.getElementById("chkIndentSpacing") ? document.getElementById("chkIndentSpacing").checked : true;
   const contractTitle = document.getElementById("txtContractTitle")?.value.trim() || "HỢP ĐỒNG THI CÔNG XÂY DỰNG CÔNG TRÌNH";
   const projectName = document.getElementById("txtProjectName")?.value.trim();
   const biddingPackage = document.getElementById("txtBiddingPackage")?.value.trim();
@@ -1482,6 +1495,7 @@ async function standardizeHopDong(context, body, opt) {
   pNumHD.font.name = "Times New Roman";
   pNumHD.font.size = 12;
   pNumHD.font.italic = true;
+  pNumHD.font.bold = false;
   pNumHD.alignment = Word.Alignment.centered;
   pNumHD.firstLineIndent = 0;
   pNumHD.spaceAfter = 10;
@@ -1501,6 +1515,7 @@ async function standardizeHopDong(context, body, opt) {
     pG.font.name = "Times New Roman";
     pG.font.size = 12;
     pG.font.italic = true;
+    pG.font.bold = false;
     pG.firstLineIndent = 36;
     pG.spaceAfter = 2;
   }
@@ -1512,82 +1527,142 @@ async function standardizeHopDong(context, body, opt) {
 
     if (projectName) {
       const pP = body.insertParagraph(`- Tên công trình / Dự án: ${projectName}`, Word.InsertLocation.end);
-      pP.font.size = 13; pP.firstLineIndent = 36; pP.spaceAfter = 2;
+      pP.font.name = "Times New Roman";
+      pP.font.size = 13; pP.font.bold = false; pP.firstLineIndent = 36; pP.spaceAfter = 2;
     }
     if (biddingPackage) {
       const pB = body.insertParagraph(`- Gói thầu: ${biddingPackage}`, Word.InsertLocation.end);
-      pB.font.size = 13; pB.firstLineIndent = 36; pB.spaceAfter = 2;
+      pB.font.name = "Times New Roman";
+      pB.font.size = 13; pB.font.bold = false; pB.firstLineIndent = 36; pB.spaceAfter = 2;
     }
     if (projectLocation) {
       const pL = body.insertParagraph(`- Địa điểm thực hiện: ${projectLocation}`, Word.InsertLocation.end);
-      pL.font.size = 13; pL.firstLineIndent = 36; pL.spaceAfter = 2;
+      pL.font.name = "Times New Roman";
+      pL.font.size = 13; pL.font.bold = false; pL.firstLineIndent = 36; pL.spaceAfter = 2;
     }
     if (contractValue) {
       const pV = body.insertParagraph(`- Giá trị hợp đồng: ${contractValue}`, Word.InsertLocation.end);
+      pV.font.name = "Times New Roman";
       pV.font.size = 13; pV.font.bold = true; pV.firstLineIndent = 36; pV.spaceAfter = 4;
     }
   }
 
   // 5. Thời gian mở đầu
   const pIntro = body.insertParagraph(`Hôm nay, ${extractOnlyDate(opt.finalDate)}, tại trụ sở Bên A, chúng tôi gồm các bên:`, Word.InsertLocation.end);
+  pIntro.font.name = "Times New Roman";
   pIntro.font.size = 13;
+  pIntro.font.bold = false;
   pIntro.firstLineIndent = 36;
   pIntro.spaceBefore = 6;
   pIntro.spaceAfter = 6;
 
-  // 6. Thông tin Bên A
+  // 6. Thông tin Bên A (Tiêu đề in đậm, các dòng con in thường)
   const pPA = body.insertParagraph("BÊN A (CHỦ ĐẦU TƯ / BÊN SỬ DỤNG DỊCH VỤ):", Word.InsertLocation.end);
-  pPA.font.bold = true; pPA.font.size = 13; pPA.firstLineIndent = 18; pPA.spaceAfter = 2;
+  pPA.font.name = "Times New Roman";
+  pPA.font.bold = true;
+  pPA.font.size = 13;
+  pPA.firstLineIndent = 18;
+  pPA.spaceBefore = 6;
+  pPA.spaceAfter = 2;
+
   const linesA = [`- Tên đơn vị: ${partyAName}`, `- Đại diện: ${partyARep}`];
   for (const l of linesA) {
     const p = body.insertParagraph(l, Word.InsertLocation.end);
-    p.font.size = 13; p.firstLineIndent = 18; p.spaceAfter = 2;
+    p.font.name = "Times New Roman";
+    p.font.size = 13;
+    p.font.bold = false; // Thiết lập rõ ràng để không in đậm kế thừa
+    p.font.italic = false;
+    p.firstLineIndent = 18;
+    p.spaceAfter = 2;
   }
 
-  // 7. Thông tin Bên B
+  // 7. Thông tin Bên B (Tiêu đề in đậm, các dòng con in thường)
   const pPB = body.insertParagraph("BÊN B (NHÀ THẦU / BÊN CUNG CẤP DỊCH VỤ):", Word.InsertLocation.end);
-  pPB.font.bold = true; pPB.font.size = 13; pPB.firstLineIndent = 18; pPB.spaceBefore = 6; pPB.spaceAfter = 2;
+  pPB.font.name = "Times New Roman";
+  pPB.font.bold = true;
+  pPB.font.size = 13;
+  pPB.firstLineIndent = 18;
+  pPB.spaceBefore = 6;
+  pPB.spaceAfter = 2;
+
   const linesB = [`- Tên công ty: ${partyBName}`, `- Đại diện: ${partyBRep}`];
   for (const l of linesB) {
     const p = body.insertParagraph(l, Word.InsertLocation.end);
-    p.font.size = 13; p.firstLineIndent = 18; p.spaceAfter = 2;
+    p.font.name = "Times New Roman";
+    p.font.size = 13;
+    p.font.bold = false; // Thiết lập rõ ràng để không in đậm kế thừa
+    p.font.italic = false;
+    p.firstLineIndent = 18;
+    p.spaceAfter = 2;
   }
 
   const pLead = body.insertParagraph("Hai bên cùng thỏa thuận và nhất trí ký kết hợp đồng với các điều khoản sau đây:", Word.InsertLocation.end);
-  pLead.font.italic = true; pLead.font.size = 13; pLead.firstLineIndent = 36; pLead.spaceBefore = 6; pLead.spaceAfter = 8;
+  pLead.font.name = "Times New Roman";
+  pLead.font.italic = true;
+  pLead.font.bold = false;
+  pLead.font.size = 13;
+  pLead.firstLineIndent = 36;
+  pLead.spaceBefore = 6;
+  pLead.spaceAfter = 8;
 
-  // 8. Nội dung điều khoản
-  const contractBodyLines = opt.cleanedBody.length > 0 ? opt.cleanedBody : [
-    "ĐIỀU 1: PHẠM VI CÔNG VIỆC VÀ YÊU CẦU KỸ THUẬT\nBên B cam kết thực hiện đúng thiết kế, tiêu chuẩn kỹ thuật và tiến độ công trình theo yêu cầu của Bên A.",
-    "ĐIỀU 2: GIÁ TRỊ HỢP ĐỒNG VÀ PHƯƠNG THỨC THANH TOÁN\nGiá trị hợp đồng là giá trọn gói theo thỏa thuận. Bên A tiến hành thanh toán cho Bên B theo từng đợt nghiệm thu thực tế.",
-    "ĐIỀU 3: QUYỀN VÀ NGHĨA VỤ CỦA CÁC BÊN\nCác bên cam kết thực hiện đầy đủ nghĩa vụ đã cam kết và phối hợp chặt chẽ trong suốt quá trình triển khai hợp đồng.",
-    "ĐIỀU 4: ĐIỀU KHOẢN THI HÀNH\nHợp đồng có hiệu lực kể từ ngày ký. Được lập thành 04 bản có giá trị pháp lý như nhau, mỗi bên giữ 02 bản."
+  // 8. Nội dung điều khoản (Tách riêng tiêu đề Điều in đậm và nội dung in thường, không còn lỗi \n)
+  const defaultArticles = [
+    {
+      title: "ĐIỀU 1: PHẠM VI CÔNG VIỆC VÀ YÊU CẦU KỸ THUẬT",
+      content: "Bên B cam kết thực hiện đúng thiết kế, tiêu chuẩn kỹ thuật và tiến độ công trình theo yêu cầu của Bên A."
+    },
+    {
+      title: "ĐIỀU 2: GIÁ TRỊ HỢP ĐỒNG VÀ PHƯƠNG THỨC THANH TOÁN",
+      content: "Giá trị hợp đồng là giá trọn gói theo thỏa thuận. Bên A tiến hành thanh toán cho Bên B theo từng đợt nghiệm thu thực tế."
+    },
+    {
+      title: "ĐIỀU 3: QUYỀN VÀ NGHĨA VỤ CỦA CÁC BÊN",
+      content: "Các bên cam kết thực hiện đầy đủ nghĩa vụ đã cam kết và phối hợp chặt chẽ trong suốt quá trình triển khai hợp đồng."
+    },
+    {
+      title: "ĐIỀU 4: ĐIỀU KHOẢN THI HÀNH",
+      content: "Hợp đồng có hiệu lực kể từ ngày ký. Được lập thành 04 bản có giá trị pháp lý như nhau, mỗi bên giữ 02 bản."
+    }
   ];
 
-  const prefixSearches = [];
-  for (const line of contractBodyLines) {
-    const p = body.insertParagraph(line, Word.InsertLocation.end);
-    p.font.name = "Times New Roman";
-    p.font.size = 13;
-    p.font.bold = false;
-    p.alignment = isIndentSpacing ? (Word.Alignment.justified || "Justified") : (Word.Alignment.left || "Left");
-    p.firstLineIndent = isIndentSpacing ? 36 : 0;
-    p.lineSpacing = 16.25;
-    p.spaceBefore = 0;
-    p.spaceAfter = 6;
-
-    const matchHead = line.match(/^(ĐIỀU\s*\d+[^:\n]*[:\.]?|Khoản\s*\d+[^:\n]*[:\.]?)/i);
-    if (matchHead) {
-      const searchRes = p.search(matchHead[1], { matchCase: false });
-      searchRes.load("items");
-      prefixSearches.push(searchRes);
+  if (opt.cleanedBody && opt.cleanedBody.length > 0) {
+    for (const rawItem of opt.cleanedBody) {
+      const subLines = String(rawItem).split(/\r?\n/).map(s => s.trim()).filter(s => s.length > 0);
+      for (const line of subLines) {
+        const isHeader = /^(ĐIỀU\s*\d+|Khoản\s*\d+|Mục\s*\d+)/i.test(line);
+        const p = body.insertParagraph(line, Word.InsertLocation.end);
+        p.font.name = "Times New Roman";
+        p.font.size = 13;
+        p.font.bold = isHeader;
+        p.font.italic = false;
+        p.alignment = isHeader ? (Word.Alignment.left || "Left") : (isIndentSpacing ? (Word.Alignment.justified || "Justified") : (Word.Alignment.left || "Left"));
+        p.firstLineIndent = isHeader ? 0 : (isIndentSpacing ? 36 : 0);
+        p.lineSpacing = 16.25;
+        p.spaceBefore = isHeader ? 6 : 0;
+        p.spaceAfter = isHeader ? 2 : 6;
+      }
     }
-  }
+  } else {
+    for (const art of defaultArticles) {
+      const pArtTitle = body.insertParagraph(art.title, Word.InsertLocation.end);
+      pArtTitle.font.name = "Times New Roman";
+      pArtTitle.font.size = 13;
+      pArtTitle.font.bold = true;
+      pArtTitle.font.italic = false;
+      pArtTitle.firstLineIndent = 0;
+      pArtTitle.spaceBefore = 6;
+      pArtTitle.spaceAfter = 2;
 
-  if (prefixSearches.length > 0) {
-    await context.sync();
-    for (const s of prefixSearches) {
-      if (s.items && s.items.length > 0) s.items[0].font.bold = true;
+      const pArtContent = body.insertParagraph(art.content, Word.InsertLocation.end);
+      pArtContent.font.name = "Times New Roman";
+      pArtContent.font.size = 13;
+      pArtContent.font.bold = false; // Nội dung điều khoản không in đậm
+      pArtContent.font.italic = false;
+      pArtContent.alignment = isIndentSpacing ? (Word.Alignment.justified || "Justified") : (Word.Alignment.left || "Left");
+      pArtContent.firstLineIndent = isIndentSpacing ? 36 : 0;
+      pArtContent.lineSpacing = 16.25;
+      pArtContent.spaceBefore = 0;
+      pArtContent.spaceAfter = 6;
     }
   }
 
@@ -1611,21 +1686,49 @@ async function standardizeHopDong(context, body, opt) {
   const cellA = signTable.getCell(0, 0);
   cellA.body.clear();
   const pSignA = cellA.body.insertParagraph("ĐẠI DIỆN BÊN A", Word.InsertLocation.end);
-  pSignA.font.bold = true; pSignA.font.size = 13; pSignA.alignment = Word.Alignment.centered; pSignA.spaceAfter = 2;
+  pSignA.font.name = "Times New Roman";
+  pSignA.font.bold = true;
+  pSignA.font.size = 13;
+  pSignA.alignment = Word.Alignment.centered;
+  pSignA.spaceAfter = 2;
+
   const pSignANote = cellA.body.insertParagraph("(Ký, ghi rõ họ tên và đóng dấu)", Word.InsertLocation.end);
-  pSignANote.font.italic = true; pSignANote.font.size = 12; pSignANote.alignment = Word.Alignment.centered; pSignANote.spaceAfter = 45;
-  const pSignAName = cellA.body.insertParagraph(partyARep.split("-")[0].replace("Ông|Bà", "").trim(), Word.InsertLocation.end);
-  pSignAName.font.bold = true; pSignAName.font.size = 13; pSignAName.alignment = Word.Alignment.centered;
+  pSignANote.font.name = "Times New Roman";
+  pSignANote.font.bold = false;
+  pSignANote.font.italic = true;
+  pSignANote.font.size = 12;
+  pSignANote.alignment = Word.Alignment.centered;
+  pSignANote.spaceAfter = 45;
+
+  const pSignAName = cellA.body.insertParagraph(formatSignerName(partyARep), Word.InsertLocation.end);
+  pSignAName.font.name = "Times New Roman";
+  pSignAName.font.bold = true;
+  pSignAName.font.size = 13;
+  pSignAName.alignment = Word.Alignment.centered;
 
   // Bên B
   const cellB = signTable.getCell(0, 1);
   cellB.body.clear();
   const pSignB = cellB.body.insertParagraph("ĐẠI DIỆN BÊN B", Word.InsertLocation.end);
-  pSignB.font.bold = true; pSignB.font.size = 13; pSignB.alignment = Word.Alignment.centered; pSignB.spaceAfter = 2;
+  pSignB.font.name = "Times New Roman";
+  pSignB.font.bold = true;
+  pSignB.font.size = 13;
+  pSignB.alignment = Word.Alignment.centered;
+  pSignB.spaceAfter = 2;
+
   const pSignBNote = cellB.body.insertParagraph("(Ký, ghi rõ họ tên và đóng dấu)", Word.InsertLocation.end);
-  pSignBNote.font.italic = true; pSignBNote.font.size = 12; pSignBNote.alignment = Word.Alignment.centered; pSignBNote.spaceAfter = 45;
-  const pSignBName = cellB.body.insertParagraph(partyBRep.split("-")[0].replace("Ông|Bà", "").trim(), Word.InsertLocation.end);
-  pSignBName.font.bold = true; pSignBName.font.size = 13; pSignBName.alignment = Word.Alignment.centered;
+  pSignBNote.font.name = "Times New Roman";
+  pSignBNote.font.bold = false;
+  pSignBNote.font.italic = true;
+  pSignBNote.font.size = 12;
+  pSignBNote.alignment = Word.Alignment.centered;
+  pSignBNote.spaceAfter = 45;
+
+  const pSignBName = cellB.body.insertParagraph(formatSignerName(partyBRep), Word.InsertLocation.end);
+  pSignBName.font.name = "Times New Roman";
+  pSignBName.font.bold = true;
+  pSignBName.font.size = 13;
+  pSignBName.alignment = Word.Alignment.centered;
 }
 
 /* ==========================================================================
@@ -1633,7 +1736,7 @@ async function standardizeHopDong(context, body, opt) {
    ========================================================================== */
 
 async function standardizeBienBan(context, body, opt) {
-  const isIndentSpacing = document.getElementById("chkIndentSpacing").checked;
+  const isIndentSpacing = document.getElementById("chkIndentSpacing") ? document.getElementById("chkIndentSpacing").checked : true;
   const minuteTitle = document.getElementById("txtMinuteTitle")?.value.trim() || "BIÊN BẢN NGHIỆM THU VÀ BÀN GIAO CÔNG VIỆC";
   const minuteSubject = document.getElementById("txtMinuteSubject")?.value.trim() || "V/v: Nghiệm thu hoàn thành hạng mục thi công và bàn giao đưa vào sử dụng";
   const minuteTime = document.getElementById("txtMinuteTime")?.value.trim() || "09 giờ 00 phút, ngày 18 tháng 10 năm 2026";
@@ -1658,32 +1761,47 @@ async function standardizeBienBan(context, body, opt) {
   pTitle.spaceAfter = 3;
 
   const pSubj = body.insertParagraph(minuteSubject, Word.InsertLocation.end);
+  pSubj.font.name = "Times New Roman";
   pSubj.font.italic = true;
+  pSubj.font.bold = false;
   pSubj.font.size = 12;
   pSubj.alignment = Word.Alignment.centered;
   pSubj.spaceAfter = 12;
 
   // 3. I. THỜI GIAN VÀ ĐỊA ĐIỂM
   const pI = body.insertParagraph("I. THỜI GIAN VÀ ĐỊA ĐIỂM", Word.InsertLocation.end);
-  pI.font.bold = true; pI.font.size = 13; pI.firstLineIndent = 18; pI.spaceAfter = 3;
+  pI.font.name = "Times New Roman";
+  pI.font.bold = true; pI.font.size = 13; pI.firstLineIndent = 0; pI.spaceBefore = 4; pI.spaceAfter = 3;
+
   const pTime = body.insertParagraph(`- Thời gian bắt đầu: ${minuteTime}`, Word.InsertLocation.end);
-  pTime.firstLineIndent = 36; pTime.spaceAfter = 2;
+  pTime.font.name = "Times New Roman";
+  pTime.font.size = 13; pTime.font.bold = false; pTime.font.italic = false; pTime.firstLineIndent = 18; pTime.spaceAfter = 2;
+
   const pLoc = body.insertParagraph(`- Địa điểm: ${minuteLocation}`, Word.InsertLocation.end);
-  pLoc.firstLineIndent = 36; pLoc.spaceAfter = 8;
+  pLoc.font.name = "Times New Roman";
+  pLoc.font.size = 13; pLoc.font.bold = false; pLoc.font.italic = false; pLoc.firstLineIndent = 18; pLoc.spaceAfter = 8;
 
   // 4. II. THÀNH PHẦN THAM DỰ
   const pII = body.insertParagraph("II. THÀNH PHẦN THAM DỰ", Word.InsertLocation.end);
-  pII.font.bold = true; pII.font.size = 13; pII.firstLineIndent = 18; pII.spaceAfter = 3;
+  pII.font.name = "Times New Roman";
+  pII.font.bold = true; pII.font.size = 13; pII.firstLineIndent = 0; pII.spaceBefore = 4; pII.spaceAfter = 3;
+
   const pChair = body.insertParagraph(`- Chủ trì / Chủ tọa: ${minuteChair}`, Word.InsertLocation.end);
-  pChair.firstLineIndent = 36; pChair.spaceAfter = 2;
+  pChair.font.name = "Times New Roman";
+  pChair.font.size = 13; pChair.font.bold = false; pChair.font.italic = false; pChair.firstLineIndent = 18; pChair.spaceAfter = 2;
+
   const pSec = body.insertParagraph(`- Thư ký cuộc họp: ${minuteSecretary}`, Word.InsertLocation.end);
-  pSec.firstLineIndent = 36; pSec.spaceAfter = 2;
+  pSec.font.name = "Times New Roman";
+  pSec.font.size = 13; pSec.font.bold = false; pSec.font.italic = false; pSec.firstLineIndent = 18; pSec.spaceAfter = 2;
+
   const pAtt = body.insertParagraph(`- Thành phần tham gia khác: ${minuteAttendees}`, Word.InsertLocation.end);
-  pAtt.firstLineIndent = 36; pAtt.spaceAfter = 8;
+  pAtt.font.name = "Times New Roman";
+  pAtt.font.size = 13; pAtt.font.bold = false; pAtt.font.italic = false; pAtt.firstLineIndent = 18; pAtt.spaceAfter = 8;
 
   // 5. III. NỘI DUNG VÀ DIỄN BIẾN LÀM VIỆC
   const pIII = body.insertParagraph("III. NỘI DUNG VÀ DIỄN BIẾN LÀM VIỆC", Word.InsertLocation.end);
-  pIII.font.bold = true; pIII.font.size = 13; pIII.firstLineIndent = 18; pIII.spaceAfter = 4;
+  pIII.font.name = "Times New Roman";
+  pIII.font.bold = true; pIII.font.size = 13; pIII.firstLineIndent = 0; pIII.spaceBefore = 4; pIII.spaceAfter = 4;
 
   const minBodyLines = opt.cleanedBody.length > 0 ? opt.cleanedBody : [
     "Các bên đã tiến hành kiểm tra thực tế hiện trường và đối chiếu hồ sơ hoàn công các hạng mục thi công.",
@@ -1691,23 +1809,39 @@ async function standardizeBienBan(context, body, opt) {
     "Các tồn tại cần khắc phục (nếu có): Nhà thầu cam kết dọn dẹp vệ sinh mặt bằng trước ngày bàn giao chính thức."
   ];
 
-  for (const line of minBodyLines) {
-    const p = body.insertParagraph(line, Word.InsertLocation.end);
-    p.font.size = 13;
-    p.alignment = isIndentSpacing ? (Word.Alignment.justified || "Justified") : (Word.Alignment.left || "Left");
-    p.firstLineIndent = isIndentSpacing ? 36 : 0;
-    p.lineSpacing = 16.25;
-    p.spaceAfter = 6;
+  for (const rawItem of minBodyLines) {
+    const subLines = String(rawItem).split(/\r?\n/).map(s => s.trim()).filter(s => s.length > 0);
+    for (const line of subLines) {
+      const p = body.insertParagraph(line, Word.InsertLocation.end);
+      p.font.name = "Times New Roman";
+      p.font.size = 13;
+      p.font.bold = false;
+      p.font.italic = false;
+      p.alignment = isIndentSpacing ? (Word.Alignment.justified || "Justified") : (Word.Alignment.left || "Left");
+      p.firstLineIndent = isIndentSpacing ? 36 : 0;
+      p.lineSpacing = 16.25;
+      p.spaceBefore = 0;
+      p.spaceAfter = 6;
+    }
   }
 
   // 6. IV. KẾT LUẬN
   const pIV = body.insertParagraph("IV. KẾT LUẬN", Word.InsertLocation.end);
-  pIV.font.bold = true; pIV.font.size = 13; pIV.firstLineIndent = 18; pIV.spaceBefore = 4; pIV.spaceAfter = 3;
+  pIV.font.name = "Times New Roman";
+  pIV.font.bold = true; pIV.font.size = 13; pIV.firstLineIndent = 0; pIV.spaceBefore = 4; pIV.spaceAfter = 3;
+
   const pEnd = body.insertParagraph(
     "Biên bản được đọc lại cho toàn thể các bên tham gia cùng nghe và nhất trí ký tên xác nhận. Biên bản kết thúc cùng ngày và được lập thành 02 bản có giá trị pháp lý như nhau.",
     Word.InsertLocation.end
   );
-  pEnd.firstLineIndent = 36; pEnd.alignment = Word.Alignment.justified || "Justified"; pEnd.lineSpacing = 16.25; pEnd.spaceAfter = 14;
+  pEnd.font.name = "Times New Roman";
+  pEnd.font.size = 13;
+  pEnd.font.bold = false;
+  pEnd.font.italic = false;
+  pEnd.firstLineIndent = 36;
+  pEnd.alignment = Word.Alignment.justified || "Justified";
+  pEnd.lineSpacing = 16.25;
+  pEnd.spaceAfter = 14;
 
   // 7. Bảng Chữ ký Thư ký & Chủ tọa
   const signTable = body.insertTable(1, 2, Word.InsertLocation.end, [["", ""]]);
@@ -1728,19 +1862,29 @@ async function standardizeBienBan(context, body, opt) {
   const cellSec = signTable.getCell(0, 0);
   cellSec.body.clear();
   const pSignSec = cellSec.body.insertParagraph("THƯ KÝ CUỘC HỌP", Word.InsertLocation.end);
+  pSignSec.font.name = "Times New Roman";
   pSignSec.font.bold = true; pSignSec.font.size = 13; pSignSec.alignment = Word.Alignment.centered; pSignSec.spaceAfter = 2;
+
   const pSignSecNote = cellSec.body.insertParagraph("(Ký và ghi rõ họ tên)", Word.InsertLocation.end);
-  pSignSecNote.font.italic = true; pSignSecNote.font.size = 12; pSignSecNote.alignment = Word.Alignment.centered; pSignSecNote.spaceAfter = 45;
-  const pSignSecName = cellSec.body.insertParagraph(minuteSecretary.split("-")[0].replace("Ông|Bà", "").trim(), Word.InsertLocation.end);
+  pSignSecNote.font.name = "Times New Roman";
+  pSignSecNote.font.bold = false; pSignSecNote.font.italic = true; pSignSecNote.font.size = 12; pSignSecNote.alignment = Word.Alignment.centered; pSignSecNote.spaceAfter = 45;
+
+  const pSignSecName = cellSec.body.insertParagraph(formatSignerName(minuteSecretary), Word.InsertLocation.end);
+  pSignSecName.font.name = "Times New Roman";
   pSignSecName.font.bold = true; pSignSecName.font.size = 13; pSignSecName.alignment = Word.Alignment.centered;
 
   const cellChair = signTable.getCell(0, 1);
   cellChair.body.clear();
   const pSignChair = cellChair.body.insertParagraph("CHỦ TỌA / CHỦ TRÌ", Word.InsertLocation.end);
+  pSignChair.font.name = "Times New Roman";
   pSignChair.font.bold = true; pSignChair.font.size = 13; pSignChair.alignment = Word.Alignment.centered; pSignChair.spaceAfter = 2;
+
   const pSignChairNote = cellChair.body.insertParagraph("(Ký, ghi rõ họ tên và đóng dấu)", Word.InsertLocation.end);
-  pSignChairNote.font.italic = true; pSignChairNote.font.size = 12; pSignChairNote.alignment = Word.Alignment.centered; pSignChairNote.spaceAfter = 45;
-  const pSignChairName = cellChair.body.insertParagraph(minuteChair.split("-")[0].replace("Ông|Bà", "").trim(), Word.InsertLocation.end);
+  pSignChairNote.font.name = "Times New Roman";
+  pSignChairNote.font.bold = false; pSignChairNote.font.italic = true; pSignChairNote.font.size = 12; pSignChairNote.alignment = Word.Alignment.centered; pSignChairNote.spaceAfter = 45;
+
+  const pSignChairName = cellChair.body.insertParagraph(formatSignerName(minuteChair), Word.InsertLocation.end);
+  pSignChairName.font.name = "Times New Roman";
   pSignChairName.font.bold = true; pSignChairName.font.size = 13; pSignChairName.alignment = Word.Alignment.centered;
 }
 
@@ -1749,7 +1893,7 @@ async function standardizeBienBan(context, body, opt) {
    ========================================================================== */
 
 async function standardizeToTrinh(context, body, opt) {
-  const isIndentSpacing = document.getElementById("chkIndentSpacing").checked;
+  const isIndentSpacing = document.getElementById("chkIndentSpacing") ? document.getElementById("chkIndentSpacing").checked : true;
   const reportTitle = document.getElementById("txtReportTitle")?.value.trim() || "V/v xin phê duyệt kế hoạch thi công và dự toán kinh phí năm 2026";
   const reportDear = document.getElementById("txtReportDear")?.value.trim() || "Kính gửi: Ban Giám đốc Công ty";
   const reportBasis = document.getElementById("txtReportBasis")?.value.trim() || "Căn cứ Kế hoạch năm 2026; Căn cứ năng lực và nhu cầu thực tế của đơn vị.";
@@ -1770,6 +1914,7 @@ async function standardizeToTrinh(context, body, opt) {
   pTitle.spaceAfter = 3;
 
   const pSubj = body.insertParagraph(reportTitle, Word.InsertLocation.end);
+  pSubj.font.name = "Times New Roman";
   pSubj.font.bold = true;
   pSubj.font.size = 12;
   pSubj.alignment = Word.Alignment.centered;
@@ -1777,7 +1922,9 @@ async function standardizeToTrinh(context, body, opt) {
 
   // 3. Kính gửi
   const pDear = body.insertParagraph(reportDear, Word.InsertLocation.end);
+  pDear.font.name = "Times New Roman";
   pDear.font.size = 13;
+  pDear.font.bold = false;
   pDear.firstLineIndent = 36;
   pDear.spaceAfter = 6;
   try {
@@ -1790,45 +1937,76 @@ async function standardizeToTrinh(context, body, opt) {
   // 4. Căn cứ
   if (reportBasis) {
     const pBasis = body.insertParagraph(reportBasis, Word.InsertLocation.end);
+    pBasis.font.name = "Times New Roman";
     pBasis.font.italic = true;
+    pBasis.font.bold = false;
     pBasis.font.size = 12;
     pBasis.firstLineIndent = 36;
     pBasis.spaceAfter = 8;
   }
 
-  // 5. Nội dung tờ trình
-  const reportBodyLines = opt.cleanedBody.length > 0 ? opt.cleanedBody : [
-    "1. Sự cần thiết / Lý do trình duyệt:\nNhằm đảm bảo tiến độ triển khai công tác sản xuất kinh doanh và đáp ứng yêu cầu chất lượng công trình năm 2026.",
-    "2. Nội dung chi tiết đề xuất:\nKính đề nghị cấp có thẩm quyền xem xét thông qua danh mục hạng mục công việc và phương án tổ chức thi công chi tiết.",
-    "3. Dự kiến kinh phí và nguồn vốn thực hiện:\nTổng mức kinh phí dự kiến đã được rà soát phù hợp với định mức đơn giá hiện hành."
+  // 5. Nội dung tờ trình (Tách riêng các mục, không còn bị \n gộp chung và in đậm toàn bộ)
+  const defaultReportSections = [
+    {
+      title: "1. Sự cần thiết / Lý do trình duyệt:",
+      content: "Nhằm đảm bảo tiến độ triển khai công tác sản xuất kinh doanh và đáp ứng yêu cầu chất lượng công trình năm 2026."
+    },
+    {
+      title: "2. Nội dung chi tiết đề xuất:",
+      content: "Kính đề nghị cấp có thẩm quyền xem xét thông qua danh mục hạng mục công việc và phương án tổ chức thi công chi tiết."
+    },
+    {
+      title: "3. Dự kiến kinh phí và nguồn vốn thực hiện:",
+      content: "Tổng mức kinh phí dự kiến đã được rà soát phù hợp với định mức đơn giá hiện hành."
+    }
   ];
 
-  const prefixSearches = [];
-  for (const line of reportBodyLines) {
-    const p = body.insertParagraph(line, Word.InsertLocation.end);
-    p.font.size = 13;
-    p.alignment = isIndentSpacing ? (Word.Alignment.justified || "Justified") : (Word.Alignment.left || "Left");
-    p.firstLineIndent = isIndentSpacing ? 36 : 0;
-    p.lineSpacing = 16.25;
-    p.spaceAfter = 6;
-
-    const matchHead = line.match(/^(\d+\.[^:\n]*[:\.]?)/i);
-    if (matchHead) {
-      const searchRes = p.search(matchHead[1], { matchCase: false });
-      searchRes.load("items");
-      prefixSearches.push(searchRes);
+  if (opt.cleanedBody && opt.cleanedBody.length > 0) {
+    for (const rawItem of opt.cleanedBody) {
+      const subLines = String(rawItem).split(/\r?\n/).map(s => s.trim()).filter(s => s.length > 0);
+      for (const line of subLines) {
+        const isHeader = /^(\d+\.[^:\n]*[:\.]?|Phần\s*\d+|Mục\s*\d+)/i.test(line);
+        const p = body.insertParagraph(line, Word.InsertLocation.end);
+        p.font.name = "Times New Roman";
+        p.font.size = 13;
+        p.font.bold = isHeader;
+        p.font.italic = false;
+        p.alignment = isHeader ? (Word.Alignment.left || "Left") : (isIndentSpacing ? (Word.Alignment.justified || "Justified") : (Word.Alignment.left || "Left"));
+        p.firstLineIndent = isHeader ? 0 : (isIndentSpacing ? 36 : 0);
+        p.lineSpacing = 16.25;
+        p.spaceBefore = isHeader ? 4 : 0;
+        p.spaceAfter = isHeader ? 2 : 6;
+      }
     }
-  }
+  } else {
+    for (const sec of defaultReportSections) {
+      const pSecTitle = body.insertParagraph(sec.title, Word.InsertLocation.end);
+      pSecTitle.font.name = "Times New Roman";
+      pSecTitle.font.size = 13;
+      pSecTitle.font.bold = true;
+      pSecTitle.font.italic = false;
+      pSecTitle.firstLineIndent = 0;
+      pSecTitle.spaceBefore = 4;
+      pSecTitle.spaceAfter = 2;
 
-  if (prefixSearches.length > 0) {
-    await context.sync();
-    for (const s of prefixSearches) {
-      if (s.items && s.items.length > 0) s.items[0].font.bold = true;
+      const pSecContent = body.insertParagraph(sec.content, Word.InsertLocation.end);
+      pSecContent.font.name = "Times New Roman";
+      pSecContent.font.size = 13;
+      pSecContent.font.bold = false; // Nội dung không in đậm
+      pSecContent.font.italic = false;
+      pSecContent.alignment = isIndentSpacing ? (Word.Alignment.justified || "Justified") : (Word.Alignment.left || "Left");
+      pSecContent.firstLineIndent = isIndentSpacing ? 36 : 0;
+      pSecContent.lineSpacing = 16.25;
+      pSecContent.spaceBefore = 0;
+      pSecContent.spaceAfter = 6;
     }
   }
 
   // 6. Lời kết
   const pClose = body.insertParagraph("Kính trình Ban Giám đốc xem xét, phê duyệt để đơn vị có cơ sở tổ chức triển khai thực hiện.", Word.InsertLocation.end);
+  pClose.font.name = "Times New Roman";
+  pClose.font.size = 13;
+  pClose.font.bold = false;
   pClose.firstLineIndent = 36;
   pClose.alignment = Word.Alignment.justified || "Justified";
   pClose.lineSpacing = 16.25;
@@ -1853,19 +2031,25 @@ async function standardizeToTrinh(context, body, opt) {
   const signLeft = signTable.getCell(0, 0);
   signLeft.body.clear();
   const pRec = signLeft.body.insertParagraph("Nơi nhận:", Word.InsertLocation.end);
+  pRec.font.name = "Times New Roman";
   pRec.font.bold = true; pRec.font.italic = true; pRec.font.size = 12; pRec.spaceAfter = 2;
   const pR1 = signLeft.body.insertParagraph("- Như trên;", Word.InsertLocation.end);
-  pR1.font.size = 11; pR1.spaceAfter = 1;
+  pR1.font.name = "Times New Roman";
+  pR1.font.bold = false; pR1.font.size = 11; pR1.spaceAfter = 1;
   const pR2 = signLeft.body.insertParagraph("- Lưu: VT, ĐV.", Word.InsertLocation.end);
-  pR2.font.size = 11; pR2.spaceAfter = 1;
+  pR2.font.name = "Times New Roman";
+  pR2.font.bold = false; pR2.font.size = 11; pR2.spaceAfter = 1;
 
   const signRight = signTable.getCell(0, 1);
   signRight.body.clear();
   const pRole = signRight.body.insertParagraph("THỦ TRƯỞNG ĐƠN VỊ TRÌNH", Word.InsertLocation.end);
+  pRole.font.name = "Times New Roman";
   pRole.font.bold = true; pRole.font.size = 13; pRole.alignment = Word.Alignment.centered; pRole.spaceAfter = 2;
   const pNote = signRight.body.insertParagraph("(Ký và ghi rõ họ tên)", Word.InsertLocation.end);
-  pNote.font.italic = true; pNote.font.size = 12; pNote.alignment = Word.Alignment.centered; pNote.spaceAfter = 45;
-  const pName = signRight.body.insertParagraph("Họ và tên người trình", Word.InsertLocation.end);
+  pNote.font.name = "Times New Roman";
+  pNote.font.bold = false; pNote.font.italic = true; pNote.font.size = 12; pNote.alignment = Word.Alignment.centered; pNote.spaceAfter = 45;
+  const pName = signRight.body.insertParagraph(formatSignerName(opt.parsed?.signName || "Trưởng phòng"), Word.InsertLocation.end);
+  pName.font.name = "Times New Roman";
   pName.font.bold = true; pName.font.size = 13; pName.alignment = Word.Alignment.centered;
 }
 
@@ -2409,6 +2593,19 @@ async function handleInsertSelectedTemplate(data) {
     cbo.value = data.docType;
     switchDocTypePanels(data.docType);
     updateDocSymbolString();
+  }
+  if (data.customData) {
+    const cd = data.customData;
+    if (cd.docTitle && document.getElementById("txtDocTitle")) document.getElementById("txtDocTitle").value = cd.docTitle;
+    if (cd.contractTitle && document.getElementById("txtContractTitle")) document.getElementById("txtContractTitle").value = cd.contractTitle;
+    if (cd.minuteTitle && document.getElementById("txtMinuteTitle")) document.getElementById("txtMinuteTitle").value = cd.minuteTitle;
+    if (cd.reportTitle && document.getElementById("txtReportTitle")) document.getElementById("txtReportTitle").value = cd.reportTitle;
+    if (cd.partyAName && document.getElementById("txtPartyAName")) document.getElementById("txtPartyAName").value = cd.partyAName;
+    if (cd.partyARep && document.getElementById("txtPartyARep")) document.getElementById("txtPartyARep").value = cd.partyARep;
+    if (cd.partyBName && document.getElementById("txtPartyBName")) document.getElementById("txtPartyBName").value = cd.partyBName;
+    if (cd.partyBRep && document.getElementById("txtPartyBRep")) document.getElementById("txtPartyBRep").value = cd.partyBRep;
+    if (cd.publishingOrg && document.getElementById("txtPublishingOrg")) document.getElementById("txtPublishingOrg").value = cd.publishingOrg;
+    if (cd.signerName && document.getElementById("txtSignerName")) document.getElementById("txtSignerName").value = cd.signerName;
   }
   await insertFullTemplate();
   setStatus(`Đã chèn mẫu [${data.title}] vào Microsoft Word thành công.`);
