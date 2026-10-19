@@ -100,6 +100,14 @@
       });
     }
 
+    const cboScopeExt = document.getElementById('cboScopeExternal');
+    if (cboScopeExt) {
+      cboScopeExt.addEventListener('change', () => {
+        const txt = document.getElementById('txtSearchExternal');
+        renderExternalLawsTable(txt ? txt.value.trim().toLowerCase() : '');
+      });
+    }
+
     // Phím tắt ESC để đóng cửa sổ
     window.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
@@ -542,20 +550,34 @@
   let cachedExternalDocs = [];
 
   /**
+   * Kiểm tra xem đường dẫn URL có thuộc trang con của gxd.vn không
+   * (Bao gồm qlda.gxd.vn, qlcl.gxd.vn, dauthau.gxd.vn, dutoan.gxd.vn, dautu.gxd.vn, quyettoan.gxd.vn,...)
+   */
+  function isGxdDomain(urlStr) {
+    if (!urlStr || typeof urlStr !== 'string') return false;
+    try {
+      const u = new URL(urlStr);
+      const host = u.hostname.toLowerCase();
+      return host.endsWith('gxd.vn') || host.endsWith('giaxaydung.vn') || host.endsWith('gxd.edu.vn');
+    } catch (_) {
+      const lower = urlStr.toLowerCase();
+      return lower.includes('gxd.vn') || lower.includes('giaxaydung.vn');
+    }
+  }
+
+  /**
    * Modal Quản lý Link ngoài & Bóc tách văn bản tùy chỉnh
    */
   function openExternalManagerModal() {
     try {
-      const engine = window.LawSyncEngine;
-      const allDocs = engine ? (engine.getAllActiveLaws ? engine.getAllActiveLaws() : (engine.laws || [])) : [];
-      
-      // Lọc các văn bản có link không thuộc qlda.gxd.vn hoặc được đánh dấu quản lý ngoài
-      cachedExternalDocs = allDocs.filter(d => {
-        const url = (d.linkGoc || d.duong_dan_gxd || '').trim();
-        return !url.includes('qlda.gxd.vn') || d.is_external_managed;
-      });
+      const cboScope = document.getElementById('cboScopeExternal');
+      if (cboScope) cboScope.value = 'non-gxd';
+
+      const txtSearch = document.getElementById('txtSearchExternal');
+      if (txtSearch) txtSearch.value = '';
 
       renderExternalLawsTable('');
+
       const modal = document.getElementById('modalExternalManager');
       if (modal) {
         modal.classList.add('show');
@@ -563,9 +585,7 @@
         alert('Lỗi: Không tìm thấy modal Quản lý Link ngoài (#modalExternalManager) trong HTML.');
       }
 
-      const txtSearch = document.getElementById('txtSearchExternal');
       if (txtSearch) {
-        txtSearch.value = '';
         setTimeout(() => txtSearch.focus(), 100);
       }
     } catch (err) {
@@ -589,22 +609,47 @@
     const lblCount = document.getElementById('lblExternalCount');
     if (!tbody) return;
 
-    let filtered = cachedExternalDocs;
+    const engine = window.LawSyncEngine;
+    const allDocs = engine ? (engine.getAllActiveLaws ? engine.getAllActiveLaws() : (engine.laws || [])) : [];
+    
+    const cboScope = document.getElementById('cboScopeExternal');
+    const scope = cboScope ? cboScope.value : 'non-gxd';
+
+    // Lọc theo phạm vi (Scope)
+    let filtered = [];
+    if (scope === 'non-gxd') {
+      // Chỉ các văn bản KHÔNG thuộc trang con của gxd.vn (VD: Drive, Chính phủ, Thư viện pháp luật,...)
+      // hoặc các văn bản người dùng đã chủ động tùy biến link (is_external_managed = true)
+      filtered = allDocs.filter(d => {
+        const url = (d.linkGoc || d.duong_dan_gxd || '').trim();
+        return !isGxdDomain(url) || d.is_external_managed;
+      });
+    } else if (scope === 'missing-text') {
+      // Tất cả văn bản hiện chưa có nội dung chữ
+      filtered = allDocs.filter(d => !d.co_toan_van_html || !d.noi_dung_toan_van || d.noi_dung_toan_van.length < 50);
+    } else {
+      // Toàn bộ văn bản hệ thống
+      filtered = allDocs;
+    }
+
+    // Lọc tiếp theo từ khóa tìm kiếm (filterText)
     if (filterText) {
-      filtered = cachedExternalDocs.filter(d => {
+      const kw = filterText.toLowerCase();
+      filtered = filtered.filter(d => {
         const soHieu = (d.code || d.so_hieu || '').toLowerCase();
         const tenVB = (d.name || d.ten_van_ban || '').toLowerCase();
         const url = (d.linkGoc || d.duong_dan_gxd || '').toLowerCase();
-        return soHieu.includes(filterText) || tenVB.includes(filterText) || url.includes(filterText);
+        return soHieu.includes(kw) || tenVB.includes(kw) || url.includes(kw);
       });
     }
 
     if (lblCount) {
-      lblCount.textContent = `Hiển thị ${filtered.length} / ${cachedExternalDocs.length} văn bản ngoài QLDA GXD`;
+      const scopeLabel = scope === 'non-gxd' ? 'ngoài gxd.vn & tùy chỉnh' : (scope === 'missing-text' ? 'chưa có nội dung' : 'toàn hệ thống');
+      lblCount.textContent = `Hiển thị ${filtered.length} văn bản (${scopeLabel})`;
     }
 
     if (filtered.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: #888; padding: 25px;">Không có văn bản nào phù hợp.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: #888; padding: 25px;">Không có văn bản nào phù hợp tiêu chí lọc.</td></tr>`;
       return;
     }
 

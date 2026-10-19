@@ -214,20 +214,21 @@ async function main() {
   let errorCount = 0;
 
   try {
-    console.log('[1/3] Đang lấy danh sách các văn bản QLDA GXD từ Supabase...');
-    // Chỉ lấy văn bản có link qlda.gxd.vn (bỏ qua toàn bộ link ngoài hoặc văn bản quản lý riêng)
+    console.log('[1/3] Đang lấy danh sách các văn bản thuộc hệ thống GXD (*.gxd.vn) từ Supabase...');
+    // Quét toàn bộ văn bản thuộc hệ thống gxd.vn (*.gxd.vn: qlda, dauthau, qlcl, dutoan, dautu,...)
     const res = await sendSupabaseRequest(
       'GET', 
-      'van_ban_phap_luat?select=id,so_hieu,ten_van_ban,duong_dan_gxd,co_toan_van_html,hash_noi_dung,updated_at&duong_dan_gxd=like.*qlda.gxd.vn*&order=updated_at.asc&limit=60'
+      'van_ban_phap_luat?select=id,so_hieu,ten_van_ban,duong_dan_gxd,co_toan_van_html,hash_noi_dung,updated_at&duong_dan_gxd=like.*gxd.vn*&order=updated_at.asc&limit=60'
     );
     
     const docsToCrawl = (Array.isArray(res.data) ? res.data : []).filter(d => {
-      const url = d.duong_dan_gxd || '';
-      return url.includes('qlda.gxd.vn');
+      const url = (d.duong_dan_gxd || '').toLowerCase();
+      const isGxd = url.includes('gxd.vn') || url.includes('giaxaydung.vn');
+      return isGxd && !d.is_external_managed;
     });
 
     scannedCount = docsToCrawl.length;
-    console.log(`[2/3] Tìm thấy ${scannedCount} văn bản QLDA GXD được chọn kiểm tra.`);
+    console.log(`[2/3] Tìm thấy ${scannedCount} văn bản hệ thống GXD được chọn kiểm tra.`);
 
     for (let i = 0; i < docsToCrawl.length; i++) {
       const doc = docsToCrawl[i];

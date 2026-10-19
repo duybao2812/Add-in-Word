@@ -148,19 +148,22 @@ async function run() {
   );
 
   const allDocs = Array.isArray(res.data) ? res.data : [];
-  const qldaDocs = allDocs.filter(d => (d.duong_dan_gxd || '').includes('qlda.gxd.vn'));
+  const gxdDocs = allDocs.filter(d => {
+    const u = (d.duong_dan_gxd || '').toLowerCase();
+    return u.includes('gxd.vn') || u.includes('giaxaydung.vn');
+  });
 
-  console.log(`📌 Tìm thấy tổng cộng: ${qldaDocs.length} văn bản QLDA GXD cần cào toàn văn.`);
+  console.log(`📌 Tìm thấy tổng cộng: ${gxdDocs.length} văn bản thuộc toàn bộ hệ thống GXD (*.gxd.vn) cần cào toàn văn.`);
 
   let successCount = 0;
   let emptyCount = 0;
   let errorCount = 0;
 
   // Chạy lần lượt với độ trễ nhẹ 400ms để không bị Cloudflare / Server chặn
-  for (let i = 0; i < qldaDocs.length; i++) {
-    const doc = qldaDocs[i];
+  for (let i = 0; i < gxdDocs.length; i++) {
+    const doc = gxdDocs[i];
     const url = doc.duong_dan_gxd;
-    process.stdout.write(`[${i + 1}/${qldaDocs.length}] ${doc.so_hieu} ... `);
+    process.stdout.write(`[${i + 1}/${gxdDocs.length}] ${doc.so_hieu} ... `);
 
     try {
       const pageRes = await fetchWithRedirect(url);
