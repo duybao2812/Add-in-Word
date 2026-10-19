@@ -1396,6 +1396,1293 @@
      */
     const LAW_DATABASE = (typeof window !== "undefined" && window.LAW_DATABASE) ? window.LAW_DATABASE : [];
 
+        function toTitleCaseVietnamese(str) {
+      if (!str || typeof str !== "string") return "";
+      return str.trim().split(/\s+/).map(word => {
+        if (!word) return "";
+        return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+      }).join(" ");
+    }
+
+    function formatSignerName(repStr) {
+      if (!repStr || typeof repStr !== "string") return "Người ký";
+      let name = repStr.split(/[-:]/)[0].trim();
+      name = name.replace(/^(ông|bà|ong|ba)\.?\s+/i, "").trim();
+      return toTitleCaseVietnamese(name) || "Người ký";
+    }
+
+    function formatRecipientsList(raw) {
+      if (!raw) return ["- Như trên;", "- Lưu: VT."];
+      let items = [];
+      if (Array.isArray(raw)) {
+        raw.forEach(r => {
+          if (typeof r === "string") {
+            items.push(...r.split(/;/).map(s => s.trim()).filter(Boolean));
+          }
+        });
+      } else if (typeof raw === "string") {
+        items = raw.split(/[;\n]/).map(s => s.trim()).filter(Boolean);
+      }
+      if (items.length === 0) return ["- Như trên;", "- Lưu: VT."];
+
+      return items.map((item, idx) => {
+        let clean = item.replace(/^[-•*–—]\s*/, '').trim();
+        clean = clean.replace(/[;.]+$/, '').trim();
+        if (!clean) return "";
+        const isLast = (idx === items.length - 1);
+        const endChar = isLast ? "." : ";";
+        return `- ${clean}${endChar}`;
+      }).filter(Boolean);
+    }
+
+    function formatGroundsList(raw) {
+      if (!raw) return [];
+      let lines = [];
+      if (Array.isArray(raw)) {
+        raw.forEach(r => {
+          if (typeof r === "string") {
+            lines.push(...r.split(/\r?\n/).map(s => s.trim()).filter(Boolean));
+          }
+        });
+      } else if (typeof raw === "string") {
+        lines = raw.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+      }
+
+      return lines.map((line, idx) => {
+        let clean = line.replace(/^[-•*–—]\s*/, '').trim();
+        clean = clean.replace(/[;.]+$/, '').trim();
+        if (!clean) return "";
+        if (!/^căn cứ\b/i.test(clean)) {
+          clean = "Căn cứ " + clean;
+        }
+        const isLast = (idx === lines.length - 1);
+        const endChar = isLast ? "." : ";";
+        return `- ${clean}${endChar}`;
+      }).filter(Boolean);
+    }
+
+    function formatArticleContentLines(content) {
+      if (!content) return [];
+      const rawLines = String(content).split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+      return rawLines.map(line => {
+        const isHeaderOrNumbered = /^(\b(Phần|Mục|Điều|Khoản)\b|\d+[\.\)]|[a-zA-Z]\))\s*/i.test(line);
+        if (isHeaderOrNumbered) {
+          return line;
+        }
+        if (!/^[-•*–—]\s*/.test(line)) {
+          return `- ${line}`;
+        }
+        return line.replace(/^[-•*–—]\s*/, '- ');
+      });
+    }
+
+    function convertDateStringToVietnamese(rawStr) {
+      if (!rawStr) return "";
+      const str = rawStr.trim();
+      const mIso = str.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+      if (mIso) {
+        const y = mIso[1];
+        const m = mIso[2].padStart(2, '0');
+        const d = mIso[3].padStart(2, '0');
+        return `ngày ${d} tháng ${m} năm ${y}`;
+      }
+      const mSlash = str.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})$/);
+      if (mSlash) {
+        const d = mSlash[1].padStart(2, '0');
+        const m = mSlash[2].padStart(2, '0');
+        const y = mSlash[3];
+        return `ngày ${d} tháng ${m} năm ${y}`;
+      }
+      return str;
+    }
+
+    function syncLocationDateField() {
+      const city = (document.getElementById("txtTplCity")?.value || "").trim();
+      const dateRaw = (document.getElementById("txtTplDateInput")?.value || "").trim();
+      const locInput = document.getElementById("txtNewTplLocation");
+      if (!locInput) return;
+
+      const dateVn = convertDateStringToVietnamese(dateRaw);
+      if (city && dateVn) {
+        locInput.value = `${city}, ${dateVn}`;
+      } else if (city) {
+        locInput.value = city;
+      } else if (dateVn) {
+        locInput.value = dateVn;
+      }
+    }
+
+    function formatNumberWithDots(val) {
+      if (val === null || val === undefined || isNaN(val)) return "0";
+      const num = Math.round(Number(val));
+      return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+    }
+
+    function escapeHtml(str) {
+      if (str === null || str === undefined) return "";
+      return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    /**
+     * Dựng mã HTML cho các khối Điều khoản chữ hoặc Bảng giá động (chuẩn A4 xem trước)
+     */
+    function renderArticlesOrBodyHtml(articles, bodyLines) {
+      let resHtml = "";
+      if (articles && articles.length > 0) {
+        articles.forEach(art => {
+          if (art.type === "table" || Array.isArray(art.data)) {
+            const rows = art.data || [];
+            const rawSum = rows.reduce((s, r) => s + (Number(r.thanhTien) || 0), 0);
+            const subTotal = art.subTotal !== undefined ? Number(art.subTotal) : (art.tongCong !== undefined ? Number(art.tongCong) : rawSum);
+            const vatRate = Number(art.vatRate) || 0;
+            const vatAmount = art.vatAmount !== undefined ? Number(art.vatAmount) : Math.round(subTotal * vatRate / 100);
+            const grandTotal = art.grandTotal !== undefined ? Number(art.grandTotal) : (subTotal + vatAmount);
+            const words = art.amountInWords || numberToWordsVietnamese(grandTotal);
+
+            resHtml += `
+              <div class="font-bold text-center" style="font-size: 13px; margin-top: 14px; margin-bottom: 6px;">
+                ${escapeHtml((art.title || art.tieuDe || "BẢNG DỰ TOÁN CHI PHÍ / GIÁ TRỊ HỢP ĐỒNG").toUpperCase())}
+              </div>
+              <table style="width: 100%; border-collapse: collapse; margin-bottom: 4px; font-size: 11.5px; border: 1px solid #000;">
+                <thead>
+                  <tr style="background: #F2F2F2; font-weight: bold; text-align: center;">
+                    <th style="border: 1px solid #000; padding: 4px; width: 32px;">STT</th>
+                    <th style="border: 1px solid #000; padding: 4px; text-align: left;">Tên hạng mục / công việc / vật tư</th>
+                    <th style="border: 1px solid #000; padding: 4px; width: 55px;">ĐVT</th>
+                    <th style="border: 1px solid #000; padding: 4px; width: 50px; text-align: right;">SL</th>
+                    <th style="border: 1px solid #000; padding: 4px; width: 90px; text-align: right;">Đơn giá (đ)</th>
+                    <th style="border: 1px solid #000; padding: 4px; width: 105px; text-align: right;">Thành tiền (đ)</th>
+                    <th style="border: 1px solid #000; padding: 4px; width: 85px; text-align: left;">Ghi chú</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${rows.map(r => `
+                    <tr>
+                      <td style="border: 1px solid #000; padding: 4px; text-align: center;">${r.stt}</td>
+                      <td style="border: 1px solid #000; padding: 4px;">${escapeHtml(r.tenHangMuc)}</td>
+                      <td style="border: 1px solid #000; padding: 4px; text-align: center;">${escapeHtml(r.donViTinh)}</td>
+                      <td style="border: 1px solid #000; padding: 4px; text-align: right;">${r.soLuong}</td>
+                      <td style="border: 1px solid #000; padding: 4px; text-align: right;">${formatNumberWithDots(r.donGia)}</td>
+                      <td style="border: 1px solid #000; padding: 4px; text-align: right; font-weight: bold;">${formatNumberWithDots(r.thanhTien)}</td>
+                      <td style="border: 1px solid #000; padding: 4px;">${escapeHtml(r.ghiChu || "")}</td>
+                    </tr>
+                  `).join("")}
+                </tbody>
+                <tfoot>
+                  ${vatRate > 0 ? `
+                    <tr style="font-weight: bold; background: #F9F9F9;">
+                      <td colspan="5" style="border: 1px solid #000; padding: 4px 6px; text-align: right; color: #003399;">CỘNG TIỀN TRƯỚC THUẾ:</td>
+                      <td style="border: 1px solid #000; padding: 4px 6px; text-align: right; font-size: 11.5px;">${formatNumberWithDots(subTotal)} đ</td>
+                      <td style="border: 1px solid #000; padding: 4px 6px;"></td>
+                    </tr>
+                    <tr style="font-weight: bold; background: #F9F9F9;">
+                      <td colspan="5" style="border: 1px solid #000; padding: 4px 6px; text-align: right; color: #E65100;">THUẾ GTGT (${vatRate}%):</td>
+                      <td style="border: 1px solid #000; padding: 4px 6px; text-align: right; color: #E65100; font-size: 11.5px;">${formatNumberWithDots(vatAmount)} đ</td>
+                      <td style="border: 1px solid #000; padding: 4px 6px;"></td>
+                    </tr>
+                    <tr style="font-weight: bold; background: #F0F4F8;">
+                      <td colspan="5" style="border: 1px solid #000; padding: 5px 6px; text-align: right; color: #B00000;">TỔNG CỘNG THANH TOÁN:</td>
+                      <td style="border: 1px solid #000; padding: 5px 6px; text-align: right; color: #B00000; font-size: 12px;">${formatNumberWithDots(grandTotal)} đ</td>
+                      <td style="border: 1px solid #000; padding: 5px 6px;"></td>
+                    </tr>
+                  ` : `
+                    <tr style="font-weight: bold; background: #F0F4F8;">
+                      <td colspan="5" style="border: 1px solid #000; padding: 5px 6px; text-align: right; color: #B00000;">TỔNG CỘNG THANH TOÁN:</td>
+                      <td style="border: 1px solid #000; padding: 5px 6px; text-align: right; color: #B00000; font-size: 12px;">${formatNumberWithDots(subTotal)} đ</td>
+                      <td style="border: 1px solid #000; padding: 5px 6px;"></td>
+                    </tr>
+                  `}
+                </tfoot>
+              </table>
+              <div class="font-italic" style="margin-bottom: 10px; font-size: 12px;">
+                Số tiền bằng chữ: <strong>${escapeHtml(words)}</strong>
+              </div>
+            `;
+          } else {
+            const title = art.title || art.tieuDe || "";
+            const content = art.content || art.noiDungChitiet || "";
+            if (title) {
+              resHtml += `<div class="font-bold" style="font-size: 13pt; margin-top: 8px; margin-bottom: 3px;">${escapeHtml(title)}</div>`;
+            }
+            if (content) {
+              const subLines = formatArticleContentLines(content);
+              subLines.forEach(sl => {
+                resHtml += `<div class="text-justify" style="font-size: 13pt; text-indent: 36pt; margin-bottom: 5px;">${escapeHtml(sl)}</div>`;
+              });
+            }
+          }
+        });
+      } else if (bodyLines && bodyLines.length > 0) {
+        bodyLines.forEach(l => {
+          const isH = /^(\b(Phần|Mục|Điều|Khoản)\b|\d+\.)/i.test(l);
+          resHtml += isH
+            ? `<div class="font-bold" style="margin-top: 6px; margin-bottom: 2px;">${escapeHtml(l)}</div>`
+            : `<div class="text-justify" style="text-indent: 36pt; margin-bottom: 6px;">${escapeHtml(l)}</div>`;
+        });
+      }
+      return resHtml;
+    }
+
+    /**
+     * Dựng mã HTML hiển thị chuẩn A4 xem trước từ dữ liệu có cấu trúc structuredData
+     */
+    function buildTemplateHtmlFromData(data) {
+      const docType = data.docType || "cong-van";
+      const isContract = /^(hop-dong|hd-)/i.test(docType);
+
+      if (isContract) {
+        const articlesHtml = renderArticlesOrBodyHtml(data.articles, data.bodyLines);
+        const partyA = data.partyA || {};
+        const partyB = data.partyB || {};
+        const signA = data.signA || {};
+        const signB = data.signB || {};
+        const groundsList = formatGroundsList(data.grounds);
+
+        return `
+          <div class="text-center font-bold" style="font-size: 12pt;">CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</div>
+          <div class="text-center font-bold" style="font-size: 13pt;">Độc lập - Tự do - Hạnh phúc</div>
+          <div class="text-center"><span class="line-solid" style="width: 35%;"></span></div>
+
+          <div class="text-center font-bold" style="font-size: 14pt; margin-top: 12px; margin-bottom: 4px;">
+            ${escapeHtml((data.title || data.docTitle || "HỢP ĐỒNG").toUpperCase())}
+          </div>
+          ${data.docNumber ? `<div class="text-center font-italic" style="font-size: 13pt; margin-bottom: 12px;">${escapeHtml(data.docNumber)}</div>` : ""}
+
+          ${groundsList.map(g => `<div class="text-justify font-italic" style="font-size: 13pt; text-indent: 36pt; margin-bottom: 4px;">${escapeHtml(g)}</div>`).join("")}
+
+          <div class="text-justify" style="font-size: 13pt; margin-top: 8px; margin-bottom: 8px;">
+            ${escapeHtml(data.intro || "Hôm nay, tại trụ sở Bên A, chúng tôi gồm các bên:")}
+          </div>
+
+          <div class="font-bold" style="font-size: 13pt; margin-top: 6px; margin-bottom: 4px;">${escapeHtml(partyA.title || "BÊN A (BÊN GIAO THẦU / BÊN SỬ DỤNG DỊCH VỤ):")}</div>
+          ${partyA.name ? `<div style="font-size: 13pt; margin-left: 20px; margin-bottom: 3px;">• Tên đơn vị: <strong>${escapeHtml(partyA.name.toUpperCase())}</strong></div>` : ""}
+          ${partyA.rep ? `<div style="font-size: 13pt; margin-left: 20px; margin-bottom: 3px;">• Đại diện: ${escapeHtml(toTitleCaseVietnamese(partyA.rep))}</div>` : ""}
+          ${partyA.address ? `<div style="font-size: 13pt; margin-left: 20px; margin-bottom: 6px;">• Địa chỉ: ${escapeHtml(partyA.address)}</div>` : ""}
+
+          <div class="font-bold" style="font-size: 13pt; margin-top: 6px; margin-bottom: 4px;">${escapeHtml(partyB.title || "BÊN B (NHÀ THẦU / ĐƠN VỊ CUNG CẤP):")}</div>
+          ${partyB.name ? `<div style="font-size: 13pt; margin-left: 20px; margin-bottom: 3px;">• Tên đơn vị: <strong>${escapeHtml(partyB.name.toUpperCase())}</strong></div>` : ""}
+          ${partyB.rep ? `<div style="font-size: 13pt; margin-left: 20px; margin-bottom: 3px;">• Đại diện: ${escapeHtml(toTitleCaseVietnamese(partyB.rep))}</div>` : ""}
+          ${partyB.address ? `<div style="font-size: 13pt; margin-left: 20px; margin-bottom: 8px;">• Địa chỉ: ${escapeHtml(partyB.address)}</div>` : ""}
+
+          <div class="font-italic" style="font-size: 13pt; text-indent: 36pt; margin-top: 8px; margin-bottom: 8px;">
+            Hai bên cùng thỏa thuận và nhất trí ký kết hợp đồng với các điều khoản sau đây:
+          </div>
+
+          ${articlesHtml}
+
+          <table style="width: 100%; border-collapse: collapse; margin-top: 25px;">
+            <tr>
+              <td class="text-center" style="width: 50%; vertical-align: top;">
+                <div class="font-bold" style="font-size: 13pt;">${escapeHtml(signA.role || "ĐẠI DIỆN BÊN A")}</div>
+                <div class="font-italic" style="font-size: 11pt; margin-bottom: 45px;">${escapeHtml(signA.note || "(Ký, ghi rõ họ tên và đóng dấu)")}</div>
+                <div class="font-bold" style="font-size: 13pt;">${escapeHtml(formatSignerName(signA.name || partyA.rep || "Nguyễn Văn A"))}</div>
+              </td>
+              <td class="text-center" style="width: 50%; vertical-align: top;">
+                <div class="font-bold" style="font-size: 13pt;">${escapeHtml(signB.role || "ĐẠI DIỆN BÊN B")}</div>
+                <div class="font-italic" style="font-size: 11pt; margin-bottom: 45px;">${escapeHtml(signB.note || "(Ký, ghi rõ họ tên và đóng dấu)")}</div>
+                <div class="font-bold" style="font-size: 13pt;">${escapeHtml(formatSignerName(signB.name || partyB.rep || "Huỳnh Bảo"))}</div>
+              </td>
+            </tr>
+          </table>
+        `;
+      } else {
+        // Công văn / Tờ trình / Biên bản / Quyết định / Thông báo
+        const bodyHtml = renderArticlesOrBodyHtml(data.articles, data.bodyLines);
+        const isCenterTitle = Boolean(data.docTitle);
+        const groundsList = formatGroundsList(data.grounds);
+        const recList = formatRecipientsList(data.recipients);
+
+        return `
+          <table class="tbl-header">
+            <tr>
+              <td class="text-center" style="width: 45%;">
+                ${data.superiorOrg ? `<div style="font-size: 12pt;">${escapeHtml(data.superiorOrg.toUpperCase())}</div>` : ""}
+                <div class="font-bold" style="font-size: 12pt;">${escapeHtml((data.publishingOrg || "TÊN CƠ QUAN BAN HÀNH").toUpperCase())}</div>
+                <div class="line-solid"></div>
+                <div style="font-size: 12pt; margin-top: 2px;">${escapeHtml(data.docNumber || "Số: 01/CV-CQ")}</div>
+              </td>
+              <td class="text-center" style="width: 55%;">
+                <div class="font-bold" style="font-size: 12pt;">CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</div>
+                <div class="font-bold" style="font-size: 13pt;">Độc lập - Tự do - Hạnh phúc</div>
+                <div class="line-solid"></div>
+                <div class="font-italic" style="font-size: 13pt; margin-top: 3px;">${escapeHtml(data.locationDate || "TP. Hồ Chí Minh, ngày 19 tháng 10 năm 2026")}</div>
+              </td>
+            </tr>
+          </table>
+
+          ${data.docTitle ? `<div class="text-center font-bold" style="font-size: 14pt; margin-top: 12px; margin-bottom: 4px;">${escapeHtml(data.docTitle.toUpperCase())}</div>` : ""}
+
+          ${data.subject ? `<div class="${isCenterTitle ? 'text-center' : ''} font-bold" style="font-size: 12pt; margin-bottom: 12px;">${escapeHtml(data.subject)}</div>` : ""}
+
+          ${data.dear ? `<div style="font-size: 13pt; margin-bottom: 12px; text-indent: 36pt;"><span class="font-bold">Kính gửi:</span> ${escapeHtml(data.dear.replace(/^Kính gửi:\s*/i, ""))}</div>` : ""}
+
+          ${groundsList.map(g => `<div class="text-justify font-italic" style="text-indent: 36pt; margin-bottom: 4px;">${escapeHtml(g)}</div>`).join("")}
+
+          ${bodyHtml}
+
+          <table style="width: 100%; border-collapse: collapse; margin-top: 18px;">
+            <tr>
+              <td style="width: 50%; vertical-align: top;">
+                <div class="font-bold font-italic" style="font-size: 12pt;">Nơi nhận:</div>
+                ${recList.map(r => `<div style="font-size: 11pt;">${escapeHtml(r)}</div>`).join("")}
+              </td>
+              <td class="text-center" style="width: 50%; vertical-align: top;">
+                <div class="font-bold" style="font-size: 13pt;">${escapeHtml(data.signRole || "GIÁM ĐỐC")}</div>
+                <div class="font-italic" style="font-size: 11pt; margin-bottom: 45px;">${escapeHtml(data.signNote || "(Ký, đóng dấu)")}</div>
+                <div class="font-bold" style="font-size: 13pt;">${escapeHtml(formatSignerName(data.signName || "Nguyễn Văn A"))}</div>
+              </td>
+            </tr>
+          </table>
+        `;
+      }
+    }
+
+    function renderPreview(key) {
+      const item = TEMPLATES_DATA[key] || TEMPLATES_DATA["cv-trien-khai"];
+      selectedTemplateKey = key;
+
+      const pTitle = document.getElementById("previewTitle");
+      if (pTitle) pTitle.textContent = `XEM TRƯỚC MẪU: ${item.title}`;
+
+      const pContent = document.getElementById("paperContent");
+      if (pContent) {
+        pContent.innerHTML = item.structuredData ? buildTemplateHtmlFromData(item.structuredData) : (item.html || "");
+      }
+
+      // Ẩn/Hiện nút Xóa mẫu tự tạo
+      const btnDel = document.getElementById("btnToolDeleteCustom");
+      if (btnDel) {
+        btnDel.style.display = item.isCustom ? "inline-flex" : "none";
+      }
+
+      setStatus(`Sẵn sàng | Đang chọn: ${item.title}`);
+    }
+
+    function sendInsertToWord() {
+      const item = TEMPLATES_DATA[selectedTemplateKey];
+      if (!item) return;
+
+      const payload = {
+        action: "INSERT_SELECTED_TEMPLATE",
+        templateKey: selectedTemplateKey,
+        title: item.title,
+        docType: item.docType,
+        templateData: item.structuredData || null
+      };
+
+      if (broadcast) {
+        broadcast.postMessage(payload);
+      } else if (window.opener && !window.opener.closed) {
+        window.opener.postMessage(payload, "*");
+      }
+
+      setStatus("Đã gửi yêu cầu Chèn mẫu văn bản sang Microsoft Word!");
+      alert(`Đã gửi yêu cầu chèn [${item.title}] vào Word thành công!\nNội dung chèn vào Word sẽ khớp 100% với cửa sổ Xem trước.`);
+    }
+
+    function copyToClipboard() {
+      const pContent = document.getElementById("paperContent");
+      if (!pContent) return;
+      const text = pContent.innerText || pContent.textContent;
+      navigator.clipboard.writeText(text).then(() => {
+        setStatus("Đã sao chép nội dung mẫu vào bộ nhớ tạm (Clipboard).");
+        alert("Đã sao chép nội dung văn bản mẫu!");
+      }).catch(err => {
+        alert("Không thể sao chép: " + err);
+      });
+    }
+
+    /* ==========================================================================
+       QUẢN LÝ KHỐI ĐIỀU KHOẢN VĂN BẢN VÀ BẢNG GIÁ ĐỘNG
+       ========================================================================== */
+
+    // 1. Phóng to / Thu nhỏ modal Thêm Mẫu Mới (Maximize / Restore)
+    let isModalMaximized = false;
+    function toggleMaximizeAddModal() {
+      const modalDialog = document.getElementById("dlgAddTemplateDialog");
+      const btn = document.getElementById("btnMaxRestoreAdd");
+      if (!modalDialog || !btn) return;
+
+      isModalMaximized = !isModalMaximized;
+      if (isModalMaximized) {
+        modalDialog.classList.add("maximized");
+        btn.textContent = "🗗";
+        btn.title = "Thu nhỏ về kích thước ban đầu";
+      } else {
+        modalDialog.classList.remove("maximized");
+        btn.textContent = "🗖";
+        btn.title = "Phóng to toàn màn hình";
+      }
+    }
+
+    // 2. Gắn sự kiện điều khiển khối: 🔼 Di chuyển lên, 🔽 Di chuyển xuống, 🗑️ Xóa khối
+    function setupBlockControlEvents(block) {
+      block.querySelector(".btn-move-up")?.addEventListener("click", () => {
+        const prev = block.previousElementSibling;
+        if (prev) {
+          block.parentNode.insertBefore(block, prev);
+          updateArticleCountLabel();
+        }
+      });
+
+      block.querySelector(".btn-move-down")?.addEventListener("click", () => {
+        const next = block.nextElementSibling;
+        if (next) {
+          block.parentNode.insertBefore(next, block);
+          updateArticleCountLabel();
+        }
+      });
+
+      block.querySelector(".btn-del-article")?.addEventListener("click", () => {
+        block.remove();
+        updateArticleCountLabel();
+      });
+    }
+
+    // 3. Thêm khối Điều khoản (Chữ) - Tự động đồng bộ "Điều X: "
+    function addTextArticleRow(defaultTitle, defaultContent) {
+      const container = document.getElementById("dynamicArticlesContainer");
+      if (!container) return;
+
+      // Đếm số lượng khối loại 'text' hiện tại để sinh tiêu đề Điều X:
+      const textBlocks = container.querySelectorAll('.article-item-row[data-type="text"]');
+      const nextNum = textBlocks.length + 1;
+      const docType = document.getElementById("cboNewTplDocType")?.value || "hd-kinh-te";
+      const isContract = /^(hd-|hop-dong|quyet-dinh|quy-che)/i.test(docType);
+      const prefix = isContract ? `Điều ${nextNum}: ` : `Mục ${nextNum}: `;
+      const autoTitle = (defaultTitle !== undefined && defaultTitle !== null) ? defaultTitle : prefix;
+      const autoContent = defaultContent || "";
+
+      const row = document.createElement("div");
+      row.className = "article-item-row";
+      row.dataset.type = "text";
+      row.style.background = "#FFFFFF";
+      row.style.border = "1px solid #7F9DB9";
+      row.style.padding = "6px 8px";
+      row.style.display = "flex";
+      row.style.flexDirection = "column";
+      row.style.gap = "4px";
+
+      row.innerHTML = `
+        <div style="display: flex; gap: 6px; align-items: center;">
+          <span style="font-weight: 600; color: #003399; font-size: 11px; white-space: nowrap;">📄 [Điều khoản chữ]</span>
+          <input type="text" class="win-input art-title" value="${escapeHtml(autoTitle)}" style="flex: 1; font-weight: 600; border: 1px solid #7F9DB9; padding: 3px 6px; font-size: 11.5px;" placeholder="Ví dụ: Điều ${nextNum}: PHẠM VI CÔNG VIỆC..." />
+          <button type="button" class="win-btn btn-move-up" title="Di chuyển lên trên" style="padding: 2px 6px; font-size: 11px;">🔼</button>
+          <button type="button" class="win-btn btn-move-down" title="Di chuyển xuống dưới" style="padding: 2px 6px; font-size: 11px;">🔽</button>
+          <button type="button" class="win-btn btn-del-article" style="color: #A00000; font-weight: bold; padding: 2px 8px; font-size: 11px;" title="Xóa riêng điều khoản này">🗑️ Xóa</button>
+        </div>
+        <textarea class="win-textarea art-content" rows="2" style="width: 100%; border: 1px solid #7F9DB9; padding: 4px 6px; font-family: inherit; font-size: 11.5px; resize: vertical;" placeholder="Nhập nội dung chi tiết của điều khoản này (hỗ trợ tự xuống dòng)...">${escapeHtml(autoContent)}</textarea>
+      `;
+
+      setupBlockControlEvents(row);
+      container.appendChild(row);
+      updateArticleCountLabel();
+      if (!defaultTitle && !defaultContent) {
+        container.scrollTop = container.scrollHeight;
+      }
+    }
+
+    // 4. Thêm khối Bảng giá / Phụ lục (Dynamic Table Grid)
+    function addTableArticleRow(defaultTitle, defaultRows, defaultVatRate) {
+      const container = document.getElementById("dynamicArticlesContainer");
+      if (!container) return;
+
+      const autoTitle = defaultTitle || "BẢNG DỰ TOÁN CHI PHÍ / GIÁ TRỊ HỢP ĐỒNG";
+
+      const block = document.createElement("div");
+      block.className = "article-item-row";
+      block.dataset.type = "table";
+      block.style.background = "#FFFFFF";
+      block.style.border = "1px solid #2E7D32";
+      block.style.padding = "6px 8px";
+      block.style.display = "flex";
+      block.style.flexDirection = "column";
+      block.style.gap = "4px";
+
+      block.innerHTML = `
+        <div style="display: flex; gap: 6px; align-items: center; border-bottom: 1px solid #C8E6C9; padding-bottom: 4px;">
+          <span style="font-weight: 600; color: #1B5E20; font-size: 11px; white-space: nowrap;">📊 [Bảng giá / Phụ lục]</span>
+          <input type="text" class="win-input art-title" value="${escapeHtml(autoTitle)}" style="flex: 1; font-weight: bold; border: 1px solid #7F9DB9; padding: 3px 6px; font-size: 11.5px; color: #003399; text-align: center;" placeholder="Tiêu đề bảng giá..." />
+          <button type="button" class="win-btn btn-move-up" title="Di chuyển lên trên" style="padding: 2px 6px; font-size: 11px;">🔼</button>
+          <button type="button" class="win-btn btn-move-down" title="Di chuyển xuống dưới" style="padding: 2px 6px; font-size: 11px;">🔽</button>
+          <button type="button" class="win-btn btn-del-article" style="color: #A00000; font-weight: bold; padding: 2px 8px; font-size: 11px;" title="Xóa toàn bộ bảng giá này">🗑️ Xóa bảng</button>
+        </div>
+        <div style="overflow-x: auto; margin-top: 2px;">
+          <table class="wf-dynamic-grid" style="width: 100%; border-collapse: collapse; font-size: 11px; background: #FFF;">
+            <thead>
+              <tr style="background: #E8F5E9; color: #1B5E20;">
+                <th style="width: 32px; border: 1px solid #B5B5B5; padding: 3px; text-align: center;">STT</th>
+                <th style="border: 1px solid #B5B5B5; padding: 3px; text-align: left;">Tên hạng mục / công việc / vật tư (*)</th>
+                <th style="width: 65px; border: 1px solid #B5B5B5; padding: 3px; text-align: center;">ĐVT</th>
+                <th style="width: 65px; border: 1px solid #B5B5B5; padding: 3px; text-align: right;">Số lượng</th>
+                <th style="width: 100px; border: 1px solid #B5B5B5; padding: 3px; text-align: right;">Đơn giá (đ)</th>
+                <th style="width: 115px; border: 1px solid #B5B5B5; padding: 3px; text-align: right;">Thành tiền (đ)</th>
+                <th style="width: 90px; border: 1px solid #B5B5B5; padding: 3px; text-align: left;">Ghi chú</th>
+                <th style="width: 32px; border: 1px solid #B5B5B5; padding: 3px; text-align: center;">Xóa</th>
+              </tr>
+            </thead>
+            <tbody class="table-rows-body"></tbody>
+            <tfoot>
+              <!-- Dòng 1: Tiền trước thuế -->
+              <tr style="background: #F9FDF9; font-weight: bold;">
+                <td colspan="5" style="border: 1px solid #B5B5B5; padding: 3px 6px; text-align: right; color: #1B5E20;">
+                  CỘNG TIỀN TRƯỚC THUẾ:
+                </td>
+                <td class="col-table-subtotal" style="border: 1px solid #B5B5B5; padding: 3px 6px; text-align: right; color: #003399; font-size: 11px;">0 đ</td>
+                <td colspan="2" style="border: 1px solid #B5B5B5; padding: 3px;"></td>
+              </tr>
+              <!-- Dòng 2: Thuế GTGT có dropdown nhiều lựa chọn -->
+              <tr style="background: #F9FDF9; font-weight: bold;">
+                <td colspan="5" style="border: 1px solid #B5B5B5; padding: 3px 6px; text-align: right; color: #1B5E20;">
+                  <span style="margin-right: 6px;">THUẾ GTGT:</span>
+                  <select class="tbl-vat-rate" style="border: 1px solid #7F9DB9; font-size: 11px; padding: 1px 3px; height: 21px; background: #FFF;">
+                    <option value="0">0% (Không chịu thuế)</option>
+                    <option value="5">5% (Thuế suất 5%)</option>
+                    <option value="8">8% (Giảm thuế GTGT)</option>
+                    <option value="10" selected>10% (Phổ thông)</option>
+                    <option value="custom">Tùy chỉnh %...</option>
+                  </select>
+                  <input type="number" class="tbl-vat-custom" min="0" max="100" step="any" value="10" style="display: none; width: 45px; height: 21px; font-size: 11px; border: 1px solid #7F9DB9; padding: 1px 3px; text-align: right;" />
+                </td>
+                <td class="col-table-vat" style="border: 1px solid #B5B5B5; padding: 3px 6px; text-align: right; color: #E65100; font-size: 11px;">0 đ</td>
+                <td colspan="2" style="border: 1px solid #B5B5B5; padding: 3px;"></td>
+              </tr>
+              <!-- Dòng 3: Tổng cộng thanh toán -->
+              <tr style="background: #E8F5E9; font-weight: bold;">
+                <td colspan="5" style="border: 1px solid #B5B5B5; padding: 4px 6px; text-align: right; color: #B00000; font-size: 11.5px;">
+                  TỔNG CỘNG THANH TOÁN:
+                </td>
+                <td class="col-table-total" style="border: 1px solid #B5B5B5; padding: 4px 6px; text-align: right; color: #B00000; font-size: 12px;">0 đ</td>
+                <td colspan="2" style="border: 1px solid #B5B5B5; padding: 4px;"></td>
+              </tr>
+              <!-- Dòng 4: Bằng chữ -->
+              <tr style="background: #FFFFFF; font-style: italic;">
+                <td colspan="8" style="border: 1px solid #B5B5B5; padding: 4px 8px; text-align: left; color: #003399; font-size: 11px;">
+                  Số tiền bằng chữ: <strong class="col-table-words" style="color: #003399; font-style: normal;">Không đồng chẵn./.</strong>
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+        <div style="margin-top: 4px; display: flex; justify-content: flex-start;">
+          <button type="button" class="win-btn btn-add-table-row" style="font-size: 11px; color: #1B5E20; font-weight: 600; background: #E8F5E9; border-color: #81C784;">
+            + Thêm dòng vật tư / công việc
+          </button>
+        </div>
+      `;
+
+      setupBlockControlEvents(block);
+
+      const btnAddRow = block.querySelector(".btn-add-table-row");
+      btnAddRow.addEventListener("click", () => {
+        addTableRowToGrid(block);
+      });
+
+      const selVat = block.querySelector(".tbl-vat-rate");
+      const inpCustom = block.querySelector(".tbl-vat-custom");
+      if (defaultVatRate !== undefined) {
+        if ([0, 5, 8, 10].includes(Number(defaultVatRate))) {
+          selVat.value = String(defaultVatRate);
+        } else {
+          selVat.value = "custom";
+          inpCustom.style.display = "inline-block";
+          inpCustom.value = String(defaultVatRate);
+        }
+      }
+
+      selVat.addEventListener("change", () => {
+        if (selVat.value === "custom") {
+          inpCustom.style.display = "inline-block";
+          inpCustom.focus();
+        } else {
+          inpCustom.style.display = "none";
+        }
+        calcTableSum(block);
+      });
+
+      inpCustom.addEventListener("input", () => {
+        calcTableSum(block);
+      });
+
+      if (defaultRows && defaultRows.length > 0) {
+        defaultRows.forEach(r => addTableRowToGrid(block, r));
+      } else {
+        // Thêm 2 dòng mẫu
+        addTableRowToGrid(block, { tenHangMuc: "Khảo sát và lập hồ sơ thiết kế kỹ thuật", donViTinh: "Gói", soLuong: 1, donGia: 20000000, ghiChu: "Hồ sơ chuẩn" });
+        addTableRowToGrid(block, { tenHangMuc: "Giám sát tác giả và kiểm tra hiện trường", donViTinh: "Tháng", soLuong: 3, donGia: 5000000, ghiChu: "Theo tiến độ" });
+      }
+
+      container.appendChild(block);
+      updateArticleCountLabel();
+      calcTableSum(block);
+      if (!defaultTitle && !defaultRows) {
+        container.scrollTop = container.scrollHeight;
+      }
+    }
+
+    // 5. Thêm dòng đơn trong Bảng giá
+    function addTableRowToGrid(tableBlock, item) {
+      const tbody = tableBlock.querySelector(".table-rows-body");
+      if (!tbody) return;
+
+      const curCount = tbody.querySelectorAll("tr").length + 1;
+      const tr = document.createElement("tr");
+
+      const ten = item?.tenHangMuc || "";
+      const dvt = item?.donViTinh || "Gói";
+      const sl = item?.soLuong !== undefined ? item.soLuong : 1;
+      const dg = item?.donGia !== undefined ? item.donGia : 0;
+      const gc = item?.ghiChu || "";
+      const tt = Math.round(Number(sl) * Number(dg));
+
+      tr.innerHTML = `
+        <td class="cell-stt" style="border: 1px solid #D9D9D9; padding: 2px 4px; text-align: center; font-weight: 600; color: #555;">${curCount}</td>
+        <td style="border: 1px solid #D9D9D9; padding: 2px;">
+          <input type="text" class="tbl-item-name" style="width: 100%; border: 1px solid #CCC; padding: 2px 4px; font-size: 11px;" value="${escapeHtml(ten)}" placeholder="Tên công việc / hàng hóa..." />
+        </td>
+        <td style="border: 1px solid #D9D9D9; padding: 2px;">
+          <input type="text" list="commonUnitsList" class="tbl-item-unit" style="width: 100%; border: 1px solid #CCC; padding: 2px 4px; text-align: center; font-size: 11px;" value="${escapeHtml(dvt)}" placeholder="ĐVT" />
+        </td>
+        <td style="border: 1px solid #D9D9D9; padding: 2px;">
+          <input type="number" class="tbl-item-qty" min="0" step="any" style="width: 100%; border: 1px solid #CCC; padding: 2px 4px; text-align: right; font-size: 11px;" value="${sl}" />
+        </td>
+        <td style="border: 1px solid #D9D9D9; padding: 2px;">
+          <input type="number" class="tbl-item-price" min="0" step="any" style="width: 100%; border: 1px solid #CCC; padding: 2px 4px; text-align: right; font-size: 11px;" value="${dg}" />
+        </td>
+        <td style="border: 1px solid #D9D9D9; padding: 2px;">
+          <input type="text" class="tbl-item-total" readonly style="width: 100%; border: 1px solid #E0E0E0; background: #F9F9F9; padding: 2px 4px; text-align: right; font-size: 11px; font-weight: 600; color: #003399;" value="${formatNumberWithDots(tt)}" />
+        </td>
+        <td style="border: 1px solid #D9D9D9; padding: 2px;">
+          <input type="text" class="tbl-item-note" style="width: 100%; border: 1px solid #CCC; padding: 2px 4px; font-size: 11px;" value="${escapeHtml(gc)}" placeholder="Ghi chú..." />
+        </td>
+        <td style="border: 1px solid #D9D9D9; padding: 2px; text-align: center;">
+          <button type="button" class="win-btn btn-del-grid-row" style="padding: 1px 4px; font-size: 10px; color: #A00000;" title="Xóa dòng này">🗑️</button>
+        </td>
+      `;
+
+      const inputQty = tr.querySelector(".tbl-item-qty");
+      const inputPrice = tr.querySelector(".tbl-item-price");
+      const inputTotal = tr.querySelector(".tbl-item-total");
+      const btnDel = tr.querySelector(".btn-del-grid-row");
+
+      const calcRow = () => {
+        const q = parseFloat(inputQty.value) || 0;
+        const p = parseFloat(inputPrice.value) || 0;
+        const total = Math.round(q * p);
+        inputTotal.value = formatNumberWithDots(total);
+        calcTableSum(tableBlock);
+      };
+
+      inputQty.addEventListener("input", calcRow);
+      inputPrice.addEventListener("input", calcRow);
+
+      btnDel.addEventListener("click", () => {
+        tr.remove();
+        renumberTableRows(tableBlock);
+        calcTableSum(tableBlock);
+      });
+
+      tbody.appendChild(tr);
+      calcTableSum(tableBlock);
+    }
+
+    function renumberTableRows(tableBlock) {
+      const rows = tableBlock.querySelectorAll(".table-rows-body tr");
+      rows.forEach((r, idx) => {
+        const cell = r.querySelector(".cell-stt");
+        if (cell) cell.textContent = String(idx + 1);
+      });
+    }
+
+    function calcTableSum(tableBlock) {
+      let subTotal = 0;
+      const rows = tableBlock.querySelectorAll(".table-rows-body tr");
+      rows.forEach(r => {
+        const q = parseFloat(r.querySelector(".tbl-item-qty")?.value) || 0;
+        const p = parseFloat(r.querySelector(".tbl-item-price")?.value) || 0;
+        subTotal += Math.round(q * p);
+      });
+
+      const selVat = tableBlock.querySelector(".tbl-vat-rate");
+      const inpCustom = tableBlock.querySelector(".tbl-vat-custom");
+      let vatRate = 10;
+      if (selVat) {
+        if (selVat.value === "custom") {
+          vatRate = parseFloat(inpCustom?.value) || 0;
+        } else {
+          vatRate = parseFloat(selVat.value) || 0;
+        }
+      }
+
+      const vatAmount = Math.round(subTotal * vatRate / 100);
+      const grandTotal = subTotal + vatAmount;
+      const words = numberToWordsVietnamese(grandTotal);
+
+      const subTotalCell = tableBlock.querySelector(".col-table-subtotal");
+      const vatCell = tableBlock.querySelector(".col-table-vat");
+      const totalCell = tableBlock.querySelector(".col-table-total");
+      const wordsCell = tableBlock.querySelector(".col-table-words");
+
+      if (subTotalCell) subTotalCell.textContent = formatNumberWithDots(subTotal) + " đ";
+      if (vatCell) vatCell.textContent = formatNumberWithDots(vatAmount) + " đ";
+      if (totalCell) totalCell.textContent = formatNumberWithDots(grandTotal) + " đ";
+      if (wordsCell) wordsCell.textContent = words;
+
+      tableBlock.dataset.subtotal = String(subTotal);
+      tableBlock.dataset.vatRate = String(vatRate);
+      tableBlock.dataset.vatAmount = String(vatAmount);
+      tableBlock.dataset.grandTotal = String(grandTotal);
+      tableBlock.dataset.tableTotal = String(grandTotal);
+      tableBlock.dataset.amountInWords = words;
+    }
+
+    function updateArticleCountLabel() {
+      const container = document.getElementById("dynamicArticlesContainer");
+      if (!container) return;
+      const allBlocks = container.querySelectorAll(".article-item-row");
+      const textBlocks = container.querySelectorAll('.article-item-row[data-type="text"]');
+      const tableBlocks = container.querySelectorAll('.article-item-row[data-type="table"]');
+      const lbl = document.getElementById("lblArticleCount");
+      if (lbl) {
+        lbl.textContent = `Đang có: ${allBlocks.length} khối (${textBlocks.length} điều khoản chữ, ${tableBlocks.length} bảng giá)`;
+      }
+    }
+
+    function clearArticleRows() {
+      const container = document.getElementById("dynamicArticlesContainer");
+      if (container) container.innerHTML = "";
+      updateArticleCountLabel();
+    }
+
+    function setupDocTypeChangeHandler() {
+      const cbo = document.getElementById("cboNewTplDocType");
+      if (!cbo) return;
+
+      cbo.addEventListener("change", () => {
+        const val = cbo.value;
+        const isContract = /^(hd-|hop-dong)/i.test(val);
+        const isDecision = /quyet-dinh/i.test(val);
+        const isReport = /to-trinh/i.test(val);
+
+        const lblPartyA = document.getElementById("lblPartyA");
+        const lblPartyB = document.getElementById("lblPartyB");
+        const txtDocNum = document.getElementById("txtNewTplDocNum");
+
+        if (isContract) {
+          if (lblPartyA) lblPartyA.textContent = "Bên A (Bên giao thầu / Bên mua):";
+          if (lblPartyB) lblPartyB.textContent = "Bên B (Bên nhận thầu / Bên bán):";
+          if (txtDocNum && !txtDocNum.value) txtDocNum.value = "Số: 01/2026/HĐKT";
+        } else if (isDecision) {
+          if (lblPartyA) lblPartyA.textContent = "Cơ quan ban hành quyết định:";
+          if (lblPartyB) lblPartyB.textContent = "Các đơn vị thi hành:";
+          if (txtDocNum && !txtDocNum.value) txtDocNum.value = "Số: 15/QĐ-CTY";
+        } else if (isReport) {
+          if (lblPartyA) lblPartyA.textContent = "Đơn vị lập tờ trình:";
+          if (lblPartyB) lblPartyB.textContent = "Kính gửi (Cấp phê duyệt):";
+          if (txtDocNum && !txtDocNum.value) txtDocNum.value = "Số: 01/TTr-ĐV";
+        } else {
+          if (lblPartyA) lblPartyA.textContent = "Tên cơ quan, đơn vị ban hành:";
+          if (lblPartyB) lblPartyB.textContent = "Kính gửi / Nơi nhận chính:";
+          if (txtDocNum && !txtDocNum.value) txtDocNum.value = "Số: 01/CV-VP";
+        }
+      });
+    }
+
+    /* ==========================================================================
+       QUẢN LÝ MẪU TỰ TẠO (CUSTOM TEMPLATES) LƯU VÀO LOCALSTORAGE
+       ========================================================================== */
+
+    function getCustomTemplatesFromStorage() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        return raw ? JSON.parse(raw) : [];
+      } catch (e) {
+        console.warn("Lỗi đọc LocalStorage:", e);
+        return [];
+      }
+    }
+
+    function saveCustomTemplatesToStorage(arr) {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(arr));
+      } catch (e) {
+        console.warn("Lỗi lưu LocalStorage:", e);
+      }
+    }
+
+    function loadCustomTemplates() {
+      const customs = getCustomTemplatesFromStorage();
+      const list = document.getElementById("templateList");
+      if (!list) return;
+
+      customs.forEach(item => {
+        TEMPLATES_DATA[item.key] = {
+          title: item.title,
+          docType: item.docType,
+          isCustom: true,
+          structuredData: item.structuredData,
+          html: item.html || buildTemplateHtmlFromData(item.structuredData)
+        };
+
+        const li = document.createElement("li");
+        li.className = "win-list-item";
+        li.dataset.id = item.key;
+        li.textContent = `★ ${item.title} [Tự tạo]`;
+        li.title = `Mẫu do bạn tự tạo: ${item.title}`;
+        li.addEventListener("click", () => {
+          document.querySelectorAll("#templateList .win-list-item").forEach(i => i.classList.remove("selected"));
+          li.classList.add("selected");
+          renderPreview(item.key);
+        });
+        list.appendChild(li);
+      });
+
+      updateTemplateCount();
+    }
+
+    let editingTemplateKey = null;
+
+    function openAddTemplateModal() {
+      editingTemplateKey = null;
+      const modal = document.getElementById("dlgAddTemplateOverlay");
+      const titleBar = document.getElementById("dlgAddTitle");
+      const btnSave = document.getElementById("btnSaveNewTemplate");
+      if (!modal) return;
+
+      if (titleBar) titleBar.textContent = "Thêm Mẫu Văn Bản Mới Vào Hệ Thống - [Nghị Định 30/2020/NĐ-CP]";
+      if (btnSave) btnSave.textContent = "1. Lưu & Cập nhật hệ thống";
+
+      // Reset các trường
+      const titleInput = document.getElementById("txtNewTplTitle");
+      const subjInput = document.getElementById("txtNewTplSubject");
+      const partyAInput = document.getElementById("txtNewTplPartyA");
+      const partyBInput = document.getElementById("txtNewTplPartyB");
+      const signerInput = document.getElementById("txtNewTplSigner");
+      const recInput = document.getElementById("txtNewTplRecipients");
+      const groundsInput = document.getElementById("txtNewTplGrounds");
+      const docNumInput = document.getElementById("txtNewTplDocNum");
+
+      if (titleInput) titleInput.value = "";
+      if (subjInput) subjInput.value = "";
+      if (partyAInput) partyAInput.value = "";
+      if (partyBInput) partyBInput.value = "";
+      if (signerInput) signerInput.value = "";
+      if (recInput) recInput.value = "";
+      if (docNumInput) docNumInput.value = "";
+      if (groundsInput) {
+        groundsInput.value = "- Căn cứ Bộ luật Dân sự số 91/2015/QH13 của Quốc hội;\n- Căn cứ nhu cầu và sự thỏa thuận tự nguyện giữa hai bên.";
+      }
+
+      modal.style.display = "flex";
+      modal.classList.remove("hidden");
+
+      // Khởi tạo ngày tháng mặc định
+      const now = new Date();
+      const d = String(now.getDate()).padStart(2, "0");
+      const m = String(now.getMonth() + 1).padStart(2, "0");
+      const y = now.getFullYear();
+      const txtCity = document.getElementById("txtTplCity");
+      const txtDateInp = document.getElementById("txtTplDateInput");
+      const pickerDate = document.getElementById("pickerTplDate");
+      const txtLoc = document.getElementById("txtNewTplLocation");
+
+      if (txtCity) txtCity.value = "TP. Hồ Chí Minh";
+      if (txtDateInp) txtDateInp.value = `${d}/${m}/${y}`;
+      if (pickerDate) pickerDate.value = `${y}-${m}-${d}`;
+      if (txtLoc) txtLoc.value = `TP. Hồ Chí Minh, ngày ${d} tháng ${m} năm ${y}`;
+
+      // Khởi tạo 2 điều khoản mẫu nếu danh sách đang rỗng
+      clearArticleRows();
+      addTextArticleRow("Điều 1: PHẠM VI CÔNG VIỆC VÀ YÊU CẦU", "Bên B cam kết thực hiện đúng tiêu chuẩn kỹ thuật, quy trình và tiến độ theo yêu cầu của Bên A.");
+      addTextArticleRow("Điều 2: GIÁ TRỊ VÀ PHƯƠNG THỨC THANH TOÁN", "Giá trị thanh toán theo tiến độ từng đợt nghiệm thu thực tế sau khi có biên bản xác nhận hợp lệ.");
+
+      // Đảm bảo thanh cuộn luôn ở vị trí đầu tiên
+      const modalBody = document.querySelector("#dlgAddTemplateDialog .win-modal-body");
+      if (modalBody) modalBody.scrollTop = 0;
+      const container = document.getElementById("dynamicArticlesContainer");
+      if (container) container.scrollTop = 0;
+
+      titleInput?.focus();
+    }
+
+    function openEditTemplateModal() {
+      const item = TEMPLATES_DATA[selectedTemplateKey];
+      if (!item) {
+        alert("Vui lòng chọn một mẫu văn bản từ danh sách bên trái để chỉnh sửa!");
+        return;
+      }
+
+      editingTemplateKey = selectedTemplateKey;
+      const modal = document.getElementById("dlgAddTemplateOverlay");
+      const titleBar = document.getElementById("dlgAddTitle");
+      const btnSave = document.getElementById("btnSaveNewTemplate");
+      if (!modal) return;
+
+      if (titleBar) titleBar.textContent = `Chỉnh Sửa Mẫu Văn Bản: ${item.title}`;
+      if (btnSave) btnSave.textContent = "1. Lưu thay đổi & Cập nhật";
+
+      // Nạp thông tin hành chính & pháp lý
+      const sd = item.structuredData || {};
+      const titleInput = document.getElementById("txtNewTplTitle");
+      const docTypeInput = document.getElementById("cboNewTplDocType");
+      const docNumInput = document.getElementById("txtNewTplDocNum");
+      const locInput = document.getElementById("txtNewTplLocation");
+      const partyAInput = document.getElementById("txtNewTplPartyA");
+      const partyBInput = document.getElementById("txtNewTplPartyB");
+      const signerInput = document.getElementById("txtNewTplSigner");
+      const recInput = document.getElementById("txtNewTplRecipients");
+      const subjInput = document.getElementById("txtNewTplSubject");
+      const groundsInput = document.getElementById("txtNewTplGrounds");
+
+      if (titleInput) titleInput.value = item.title || "";
+      if (docTypeInput) {
+        docTypeInput.value = item.docType || sd.docType || "cong-van";
+        const event = new Event("change");
+        docTypeInput.dispatchEvent(event);
+      }
+      if (docNumInput) docNumInput.value = sd.docNumber || "";
+
+      // Nạp và phân tích Địa danh & Ngày tháng
+      const locStr = sd.locationDate || "";
+      if (locInput) locInput.value = locStr;
+      const txtCity = document.getElementById("txtTplCity");
+      const txtDateInp = document.getElementById("txtTplDateInput");
+      const pickerDate = document.getElementById("pickerTplDate");
+      if (locStr) {
+        const match = locStr.match(/^(.*?),\s*ngày\s*(\d{1,2})\s*tháng\s*(\d{1,2})\s*năm\s*(\d{4})/i);
+        if (match) {
+          const c = match[1].trim();
+          const d = match[2].padStart(2, '0');
+          const m = match[3].padStart(2, '0');
+          const y = match[4];
+          if (txtCity) txtCity.value = c;
+          if (txtDateInp) txtDateInp.value = `${d}/${m}/${y}`;
+          if (pickerDate) pickerDate.value = `${y}-${m}-${d}`;
+        } else {
+          if (txtCity) txtCity.value = locStr;
+        }
+      }
+
+      if (partyAInput) partyAInput.value = (sd.partyA?.name || sd.publishingOrg || "").toUpperCase();
+      if (partyBInput) partyBInput.value = (sd.partyB?.name || (sd.dear ? sd.dear.replace(/^Kính gửi:\s*/i, "") : "")).toUpperCase();
+      if (signerInput) signerInput.value = toTitleCaseVietnamese(sd.signName || sd.partyA?.rep || "");
+      if (recInput) recInput.value = (sd.recipients || []).map(r => r.replace(/^[-•*–—]\s*/, '').replace(/[;.]+$/, '')).join("; ");
+      if (subjInput) subjInput.value = sd.subject || "";
+      if (groundsInput) groundsInput.value = (sd.grounds || []).join("\n");
+
+      // Nạp danh sách điều khoản chữ và bảng giá
+      clearArticleRows();
+      if (sd.articles && sd.articles.length > 0) {
+        sd.articles.forEach(art => {
+          if (art.type === "table" || Array.isArray(art.data)) {
+            addTableArticleRow(art.title || art.tieuDe, art.data, art.vatRate);
+          } else {
+            addTextArticleRow(art.title || art.tieuDe, art.content || art.noiDungChitiet);
+          }
+        });
+      } else if (sd.bodyLines && sd.bodyLines.length > 0) {
+        sd.bodyLines.forEach(l => {
+          addTextArticleRow("", l);
+        });
+      }
+
+      modal.style.display = "flex";
+      modal.classList.remove("hidden");
+
+      const modalBody = document.querySelector("#dlgAddTemplateDialog .win-modal-body");
+      if (modalBody) modalBody.scrollTop = 0;
+      titleInput?.focus();
+    }
+
+    function closeAddTemplateModal() {
+      const modal = document.getElementById("dlgAddTemplateOverlay");
+      if (modal) {
+        modal.style.display = "none";
+        modal.classList.add("hidden");
+      }
+      editingTemplateKey = null;
+    }
+
+    function saveNewCustomTemplate() {
+      const titleInput = document.getElementById("txtNewTplTitle");
+      const docTypeInput = document.getElementById("cboNewTplDocType");
+      const docNumInput = document.getElementById("txtNewTplDocNum");
+      const locInput = document.getElementById("txtNewTplLocation");
+      const partyAInput = document.getElementById("txtNewTplPartyA");
+      const partyBInput = document.getElementById("txtNewTplPartyB");
+      const signerInput = document.getElementById("txtNewTplSigner");
+      const recInput = document.getElementById("txtNewTplRecipients");
+      const subjInput = document.getElementById("txtNewTplSubject");
+      const groundsInput = document.getElementById("txtNewTplGrounds");
+
+      const title = (titleInput?.value || "").trim();
+      const docType = docTypeInput?.value || "hd-kinh-te";
+      const docNumber = (docNumInput?.value || "").trim() || "Số: 01/2026/VB";
+      
+      let locationDate = (locInput?.value || "").trim();
+      if (!locationDate) {
+        syncLocationDateField();
+        locationDate = (locInput?.value || "").trim() || "TP. Hồ Chí Minh, ngày 19 tháng 10 năm 2026";
+      }
+
+      // Tự động in hoa tên công ty, đơn vị
+      const partyA = (partyAInput?.value || "").trim().toUpperCase() || "CÔNG TY BÊN A";
+      const partyB = (partyBInput?.value || "").trim().toUpperCase() || "CÔNG TY BÊN B";
+      // In hoa chữ cái đầu cho người đại diện
+      const signerRaw = (signerInput?.value || "").trim() || "Nguyễn Văn A";
+      const signer = toTitleCaseVietnamese(signerRaw);
+      const cleanSignerName = formatSignerName(signer);
+
+      const recipients = (recInput?.value || "").trim();
+      const subject = (subjInput?.value || "").trim();
+      const groundsText = (groundsInput?.value || "").trim();
+
+      if (!title) {
+        alert("Vui lòng nhập Tên mẫu văn bản!");
+        titleInput?.focus();
+        return;
+      }
+
+      if (!subject) {
+        alert("Vui lòng nhập Trích yếu / Tiêu đề văn bản!");
+        subjInput?.focus();
+        return;
+      }
+
+      // Thu thập các dòng điều khoản chữ và bảng giá động
+      const container = document.getElementById("dynamicArticlesContainer");
+      const blockRows = container ? container.querySelectorAll(".article-item-row") : [];
+      const articles = [];
+
+      blockRows.forEach((block, idx) => {
+        const type = block.dataset.type || "text";
+        const titleVal = (block.querySelector(".art-title")?.value || "").trim();
+
+        if (type === "table") {
+          const gridRows = block.querySelectorAll(".table-rows-body tr");
+          const tableData = [];
+          gridRows.forEach((tr, rIdx) => {
+            const ten = (tr.querySelector(".tbl-item-name")?.value || "").trim();
+            const dvt = (tr.querySelector(".tbl-item-unit")?.value || "").trim();
+            const q = parseFloat(tr.querySelector(".tbl-item-qty")?.value) || 0;
+            const p = parseFloat(tr.querySelector(".tbl-item-price")?.value) || 0;
+            const tt = Math.round(q * p);
+            const gc = (tr.querySelector(".tbl-item-note")?.value || "").trim();
+
+            if (ten || q > 0) {
+              tableData.push({
+                stt: rIdx + 1,
+                tenHangMuc: ten || `Hạng mục ${rIdx + 1}`,
+                donViTinh: dvt || "Gói",
+                soLuong: q,
+                donGia: p,
+                thanhTien: tt,
+                ghiChu: gc
+              });
+            }
+          });
+
+          const subTotal = Number(block.dataset.subtotal) || 0;
+          const vatRate = Number(block.dataset.vatRate) || 0;
+          const vatAmount = Number(block.dataset.vatAmount) || 0;
+          const grandTotal = Number(block.dataset.grandTotal) || subTotal;
+          const words = block.dataset.amountInWords || numberToWordsVietnamese(grandTotal);
+
+          if (titleVal || tableData.length > 0) {
+            articles.push({
+              id: idx + 1,
+              type: "table",
+              title: titleVal || "BẢNG DỰ TOÁN CHI PHÍ / GIÁ TRỊ HỢP ĐỒNG",
+              tieuDe: titleVal || "BẢNG DỰ TOÁN CHI PHÍ / GIÁ TRỊ HỢP ĐỒNG",
+              data: tableData,
+              subTotal: subTotal,
+              vatRate: vatRate,
+              vatAmount: vatAmount,
+              grandTotal: grandTotal,
+              tongCong: grandTotal,
+              amountInWords: words
+            });
+          }
+        } else {
+          // type === "text": Tự động thêm dấu gạch đầu dòng '- ' cho các ý con
+          const contentVal = (block.querySelector(".art-content")?.value || "").trim();
+          if (titleVal || contentVal) {
+            const formattedLines = formatArticleContentLines(contentVal);
+            const formattedContent = formattedLines.join("\n");
+            articles.push({
+              id: idx + 1,
+              type: "text",
+              title: titleVal || `Điều ${idx + 1}:`,
+              tieuDe: titleVal || `Điều ${idx + 1}:`,
+              content: formattedContent,
+              noiDungChitiet: formattedContent
+            });
+          }
+        }
+      });
+
+      if (articles.length === 0) {
+        alert("Vui lòng thêm ít nhất 1 điều khoản hoặc bảng giá vào mẫu văn bản!");
+        return;
+      }
+
+      const isEdit = Boolean(editingTemplateKey);
+      const key = isEdit ? editingTemplateKey : ("custom_" + Date.now());
+      const isContract = /^(hd-|hop-dong)/i.test(docType);
+
+      // Tự động chuẩn hóa Nơi nhận (phân cách ;) và Căn cứ pháp lý
+      const recList = formatRecipientsList(recipients);
+      const groundsList = formatGroundsList(groundsText || [
+        "- Căn cứ Bộ luật Dân sự số 91/2015/QH13 của Quốc hội;",
+        "- Căn cứ vào nhu cầu và sự thỏa thuận tự nguyện giữa hai bên."
+      ]);
+
+      // Cấu trúc dữ liệu chuẩn hóa
+      const structuredData = {
+        docType: docType,
+        title: title,
+        docTitle: isContract ? title : (/to-trinh/i.test(docType) ? "TỜ TRÌNH" : (/quyet-dinh/i.test(docType) ? "QUYẾT ĐỊNH" : "")),
+        docNumber: docNumber,
+        locationDate: locationDate,
+        publishingOrg: partyA,
+        superiorOrg: "",
+        subject: subject,
+        dear: partyB ? `Kính gửi: ${partyB}` : "",
+        partyA: {
+          title: "BÊN A (BÊN GIAO THẦU / BÊN SỬ DỤNG DỊCH VỤ):",
+          name: partyA,
+          rep: signer,
+          address: "Địa chỉ trụ sở Bên A"
+        },
+        partyB: {
+          title: "BÊN B (NHÀ THẦU / BÊN CUNG CẤP):",
+          name: partyB,
+          rep: partyB,
+          address: "Địa chỉ trụ sở Bên B"
+        },
+        grounds: groundsList,
+        intro: `Hôm nay, ${locationDate}, chúng tôi gồm các bên:`,
+        articles: articles,
+        recipients: recList,
+        signRole: signer.includes("Giám đốc") ? "GIÁM ĐỐC" : (isContract ? "ĐẠI DIỆN BÊN A" : "QUYỀN HẠN, CHỨC VỤ NGƯỜI KÝ"),
+        signNote: "(Ký, ghi rõ họ tên và đóng dấu)",
+        signName: cleanSignerName,
+        signA: { role: "ĐẠI DIỆN BÊN A", note: "(Ký, đóng dấu)", name: cleanSignerName },
+        signB: { role: "ĐẠI DIỆN BÊN B", note: "(Ký, đóng dấu)", name: "Đại diện Bên B" }
+      };
+
+      const html = buildTemplateHtmlFromData(structuredData);
+
+      const customObj = {
+        key: key,
+        title: title,
+        docType: docType,
+        isCustom: isEdit ? Boolean(TEMPLATES_DATA[key]?.isCustom) : true,
+        structuredData: structuredData,
+        html: html
+      };
+
+      // 1. Cập nhật TEMPLATES_DATA Runtime
+      TEMPLATES_DATA[key] = customObj;
+
+      // 2. Lưu vào LocalStorage
+      let listStorage = getCustomTemplatesFromStorage();
+      if (isEdit) {
+        const existIdx = listStorage.findIndex(t => t.key === key);
+        if (existIdx >= 0) {
+          listStorage[existIdx] = customObj;
+        } else {
+          listStorage.push(customObj);
+        }
+      } else {
+        listStorage.push(customObj);
+      }
+      saveCustomTemplatesToStorage(listStorage);
+
+      // 3. Cập nhật hoặc Thêm vào ListBox giao diện
+      const list = document.getElementById("templateList");
+      if (list) {
+        let li = list.querySelector(`.win-list-item[data-id="${key}"]`);
+        if (!li) {
+          li = document.createElement("li");
+          li.className = "win-list-item selected";
+          li.dataset.id = key;
+          li.textContent = `★ ${title} [Tự tạo]`;
+          li.addEventListener("click", () => {
+            document.querySelectorAll("#templateList .win-list-item").forEach(i => i.classList.remove("selected"));
+            li.classList.add("selected");
+            renderPreview(key);
+          });
+          document.querySelectorAll("#templateList .win-list-item").forEach(i => i.classList.remove("selected"));
+          list.appendChild(li);
+        } else {
+          li.textContent = customObj.isCustom ? `★ ${title} [Tự tạo]` : title;
+        }
+        li.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      }
+
+      // 4. Reset Form & Đóng modal
+      closeAddTemplateModal();
+
+      // 5. Render Preview mẫu vừa thêm / sửa
+      renderPreview(key);
+      updateTemplateCount();
+      setStatus(`Đã lưu thành công mẫu [${title}] vào hệ thống!`);
+      alert(`Đã lưu và cập nhật mẫu văn bản [${title}] thành công!\nMẫu đã sẵn sàng để xem trước và chèn vào Microsoft Word.`);
+    }
+
+    function deleteSelectedTemplate() {
+      const item = TEMPLATES_DATA[selectedTemplateKey];
+      if (!item) {
+        alert("Vui lòng chọn mẫu văn bản cần xóa!");
+        return;
+      }
+
+      const isCustom = Boolean(item.isCustom);
+      const confirmMsg = isCustom
+        ? `Bạn có chắc chắn muốn xóa mẫu tự tạo:\n"${item.title}" khỏi hệ thống không?`
+        : `Mẫu "${item.title}" là mẫu chuẩn có sẵn của hệ thống.\nBạn có chắc chắn muốn ẩn/xóa mẫu này khỏi danh sách không?`;
+
+      if (!confirm(confirmMsg)) return;
+
+      if (isCustom) {
+        let listStorage = getCustomTemplatesFromStorage();
+        listStorage = listStorage.filter(t => t.key !== selectedTemplateKey);
+        saveCustomTemplatesToStorage(listStorage);
+      } else {
+        try {
+          const hidden = JSON.parse(localStorage.getItem("WORD_ADDIN_HIDDEN_TEMPLATES") || "[]");
+          if (!hidden.includes(selectedTemplateKey)) hidden.push(selectedTemplateKey);
+          localStorage.setItem("WORD_ADDIN_HIDDEN_TEMPLATES", JSON.stringify(hidden));
+        } catch (e) {}
+      }
+
+      delete TEMPLATES_DATA[selectedTemplateKey];
+
+      const li = document.querySelector(`#templateList .win-list-item[data-id="${selectedTemplateKey}"]`);
+      if (li) li.remove();
+
+      const nextItem = document.querySelector("#templateList .win-list-item");
+      if (nextItem) {
+        document.querySelectorAll("#templateList .win-list-item").forEach(i => i.classList.remove("selected"));
+        nextItem.classList.add("selected");
+        renderPreview(nextItem.dataset.id);
+      } else {
+        const pContent = document.getElementById("paperContent");
+        if (pContent) pContent.innerHTML = "<div style='text-align: center; color: #888; padding: 40px;'>Danh sách mẫu đang trống. Bấm '+ Thêm mẫu mới' để tạo mẫu.</div>";
+      }
+
+      updateTemplateCount();
+      setStatus("Đã xóa mẫu khỏi danh sách.");
+      alert(`Đã xóa mẫu [${item.title}] thành công!`);
+    }
+
+
     /* ==========================================================================
        QUẢN LÝ THƯ VIỆN VĂN BẢN PHÁP LUẬT VÀ CĂN CỨ PHÁP LÝ (GXD)
        ========================================================================== */
