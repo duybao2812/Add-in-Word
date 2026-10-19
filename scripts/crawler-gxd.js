@@ -207,38 +207,56 @@ async function main() {
     return;
   }
 
-  // 2. Chế độ cào và đồng bộ toàn văn cho toàn bộ các văn bản chưa có text
+  // 2. Chế độ cào và đồng bộ toàn văn cho các văn bản QLDA GXD
   let scannedCount = 0;
   let updatedCount = 0;
+  let skippedCount = 0;
   let errorCount = 0;
 
   try {
-    console.log('[1/3] Đang lấy danh sách các văn bản cần cào toàn văn từ Supabase...');
-    // Lấy theo batch 50 văn bản mỗi lần chạy workflow
-    const res = await sendSupabaseRequest('GET', 'van_ban_phap_luat?select=id,so_hieu,ten_van_ban,duong_dan_gxd,co_toan_van_html&co_toan_van_html=eq.false&limit=50&order=created_at.asc');
+    console.log('[1/3] Đang lấy danh sách các văn bản QLDA GXD từ Supabase...');
+    // Chỉ lấy văn bản có link qlda.gxd.vn (bỏ qua toàn bộ link ngoài hoặc văn bản quản lý riêng)
+    const res = await sendSupabaseRequest(
+      'GET', 
+      'van_ban_phap_luat?select=id,so_hieu,ten_van_ban,duong_dan_gxd,co_toan_van_html,hash_noi_dung,updated_at&duong_dan_gxd=like.*qlda.gxd.vn*&order=updated_at.asc&limit=60'
+    );
     
-    const docsToCrawl = Array.isArray(res.data) ? res.data : [];
+    const docsToCrawl = (Array.isArray(res.data) ? res.data : []).filter(d => {
+      const url = d.duong_dan_gxd || '';
+      return url.includes('qlda.gxd.vn');
+    });
+
     scannedCount = docsToCrawl.length;
-    console.log(`[2/3] Tìm thấy ${scannedCount} văn bản đang chờ cào toàn văn chữ.`);
+    console.log(`[2/3] Tìm thấy ${scannedCount} văn bản QLDA GXD được chọn kiểm tra.`);
 
     for (let i = 0; i < docsToCrawl.length; i++) {
       const doc = docsToCrawl[i];
       if (!doc.duong_dan_gxd) continue;
 
-      console.log(`[${i + 1}/${scannedCount}] Đang cào toàn văn: ${doc.so_hieu} -> ${doc.duong_dan_gxd}`);
+      console.log(`[${i + 1}/${scannedCount}] Đang kiểm tra: ${doc.so_hieu} -> ${doc.duong_dan_gxd}`);
       try {
         const pageRes = await fetchWithRedirect(doc.duong_dan_gxd);
         if (pageRes.status === 200) {
           const text = extractLawContent(pageRes.data);
-          if (text.length > 200) {
-            await sendSupabaseRequest('PATCH', `van_ban_phap_luat?id=eq.${doc.id}`, {
-              noi_dung_toan_van: text,
-              co_toan_van_html: true
-            });
-            updatedCount++;
-            console.log(`   ✅ Đã cập nhật toàn văn thành công (${text.length} ký tự, chuẩn UTF-8)!`);
+          if (text.length > 200 && !text.includes("There's nothing here")) {
+            const newHash = crypto.createHash('sha256').update(text).digest('hex');
+
+            // Nếu chưa có text hoặc hash thay đổi (văn bản được sửa đổi)
+            if (!doc.co_toan_van_html || doc.hash_noi_dung !== newHash) {
+              await sendSupabaseRequest('PATCH', `van_ban_phap_luat?id=eq.${doc.id}`, {
+                noi_dung_toan_van: text,
+                co_toan_van_html: true,
+                hash_noi_dung: newHash,
+                updated_at: new Date().toISOString()
+              });
+              updatedCount++;
+              console.log(`   ✅ Đã cập nhật văn bản (${text.length} ký tự, SHA256: ${newHash.slice(0, 8)}...)!`);
+            } else {
+              skippedCount++;
+              console.log(`   ⚡ Nội dung không đổi, bỏ qua để tiết kiệm băng thông.`);
+            }
           } else {
-            console.log(`   ℹ️ Trang không có khối chữ dài (${text.length} ký tự). Giữ nguyên trạng thái file gốc.`);
+            console.log(`   ℹ️ Trang không có khối chữ HTML dài (${text.length} ký tự).`);
           }
         }
       } catch (err) {
@@ -257,7 +275,8 @@ async function main() {
 ⏰ <b>Thời gian:</b> ${endTime.toLocaleString('vi-VN')} (${durationSec}s)
 
 • <b>Văn bản đã quét:</b> ${scannedCount}
-• <b>Văn bản đã nạp toàn văn:</b> ${updatedCount}
+• <b>Văn bản nạp mới / cập nhật:</b> ${updatedCount}
+• <b>Văn bản không đổi (giữ nguyên):</b> ${skippedCount}
 • <b>Số lỗi phát sinh:</b> ${errorCount}
 
 ✅ <b>Trạng thái:</b> ${errorCount === 0 ? 'THÀNH CÔNG' : 'CÓ CẢNH BÁO'}

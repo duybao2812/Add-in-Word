@@ -233,6 +233,183 @@ function handleApiOcrChat(req, res, body, retryCount = 0) {
 }
 
 /**
+ * Cấu hình kết nối Supabase cho Server Local
+ */
+const SUPABASE_URL = (process.env.SUPABASE_URL || 'https://mabnaygyrscdfsqownhy.supabase.co').replace(/\/$/, '');
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1hYm5heWd5cnNjZGZzcW93bmh5Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc5MjQxNzQ2NywiZXhwIjoyMTA3OTkzNDY3fQ.9DIvmI1IDu3LHrh8vkKESb5NWqRiAmZwmW2Iq-Q3ad8';
+
+function fetchUrlContent(targetUrl, maxRedirects = 5) {
+  return new Promise((resolve, reject) => {
+    if (maxRedirects <= 0) return reject(new Error('Quá nhiều lần chuyển hướng liên tiếp'));
+    const parsed = new URL(targetUrl);
+    const client = parsed.protocol === 'https:' ? https : http;
+
+    const req = client.get(targetUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'vi,en;q=0.9'
+      },
+      timeout: 30000
+    }, res => {
+      if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+        let nextUrl = res.headers.location;
+        if (nextUrl.startsWith('/')) {
+          nextUrl = `${parsed.protocol}//${parsed.host}${nextUrl}`;
+        }
+        res.resume();
+        return resolve(fetchUrlContent(nextUrl, maxRedirects - 1));
+      }
+
+      const chunks = [];
+      res.on('data', c => chunks.push(c));
+      res.on('end', () => {
+        resolve({
+          statusCode: res.statusCode,
+          html: Buffer.concat(chunks).toString('utf8')
+        });
+      });
+      res.on('error', reject);
+    });
+
+    req.on('error', reject);
+    req.on('timeout', () => {
+      req.destroy();
+      reject(new Error('Hết thời gian chờ kết nối (Timeout 30s)'));
+    });
+  });
+}
+
+function extractCleanTextFromHtml(html) {
+  if (!html) return '';
+  let clean = html
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+    .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '')
+    .replace(/<aside\b[^<]*(?:(?!<\/aside>)<[^<]*)*<\/aside>/gi, '')
+    .replace(/<nav\b[^<]*(?:(?!<\/nav>)<[^<]*)*<\/nav>/gi, '')
+    .replace(/<header\b[^<]*(?:(?!<\/header>)<[^<]*)*<\/header>/gi, '')
+    .replace(/<footer\b[^<]*(?:(?!<\/footer>)<[^<]*)*<\/footer>/gi, '')
+    .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '');
+
+  const mainMatch = clean.match(/<main[^>]*class="[^"]*page[^"]*"[^>]*>([\s\S]*?)<\/main>/i) ||
+                    clean.match(/<div[^>]*class="[^"]*theme-default-content[^"]*"[^>]*>([\s\S]*?)<\/div>/i) ||
+                    clean.match(/<div[^>]*class="[^"]*content[^"]*"[^>]*>([\s\S]*?)<\/div>/i) ||
+                    clean.match(/<div[^>]*class="[^"]*detail-content[^"]*"[^>]*>([\s\S]*?)<\/div>/i) ||
+                    clean.match(/<article[^>]*>([\s\S]*?)<\/article>/i) ||
+                    clean.match(/<main[^>]*>([\s\S]*?)<\/main>/i);
+  if (mainMatch) clean = mainMatch[1];
+
+  clean = clean
+    .replace(/<\/h[1-6]>/gi, '\n\n')
+    .replace(/<\/(p|div|tr|li)>/gi, '\n')
+    .replace(/<br\s*[\/]?>/gi, '\n')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#039;/g, "'");
+
+  const lines = clean.split('\n')
+    .map(l => l.trim())
+    .filter(l => l.length > 0);
+
+  return lines.join('\n\n');
+}
+
+function patchSupabaseDoc(id, payload) {
+  return new Promise((resolve) => {
+    const postData = JSON.stringify(payload);
+    const parsed = new URL(`${SUPABASE_URL}/rest/v1/van_ban_phap_luat?id=eq.${id}`);
+    const req = https.request({
+      hostname: parsed.hostname,
+      port: 443,
+      path: parsed.pathname + parsed.search,
+      method: 'PATCH',
+      headers: {
+        'apikey': SUPABASE_SERVICE_KEY,
+        'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=representation',
+        'Content-Length': Buffer.byteLength(postData)
+      }
+    }, res => {
+      const chunks = [];
+      res.on('data', c => chunks.push(c));
+      res.on('end', () => {
+        const text = Buffer.concat(chunks).toString('utf8');
+        try {
+          resolve({ status: res.statusCode, data: JSON.parse(text), raw: text });
+        } catch (_) {
+          resolve({ status: res.statusCode, raw: text });
+        }
+      });
+    });
+    req.on('error', (e) => resolve({ status: 500, raw: e.message }));
+    req.write(postData);
+    req.end();
+  });
+}
+
+async function handleApiExtractExternalLaw(req, res, body) {
+  res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+  try {
+    const { id, soHieu, url } = JSON.parse(body || '{}');
+    if (!url || !url.startsWith('http')) {
+      return res.end(JSON.stringify({ success: false, error: 'Đường dẫn URL không hợp lệ (phải bắt đầu bằng http:// hoặc https://)' }));
+    }
+
+    console.log(`[Trích xuất Link ngoài] Đang tải: ${soHieu || id} -> ${url}`);
+    const fetchRes = await fetchUrlContent(url);
+    if (fetchRes.statusCode !== 200) {
+      return res.end(JSON.stringify({ success: false, error: `Trang web phản hồi mã lỗi HTTP ${fetchRes.statusCode}` }));
+    }
+
+    const cleanText = extractCleanTextFromHtml(fetchRes.html);
+    if (!cleanText || cleanText.length < 50) {
+      return res.end(JSON.stringify({ success: false, error: 'Không trích xuất được khối văn bản hợp lệ từ URL này (nội dung chữ quá ngắn)' }));
+    }
+
+    // 1. Thử cập nhật kèm is_external_managed
+    let patchPayload = {
+      duong_dan_gxd: url,
+      noi_dung_toan_van: cleanText,
+      co_toan_van_html: true,
+      is_external_managed: true,
+      updated_at: new Date().toISOString()
+    };
+
+    let patchRes = await patchSupabaseDoc(id, patchPayload);
+    // 2. Nếu schema Supabase chưa có cột is_external_managed, cập nhật mà không gửi cột này
+    if (patchRes.status === 400 && patchRes.raw && patchRes.raw.includes('is_external_managed')) {
+      delete patchPayload.is_external_managed;
+      patchRes = await patchSupabaseDoc(id, patchPayload);
+    }
+
+    if (patchRes.status >= 200 && patchRes.status < 300) {
+      console.log(`[Trích xuất Link ngoài] ✅ Thành công: ${soHieu} (${cleanText.length} ký tự)`);
+      res.end(JSON.stringify({
+        success: true,
+        id,
+        soHieu,
+        url,
+        textLength: cleanText.length,
+        snippet: cleanText.slice(0, 300)
+      }));
+    } else {
+      res.end(JSON.stringify({
+        success: false,
+        error: `Lỗi cập nhật Supabase (HTTP ${patchRes.status}): ${patchRes.raw || ''}`
+      }));
+    }
+  } catch (err) {
+    console.error('[Trích xuất Link ngoài] Thất bại:', err.message);
+    res.end(JSON.stringify({ success: false, error: err.message }));
+  }
+}
+
+/**
  * Xử lý yêu cầu HTTP/HTTPS
  */
 function handleRequest(req, res) {
@@ -285,6 +462,16 @@ function handleRequest(req, res) {
       } else {
         handleApiOcrChat(req, res, body);
       }
+    });
+    return;
+  }
+
+  // Xử lý trích xuất văn bản từ link ngoài tùy chỉnh
+  if (pathname === '/api/extract-external-law' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    req.on('end', () => {
+      handleApiExtractExternalLaw(req, res, body);
     });
     return;
   }

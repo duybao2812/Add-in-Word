@@ -83,12 +83,32 @@
     document.getElementById('btnCopyCitation').addEventListener('click', handleCopyCitation);
     document.getElementById('btnOpenSourceLink').addEventListener('click', handleOpenSourceLink);
 
+    // Nút mở Quản lý Link ngoài
+    const btnOpenExternalManager = document.getElementById('btnOpenExternalManager');
+    if (btnOpenExternalManager) {
+      btnOpenExternalManager.addEventListener('click', openExternalManagerModal);
+    }
+    const btnCloseExternal = document.getElementById('btnCloseExternalManager');
+    if (btnCloseExternal) btnCloseExternal.addEventListener('click', closeExternalManagerModal);
+    const btnDoneExternal = document.getElementById('btnDoneExternalManager');
+    if (btnDoneExternal) btnDoneExternal.addEventListener('click', closeExternalManagerModal);
+
+    const txtSearchExt = document.getElementById('txtSearchExternal');
+    if (txtSearchExt) {
+      txtSearchExt.addEventListener('input', () => {
+        renderExternalLawsTable(txtSearchExt.value.trim().toLowerCase());
+      });
+    }
+
     // Phím tắt ESC để đóng cửa sổ
     window.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
         const modal = document.getElementById('modalConfig');
-        if (modal.classList.contains('show')) {
+        const modalExt = document.getElementById('modalExternalManager');
+        if (modal && modal.classList.contains('show')) {
           closeConfigModal();
+        } else if (modalExt && modalExt.classList.contains('show')) {
+          closeExternalManagerModal();
         } else {
           window.close();
         }
@@ -516,6 +536,156 @@
     } finally {
       btn.disabled = false;
       btn.textContent = '🔍 Kiểm tra kết nối';
+    }
+  }
+
+  let cachedExternalDocs = [];
+
+  /**
+   * Modal Quản lý Link ngoài & Bóc tách văn bản tùy chỉnh
+   */
+  function openExternalManagerModal() {
+    const allDocs = window.LawSyncEngine.getAllDocuments();
+    // Lọc các văn bản có link không thuộc qlda.gxd.vn hoặc được đánh dấu quản lý ngoài
+    cachedExternalDocs = allDocs.filter(d => {
+      const url = (d.duong_dan_gxd || '').trim();
+      return !url.includes('qlda.gxd.vn') || d.is_external_managed;
+    });
+
+    renderExternalLawsTable('');
+    const modal = document.getElementById('modalExternalManager');
+    if (modal) modal.classList.add('show');
+    const txtSearch = document.getElementById('txtSearchExternal');
+    if (txtSearch) {
+      txtSearch.value = '';
+      setTimeout(() => txtSearch.focus(), 100);
+    }
+  }
+
+  function closeExternalManagerModal() {
+    const modal = document.getElementById('modalExternalManager');
+    if (modal) modal.classList.remove('show');
+    renderDocumentList();
+  }
+
+  function renderExternalLawsTable(filterText) {
+    const tbody = document.getElementById('tbodyExternalLaws');
+    const lblCount = document.getElementById('lblExternalCount');
+    if (!tbody) return;
+
+    let filtered = cachedExternalDocs;
+    if (filterText) {
+      filtered = cachedExternalDocs.filter(d => 
+        (d.so_hieu && d.so_hieu.toLowerCase().includes(filterText)) ||
+        (d.ten_van_ban && d.ten_van_ban.toLowerCase().includes(filterText)) ||
+        (d.duong_dan_gxd && d.duong_dan_gxd.toLowerCase().includes(filterText))
+      );
+    }
+
+    if (lblCount) {
+      lblCount.textContent = `Hiển thị ${filtered.length} / ${cachedExternalDocs.length} văn bản ngoài QLDA GXD`;
+    }
+
+    if (filtered.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: #888; padding: 25px;">Không có văn bản nào phù hợp.</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = filtered.map(d => {
+      const hasText = !!(d.co_toan_van_html && d.noi_dung_toan_van && d.noi_dung_toan_van.length > 50);
+      const textLen = hasText ? d.noi_dung_toan_van.length : 0;
+      const statusBadge = hasText
+        ? `<span class="badge badge-success" style="font-size: 10px;">Đã có (${textLen.toLocaleString()} ký tự)</span>`
+        : `<span class="badge badge-warning" style="font-size: 10px;">Chưa có</span>`;
+
+      return `
+        <tr data-doc-id="${d.id}">
+          <td style="font-weight: bold; color: #003366; vertical-align: middle;">
+            ${escapeHtml(d.so_hieu)}
+          </td>
+          <td style="font-size: 11.5px; color: #333; vertical-align: middle;" title="${escapeHtml(d.ten_van_ban)}">
+            ${escapeHtml(d.ten_van_ban)}
+          </td>
+          <td style="text-align: center; vertical-align: middle;" class="col-status">
+            ${statusBadge}
+          </td>
+          <td style="vertical-align: middle;">
+            <input type="text" 
+                   class="win-input-search ext-url-input" 
+                   data-id="${d.id}" 
+                   value="${escapeHtml(d.duong_dan_gxd || '')}" 
+                   placeholder="Dán link bài viết HTML chứa toàn văn văn bản..." 
+                   style="width: 100%; height: 26px; font-size: 11px; padding: 2px 6px;" />
+          </td>
+          <td style="text-align: center; vertical-align: middle;">
+            <button class="win-btn win-btn-primary btn-extract-external" 
+                    data-id="${d.id}" 
+                    data-sohieu="${escapeHtml(d.so_hieu)}"
+                    style="font-size: 11px; padding: 3px 8px; white-space: nowrap;">
+              ${hasText ? '🔄 Cập nhật' : '📥 Lấy dữ liệu'}
+            </button>
+          </td>
+        </tr>
+      `;
+    }).join('');
+
+    tbody.querySelectorAll('.btn-extract-external').forEach(btn => {
+      btn.addEventListener('click', handleExtractExternalRow);
+    });
+  }
+
+  async function handleExtractExternalRow(e) {
+    const btn = e.currentTarget;
+    const docId = parseInt(btn.getAttribute('data-id'), 10);
+    const soHieu = btn.getAttribute('data-sohieu');
+    const tr = btn.closest('tr');
+    const input = tr ? tr.querySelector('.ext-url-input') : null;
+    const url = input ? input.value.trim() : '';
+
+    if (!url || !url.startsWith('http')) {
+      alert(`[LỖI]: Vui lòng dán đường link URL hợp lệ (bắt đầu bằng http:// hoặc https://) cho văn bản ${soHieu}!`);
+      if (input) input.focus();
+      return;
+    }
+
+    const originalBtnText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = '⏳ Đang lấy...';
+
+    try {
+      const res = await fetch('/api/extract-external-law', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: docId, soHieu, url })
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        // Cập nhật bộ nhớ cục bộ
+        const doc = window.LawSyncEngine.documents.find(d => d.id === docId);
+        if (doc) {
+          doc.duong_dan_gxd = url;
+          doc.co_toan_van_html = true;
+          doc.is_external_managed = true;
+          doc.noi_dung_toan_van = data.snippet;
+          window.LawSyncEngine.saveDocumentLocally(doc);
+        }
+
+        const colStatus = tr.querySelector('.col-status');
+        if (colStatus) {
+          colStatus.innerHTML = `<span class="badge badge-success" style="font-size: 10px;">Đã có (${data.textLength.toLocaleString()} ký tự)</span>`;
+        }
+        btn.textContent = '🔄 Cập nhật';
+        alert(`✅ THÀNH CÔNG!\n\nĐã bóc tách được ${data.textLength.toLocaleString()} ký tự từ:\n${url}\nvà đã cập nhật lên Supabase Cloud Database!`);
+      } else {
+        alert(`❌ THẤT BẠI: ${data.error || 'Không rõ nguyên nhân'}`);
+        btn.textContent = originalBtnText;
+      }
+    } catch (err) {
+      alert(`❌ LỖI KẾT NỐI MÁY CHỦ LOCAL: ${err.message}\n\nHãy đảm bảo máy chủ Node.js cục bộ đang chạy.`);
+      btn.textContent = originalBtnText;
+    } finally {
+      btn.disabled = false;
     }
   }
 

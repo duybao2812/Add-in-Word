@@ -57,6 +57,10 @@
         ⚡ Đồng bộ Đám mây
       </button>
 
+      <button class="win-btn" id="btnOpenExternalManager" title="Quản lý các văn bản có link ngoài qlda.gxd.vn và trích xuất dữ liệu tùy chỉnh">
+        🔗 Quản lý Link ngoài
+      </button>
+
       <button class="win-btn" id="btnConfigApi" title="Cấu hình kết nối Supabase Cloud">
         ⚙️ Cấu hình API
       </button>
@@ -154,6 +158,46 @@
         <button class="win-btn" id="btnTestConnection">🔍 Kiểm tra kết nối</button>
         <button class="win-btn win-btn-primary" id="btnSaveConfig">💾 Lưu cấu hình</button>
         <button class="win-btn" id="btnCancelConfig">Hủy bỏ</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL POPUP: QUẢN LÝ LINK NGOÀI & TRÍCH XUẤT TÙY CHỈNH -->
+  <div class="modal-overlay" id="modalExternalManager">
+    <div class="modal-window modal-window-large">
+      <div class="modal-header">
+        <span>🔗 Quản lý Văn bản Link ngoài (Non-QLDA) &amp; Trích xuất Dữ liệu Tùy chỉnh</span>
+        <button class="modal-close-btn" id="btnCloseExternalManager">×</button>
+      </div>
+      <div class="modal-body" style="padding: 10px 14px;">
+        <div style="margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; gap: 10px;">
+          <p style="color: #444; font-size: 11.5px; margin: 0; line-height: 1.4;">
+            Danh sách các văn bản có link không thuộc <code>qlda.gxd.vn</code>. Bạn có thể dán link bài viết chính phủ, thư viện pháp luật hoặc văn bản mới, rồi bấm <b>Lấy dữ liệu</b> để máy local bóc tách và đẩy lên Supabase (Bot GitHub sẽ tự động bỏ qua các văn bản này).
+          </p>
+          <input type="text" id="txtSearchExternal" class="win-input-search" style="width: 220px; height: 26px; flex-shrink: 0;" placeholder="🔍 Lọc số hiệu, tên..." />
+        </div>
+        <div class="external-table-scroll">
+          <table class="win-table" id="tblExternalLaws">
+            <thead>
+              <tr>
+                <th style="width: 140px;">Số hiệu</th>
+                <th>Tên văn bản</th>
+                <th style="width: 85px; text-align: center;">Trạng thái</th>
+                <th style="width: 320px;">Link chứa văn bản có thể trích xuất</th>
+                <th style="width: 120px; text-align: center;">Hành động</th>
+              </tr>
+            </thead>
+            <tbody id="tbodyExternalLaws">
+              <!-- Render by JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer" style="justify-content: space-between;">
+        <div style="font-size: 11px; color: #666; display: flex; align-items: center;">
+          <span id="lblExternalCount">Đang tải danh sách...</span>
+        </div>
+        <button class="win-btn win-btn-primary" id="btnDoneExternalManager">Đóng cửa sổ</button>
       </div>
     </div>
   </div>
