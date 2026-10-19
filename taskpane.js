@@ -1388,6 +1388,18 @@ async function standardizeCongVan(context, body, opt) {
   }
 }
 
+/**
+ * Trích xuất cụm "ngày ... tháng ... năm ..." từ chuỗi địa danh / ngày tháng
+ */
+function extractOnlyDate(dateStr) {
+  if (!dateStr || typeof dateStr !== "string") {
+    const today = new Date();
+    return `ngày ${String(today.getDate()).padStart(2, "0")} tháng ${String(today.getMonth() + 1).padStart(2, "0")} năm ${today.getFullYear()}`;
+  }
+  const match = dateStr.match(/ngày\s+\d+.*tháng\s+\d+.*năm\s+\d+/i) || dateStr.match(/ngày\s+.*tháng\s+.*năm.*/i);
+  return match ? match[0] : dateStr;
+}
+
 /* ==========================================================================
    4b. CHUẨN HÓA HỢP ĐỒNG KINH TẾ / DỊCH VỤ / THI CÔNG (HĐ)
    ========================================================================== */

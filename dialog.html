@@ -297,15 +297,106 @@
       font-size: 11px;
     }
 
-    /* Bottom Action Bar */
-    .win-bottom-bar {
-      background-color: #F0F0F0;
-      border-top: 1px solid #D0D0D0;
-      padding: 6px 10px;
+    /* WinForms Modal Dialog Box */
+    .win-modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.4);
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .win-modal-dialog {
+      width: 600px;
+      max-width: 95%;
+      background: #F0F0F0;
+      border: 1px solid #005499;
+      box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.5);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .win-modal-titlebar {
+      background: linear-gradient(to right, #005499, #0078D7);
+      color: #FFFFFF;
+      font-weight: 600;
+      font-size: 12px;
+      padding: 4px 8px;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      flex-shrink: 0;
+    }
+
+    .win-modal-close-x {
+      background: transparent;
+      border: none;
+      color: #FFFFFF;
+      font-weight: bold;
+      font-size: 13px;
+      cursor: pointer;
+      padding: 0 4px;
+      line-height: 1;
+    }
+
+    .win-modal-close-x:hover {
+      background: #E81123;
+    }
+
+    .win-modal-body {
+      padding: 10px 12px;
+      background: #F0F0F0;
+      max-height: 420px;
+      overflow-y: auto;
+    }
+
+    .win-help-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11.5px;
+      background: #FFFFFF;
+      border: 1px solid #7F9DB9;
+    }
+
+    .win-help-table th {
+      background: #EAEAEA;
+      border: 1px solid #B5B5B5;
+      padding: 5px 8px;
+      text-align: left;
+      font-weight: 600;
+    }
+
+    .win-help-table td {
+      border: 1px solid #D9D9D9;
+      padding: 6px 8px;
+      vertical-align: top;
+      line-height: 1.4;
+    }
+
+    .win-help-table tr:nth-child(even) td {
+      background: #F9F9F9;
+    }
+
+    .win-btn-tag {
+      display: inline-block;
+      padding: 2px 6px;
+      background: #0078D7;
+      color: #FFFFFF;
+      font-weight: 600;
+      font-size: 11px;
+      white-space: nowrap;
+    }
+
+    .win-modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      padding: 6px 10px;
+      background: #E1E1E1;
+      border-top: 1px solid #B5B5B5;
     }
 
     /* 4. StatusStrip */
@@ -340,16 +431,16 @@
 <body>
   <div id="window-root">
 
-    <!-- 1. MenuStrip -->
+    <!-- 1. MenuStrip Cổ điển (Trợ giúp nằm trên thanh MenuStrip trên cùng) -->
     <nav class="win-menustrip">
       <div class="win-menu-item">Tệp (<u>F</u>)</div>
       <div class="win-menu-item">Chỉnh sửa (<u>E</u>)</div>
       <div class="win-menu-item">Mẫu bảng giá (<u>T</u>)</div>
       <div class="win-menu-item">Tương tác Word (<u>W</u>)</div>
-      <div class="win-menu-item">Trợ giúp (<u>H</u>)</div>
+      <div class="win-menu-item" id="menuItemHelp" style="cursor: pointer; font-weight: 600; color: #003399;" title="Bấm để xem danh sách chức năng các nút">Trợ giúp (<u>H</u>)</div>
     </nav>
 
-    <!-- 2. ToolStrip -->
+    <!-- 2. ToolStrip (Đánh số thứ tự) -->
     <div class="win-toolstrip">
       <button class="win-btn" id="btnToolAdd">1. Thêm dòng</button>
       <button class="win-btn" id="btnToolDelete">2. Xóa dòng</button>
@@ -359,8 +450,7 @@
       <button class="win-btn" id="btnToolSyncForm">5. Lấy về Form</button>
       <div class="win-separator"></div>
       <button class="win-btn" id="btnToolExportCsv">6. Xuất CSV</button>
-      <button class="win-btn" id="btnToolHelp">7. Trợ giúp</button>
-      <button class="win-btn" id="btnToolClose">8. Đóng</button>
+      <button class="win-btn" id="btnToolClose">7. Đóng</button>
     </div>
 
     <!-- 3. Nội dung Form -->
@@ -504,6 +594,85 @@
         WinForms Standalone Window v2.6.0
       </div>
     </footer>
+
+    <!-- 5. WinForms Modal Trợ giúp Hướng dẫn tính năng các nút -->
+    <div id="dlgHelpGuideOverlay" class="win-modal-overlay hidden" style="display: none;">
+      <div class="win-modal-dialog" role="dialog" aria-labelledby="dlgHelpTitle">
+        <div class="win-modal-titlebar">
+          <span id="dlgHelpTitle">Trợ giúp - Danh sách tính năng các nút [Bảng Dự toán Hợp đồng]</span>
+          <button class="win-modal-close-x" id="btnCloseHelpX" title="Đóng">✕</button>
+        </div>
+        <div class="win-modal-body">
+          <table class="win-help-table">
+            <thead>
+              <tr>
+                <th style="width: 150px;">Tên nút trên thanh công cụ</th>
+                <th>Chức năng chi tiết</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span class="win-btn-tag">1. Thêm dòng</span></td>
+                <td>
+                  <strong>Thêm một dòng chi phí / hạng mục mới:</strong><br />
+                  - Thêm dòng mới vào cuối bảng với giá trị mặc định để nhập thêm vật tư, ca máy, nhân công hoặc hạng mục thi công.
+                </td>
+              </tr>
+              <tr>
+                <td><span class="win-btn-tag">2. Xóa dòng</span></td>
+                <td>
+                  <strong>Xóa dòng được chọn:</strong><br />
+                  - Xóa dòng đang chọn trong bảng (hoặc xóa dòng cuối cùng nếu chưa chọn dòng cụ thể nào).
+                </td>
+              </tr>
+              <tr>
+                <td><span class="win-btn-tag">3. Nạp lại mẫu</span></td>
+                <td>
+                  <strong>Tải lại dữ liệu mẫu:</strong><br />
+                  - Tải lại bảng tính mẫu chuẩn theo loại hình đang chọn (Thi công xây lắp, Cung cấp vật tư, Thuê máy thiết bị).
+                </td>
+              </tr>
+              <tr>
+                <td><span class="win-btn-tag">4. Chèn vào Word</span></td>
+                <td>
+                  <strong>Chèn bảng vào tài liệu Word:</strong><br />
+                  - Tạo bảng biểu Word chuyên nghiệp (kẻ viền, căn lề số tiền sang phải, in đậm tiêu đề và dòng tổng cộng kèm thuế VAT và số tiền bằng chữ) trực tiếp vào tài liệu Word đang mở.
+                </td>
+              </tr>
+              <tr>
+                <td><span class="win-btn-tag">5. Lấy về Form</span></td>
+                <td>
+                  <strong>Đồng bộ về Add-in Word:</strong><br />
+                  - Đẩy tổng số tiền thanh toán (bằng số & bằng chữ) cùng Tên công trình, Gói thầu, Địa điểm về Form trong Taskpane Word.
+                </td>
+              </tr>
+              <tr>
+                <td><span class="win-btn-tag">6. Xuất CSV</span></td>
+                <td>
+                  <strong>Xuất file bảng tính:</strong><br />
+                  - Xuất bảng tính hiện tại ra file CSV (chuẩn UTF-8 có BOM) để mở trực tiếp trong Excel.
+                </td>
+              </tr>
+              <tr>
+                <td><span class="win-btn-tag">7. Đóng</span></td>
+                <td>
+                  <strong>Đóng cửa sổ:</strong><br />
+                  - Đóng cửa sổ bảng giá dự toán để quay lại văn bản Word.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <div style="margin-top: 10px; font-size: 11px; color: #555; background: #FFF; padding: 6px; border: 1px dashed #B5B5B5;">
+            ✨ <strong>Tính năng thông minh:</strong><br />
+            - Ô <em>Đơn giá</em>: Nhập tới đâu tự động nhảy dấu chấm phân cách hàng nghìn (VD: 10.000.000) tức thì và tự tính lại thành tiền.<br />
+            - Ô <em>Đơn vị tính (ĐVT)</em>: Hỗ trợ chọn nhanh danh mục đơn vị thường dùng cho vật tư, ca máy, nhân công hoặc gõ tay tùy ý.
+          </div>
+        </div>
+        <div class="win-modal-actions">
+          <button class="win-btn win-btn-primary" id="btnCloseHelpOk" style="min-width: 80px;">Đóng</button>
+        </div>
+      </div>
+    </div>
 
   </div>
 
@@ -820,28 +989,19 @@
     }
 
     function showHelpGuide() {
-      alert(
-        "HƯỚNG DẪN TÍNH NĂNG CÁC NÚT TRÊN CỬA SỔ BẢNG GIÁ DỰ TOÁN:\n\n" +
-        "1. Nút [1. Thêm dòng]:\n" +
-        "   - Thêm một hàng mới vào cuối bảng dự toán để nhập công việc, thiết bị hoặc vật tư.\n\n" +
-        "2. Nút [2. Xóa dòng]:\n" +
-        "   - Xóa dòng đang được nhấp chọn trong bảng dự toán.\n\n" +
-        "3. Nút [3. Nạp lại mẫu]:\n" +
-        "   - Nạp lại bộ dữ liệu mẫu định sẵn theo Loại mẫu bảng giá bạn chọn (Thi công xây dựng, Mua bán vật tư, hoặc Cung ứng dịch vụ).\n\n" +
-        "4. Nút [4. Chèn vào Word]:\n" +
-        "   - Tự động tạo và chèn bảng biểu dự toán hoàn chỉnh vào tài liệu Microsoft Word kèm Tên công trình, Gói thầu, Địa điểm, tính tổng tiền trước thuế, thuế GTGT và tổng cộng bằng số & chữ.\n\n" +
-        "5. Nút [5. Lấy về Form]:\n" +
-        "   - Đồng bộ tổng giá trị thanh toán và 3 ô thông tin công trình về Form chính của Add-in Word.\n\n" +
-        "6. Nút [6. Xuất CSV]:\n" +
-        "   - Xuất dữ liệu bảng dự toán ra tệp tin CSV/Excel có dấu tiếng Việt (UTF-8 BOM).\n\n" +
-        "7. Nút [7. Trợ giúp]:\n" +
-        "   - Mở bảng hướng dẫn tính năng chi tiết này.\n\n" +
-        "8. Nút [8. Đóng]:\n" +
-        "   - Đóng cửa sổ bảng giá dự toán.\n\n" +
-        "* Tính năng tự động thông minh:\n" +
-        "- Ô Đơn giá: Nhập tới đâu tự động nhảy dấu chấm phân cách hàng nghìn (VD: 10.000.000) tức thì và tự tính lại Thành tiền.\n" +
-        "- Ô ĐVT: Hỗ trợ chọn nhanh danh mục đơn vị thường dùng hoặc gõ tay tùy ý."
-      );
+      const modal = document.getElementById("dlgHelpGuideOverlay");
+      if (modal) {
+        modal.style.display = "flex";
+        modal.classList.remove("hidden");
+      }
+    }
+
+    function closeHelpGuide() {
+      const modal = document.getElementById("dlgHelpGuideOverlay");
+      if (modal) {
+        modal.style.display = "none";
+        modal.classList.add("hidden");
+      }
     }
 
     // Gắn sự kiện
@@ -852,7 +1012,22 @@
       document.getElementById("btnToolInsertWord")?.addEventListener("click", sendInsertToWord);
       document.getElementById("btnToolSyncForm")?.addEventListener("click", sendSyncToTaskpane);
       document.getElementById("btnToolExportCsv")?.addEventListener("click", exportToCsv);
-      document.getElementById("btnToolHelp")?.addEventListener("click", showHelpGuide);
+
+      // Mở Trợ giúp từ MenuStrip trên cùng
+      document.getElementById("menuItemHelp")?.addEventListener("click", showHelpGuide);
+
+      // Đóng modal Trợ giúp
+      document.getElementById("btnCloseHelpX")?.addEventListener("click", closeHelpGuide);
+      document.getElementById("btnCloseHelpOk")?.addEventListener("click", closeHelpGuide);
+      document.getElementById("dlgHelpGuideOverlay")?.addEventListener("click", (e) => {
+        if (e.target.id === "dlgHelpGuideOverlay") closeHelpGuide();
+      });
+
+      // Phím tắt Esc đóng modal
+      window.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") closeHelpGuide();
+      });
+
       document.getElementById("btnToolClose")?.addEventListener("click", () => window.close());
 
       document.getElementById("cboTemplateType")?.addEventListener("change", (e) => loadTemplate(e.target.value));

@@ -193,16 +193,106 @@
       border: 1px solid #B8D6F5;
     }
 
-    /* 4. Footer */
-    .win-bottom-bar {
+    /* WinForms Modal Dialog Box */
+    .win-modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.4);
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .win-modal-dialog {
+      width: 580px;
+      max-width: 95%;
+      background: #F0F0F0;
+      border: 1px solid #005499;
+      box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.5);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .win-modal-titlebar {
+      background: linear-gradient(to right, #005499, #0078D7);
+      color: #FFFFFF;
+      font-weight: 600;
+      font-size: 12px;
+      padding: 4px 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .win-modal-close-x {
+      background: transparent;
+      border: none;
+      color: #FFFFFF;
+      font-weight: bold;
+      font-size: 13px;
+      cursor: pointer;
+      padding: 0 4px;
+      line-height: 1;
+    }
+
+    .win-modal-close-x:hover {
+      background: #E81123;
+    }
+
+    .win-modal-body {
+      padding: 10px 12px;
+      background: #F0F0F0;
+      max-height: 420px;
+      overflow-y: auto;
+    }
+
+    .win-help-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11.5px;
+      background: #FFFFFF;
+      border: 1px solid #7F9DB9;
+    }
+
+    .win-help-table th {
+      background: #EAEAEA;
+      border: 1px solid #B5B5B5;
+      padding: 5px 8px;
+      text-align: left;
+      font-weight: 600;
+    }
+
+    .win-help-table td {
+      border: 1px solid #D9D9D9;
+      padding: 6px 8px;
+      vertical-align: top;
+      line-height: 1.4;
+    }
+
+    .win-help-table tr:nth-child(even) td {
+      background: #F9F9F9;
+    }
+
+    .win-btn-tag {
+      display: inline-block;
+      padding: 2px 6px;
+      background: #0078D7;
+      color: #FFFFFF;
+      font-weight: 600;
+      font-size: 11px;
+      white-space: nowrap;
+    }
+
+    .win-modal-actions {
       display: flex;
       justify-content: flex-end;
-      align-items: center;
-      gap: 6px;
-      padding: 5px 8px;
-      background-color: #E6E6E6;
-      border-top: 1px solid #C0C0C0;
-      flex-shrink: 0;
+      padding: 6px 10px;
+      background: #E1E1E1;
+      border-top: 1px solid #B5B5B5;
     }
 
     .win-statusstrip {
@@ -229,12 +319,12 @@
 <body>
   <div id="window-root">
 
-    <!-- 1. MenuStrip -->
+    <!-- 1. MenuStrip Cổ điển (Trợ giúp nằm trên thanh MenuStrip trên cùng) -->
     <nav class="win-menustrip">
       <div class="win-menu-item">Hệ thống</div>
       <div class="win-menu-item">Quy chuẩn thể thức</div>
       <div class="win-menu-item">Áp dụng Word</div>
-      <div class="win-menu-item">Đóng</div>
+      <div class="win-menu-item" id="menuItemHelp" style="cursor: pointer; font-weight: 600; color: #003399;" title="Bấm để xem danh sách chức năng các nút">Trợ giúp (<u>H</u>)</div>
     </nav>
 
     <!-- 2. ToolStrip (Đánh số thứ tự) -->
@@ -249,12 +339,8 @@
 
       <div class="win-separator"></div>
 
-      <button class="win-btn" id="btnToolHelp" title="Xem hướng dẫn tính năng các nút">
-        3. Trợ giúp
-      </button>
-
       <button class="win-btn" id="btnToolClose" title="Đóng cửa sổ">
-        4. Đóng
+        3. Đóng
       </button>
     </header>
 
@@ -395,6 +481,59 @@
       </div>
     </footer>
 
+    <!-- 5. WinForms Modal Trợ giúp Hướng dẫn tính năng các nút -->
+    <div id="dlgHelpGuideOverlay" class="win-modal-overlay hidden" style="display: none;">
+      <div class="win-modal-dialog" role="dialog" aria-labelledby="dlgHelpTitle">
+        <div class="win-modal-titlebar">
+          <span id="dlgHelpTitle">Trợ giúp - Danh sách tính năng các nút [Sổ tay Quy chuẩn NĐ 30]</span>
+          <button class="win-modal-close-x" id="btnCloseHelpX" title="Đóng">✕</button>
+        </div>
+        <div class="win-modal-body">
+          <table class="win-help-table">
+            <thead>
+              <tr>
+                <th style="width: 170px;">Tên nút trên thanh công cụ</th>
+                <th>Chức năng chi tiết</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span class="win-btn-tag">1. Căn lề chuẩn A4 vào Word</span></td>
+                <td>
+                  <strong>Thiết lập định dạng trang A4 theo Nghị định 30:</strong><br />
+                  - Tự động áp dụng khoảng cách lề chuẩn vào tài liệu Microsoft Word:<br />
+                  &nbsp;&nbsp;• Lề trên: 20 mm (56.7 pt)<br />
+                  &nbsp;&nbsp;• Lề dưới: 20 mm (56.7 pt)<br />
+                  &nbsp;&nbsp;• Lề trái: 30 mm (85.05 pt - chừa gáy lưu trữ hồ sơ)<br />
+                  &nbsp;&nbsp;• Lề phải: 15 mm (42.52 pt)
+                </td>
+              </tr>
+              <tr>
+                <td><span class="win-btn-tag">2. Chuẩn hóa Font Times New Roman</span></td>
+                <td>
+                  <strong>Đồng bộ phông chữ toàn văn bản:</strong><br />
+                  - Quét và chuyển đổi toàn bộ phông chữ của tài liệu Word về đúng phông <em>Times New Roman</em> chuẩn Unicode TCVN 6909:2001, cỡ chữ 13pt theo đúng quy định.
+                </td>
+              </tr>
+              <tr>
+                <td><span class="win-btn-tag">3. Đóng</span></td>
+                <td>
+                  <strong>Đóng cửa sổ:</strong><br />
+                  - Đóng cửa sổ sổ tay tra cứu để quay lại màn hình làm việc của Word.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <div style="margin-top: 10px; font-size: 11px; color: #555; background: #FFF; padding: 6px; border: 1px dashed #B5B5B5;">
+            📖 <strong>Bảng tra cứu quy chuẩn:</strong> Bên dưới là bảng tra cứu chi tiết 13 thành phần thể thức văn bản hành chính theo Nghị định 30/2020/NĐ-CP (Cỡ chữ, Phông chữ, Kiểu chữ đứng/đậm/nghiêng và cách bố trí).
+          </div>
+        </div>
+        <div class="win-modal-actions">
+          <button class="win-btn win-btn-primary" id="btnCloseHelpOk" style="min-width: 80px;">Đóng</button>
+        </div>
+      </div>
+    </div>
+
   </div>
 
   <script>
@@ -440,29 +579,40 @@
     }
 
     function showHelpGuide() {
-      alert(
-        "HƯỚNG DẪN TÍNH NĂNG CÁC NÚT TRÊN SỔ TAY QUY CHUẨN THỂ THỨC (NĐ 30):\n\n" +
-        "1. Nút [1. Căn lề chuẩn A4 vào Word]:\n" +
-        "   - Tự động thiết lập định dạng lề trang chuẩn khổ A4 theo Nghị định 30/2020/NĐ-CP vào văn bản Word:\n" +
-        "     • Lề trên: 20 mm (56.7 pt)\n" +
-        "     • Lề dưới: 20 mm (56.7 pt)\n" +
-        "     • Lề trái: 30 mm (85.05 pt - chừa lề đóng gáy hồ sơ)\n" +
-        "     • Lề phải: 15 mm (42.52 pt)\n\n" +
-        "2. Nút [2. Chuẩn hóa Font Times New Roman]:\n" +
-        "   - Quét và chuyển đổi toàn bộ phông chữ của tài liệu Word về đúng phông Times New Roman chuẩn Unicode TCVN 6909:2001, cỡ chữ 13pt.\n\n" +
-        "3. Nút [3. Trợ giúp]:\n" +
-        "   - Mở bảng hướng dẫn tính năng chi tiết này.\n\n" +
-        "4. Nút [4. Đóng]:\n" +
-        "   - Đóng cửa sổ sổ tay tra cứu thể thức.\n\n" +
-        "* Bảng tra cứu trực quan bên dưới:\n" +
-        "- Hiển thị chi tiết 13 thành phần thể thức quy định trong NĐ 30: Vị trí, Font chữ, Cỡ chữ, Kiểu chữ in hoa/đậm/nghiêng giúp bạn dễ dàng đối chiếu khi soạn thảo."
-      );
+      const modal = document.getElementById("dlgHelpGuideOverlay");
+      if (modal) {
+        modal.style.display = "flex";
+        modal.classList.remove("hidden");
+      }
+    }
+
+    function closeHelpGuide() {
+      const modal = document.getElementById("dlgHelpGuideOverlay");
+      if (modal) {
+        modal.style.display = "none";
+        modal.classList.add("hidden");
+      }
     }
 
     window.addEventListener("DOMContentLoaded", () => {
       document.getElementById("btnToolApplyMargin")?.addEventListener("click", sendApplyMarginsToWord);
       document.getElementById("btnToolApplyFont")?.addEventListener("click", sendApplyFontToWord);
-      document.getElementById("btnToolHelp")?.addEventListener("click", showHelpGuide);
+
+      // Mở Trợ giúp từ MenuStrip trên cùng
+      document.getElementById("menuItemHelp")?.addEventListener("click", showHelpGuide);
+
+      // Đóng modal Trợ giúp
+      document.getElementById("btnCloseHelpX")?.addEventListener("click", closeHelpGuide);
+      document.getElementById("btnCloseHelpOk")?.addEventListener("click", closeHelpGuide);
+      document.getElementById("dlgHelpGuideOverlay")?.addEventListener("click", (e) => {
+        if (e.target.id === "dlgHelpGuideOverlay") closeHelpGuide();
+      });
+
+      // Phím tắt Esc đóng modal
+      window.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") closeHelpGuide();
+      });
+
       document.getElementById("btnToolClose")?.addEventListener("click", () => window.close());
     });
   </script>

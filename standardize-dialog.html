@@ -290,16 +290,106 @@
       display: none !important;
     }
 
-    /* 4. Footer thanh nút đáy */
-    .win-bottom-bar {
+    /* WinForms Modal Dialog Box */
+    .win-modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.4);
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .win-modal-dialog {
+      width: 580px;
+      max-width: 95%;
+      background: #F0F0F0;
+      border: 1px solid #005499;
+      box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.5);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .win-modal-titlebar {
+      background: linear-gradient(to right, #005499, #0078D7);
+      color: #FFFFFF;
+      font-weight: 600;
+      font-size: 12px;
+      padding: 4px 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .win-modal-close-x {
+      background: transparent;
+      border: none;
+      color: #FFFFFF;
+      font-weight: bold;
+      font-size: 13px;
+      cursor: pointer;
+      padding: 0 4px;
+      line-height: 1;
+    }
+
+    .win-modal-close-x:hover {
+      background: #E81123;
+    }
+
+    .win-modal-body {
+      padding: 10px 12px;
+      background: #F0F0F0;
+      max-height: 420px;
+      overflow-y: auto;
+    }
+
+    .win-help-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11.5px;
+      background: #FFFFFF;
+      border: 1px solid #7F9DB9;
+    }
+
+    .win-help-table th {
+      background: #EAEAEA;
+      border: 1px solid #B5B5B5;
+      padding: 5px 8px;
+      text-align: left;
+      font-weight: 600;
+    }
+
+    .win-help-table td {
+      border: 1px solid #D9D9D9;
+      padding: 6px 8px;
+      vertical-align: top;
+      line-height: 1.4;
+    }
+
+    .win-help-table tr:nth-child(even) td {
+      background: #F9F9F9;
+    }
+
+    .win-btn-tag {
+      display: inline-block;
+      padding: 2px 6px;
+      background: #0078D7;
+      color: #FFFFFF;
+      font-weight: 600;
+      font-size: 11px;
+      white-space: nowrap;
+    }
+
+    .win-modal-actions {
       display: flex;
       justify-content: flex-end;
-      align-items: center;
-      gap: 6px;
-      padding: 5px 8px;
-      background-color: #E6E6E6;
-      border-top: 1px solid #C0C0C0;
-      flex-shrink: 0;
+      padding: 6px 10px;
+      background: #E1E1E1;
+      border-top: 1px solid #B5B5B5;
     }
 
     /* 5. StatusStrip chân Form */
@@ -337,17 +427,17 @@
 <body>
   <div id="window-root">
 
-    <!-- 1. MenuStrip -->
+    <!-- 1. MenuStrip Cổ điển (Trợ giúp nằm cạnh Thư viện mẫu) -->
     <nav class="win-menustrip">
       <div class="win-menu-item">Hệ thống</div>
       <div class="win-menu-item">Chuẩn hóa NĐ 30</div>
       <div class="win-menu-item">Thư viện mẫu</div>
-      <div class="win-menu-item" id="menuItemHelp" style="cursor: pointer;">Trợ giúp</div>
+      <div class="win-menu-item" id="menuItemHelp" style="cursor: pointer; font-weight: 600; color: #003399;" title="Bấm để xem danh sách chức năng các nút">Trợ giúp (<u>H</u>)</div>
     </nav>
 
     <!-- 2. ToolStrip (Đánh số thứ tự 1. 2. 3...) -->
     <header class="win-toolstrip" role="toolbar">
-      <button class="win-btn win-btn-primary" id="btnToolStandardize" title="Chuẩn hóa toàn bộ văn bản trong Word">
+      <button class="win-btn win-btn-primary" id="btnToolStandardize" title="Chuẩn hóa toàn bộ văn bản trong Word theo NĐ 30">
         1. Chuẩn hóa vào Word
       </button>
 
@@ -367,12 +457,8 @@
 
       <div class="win-separator"></div>
 
-      <button class="win-btn" id="btnToolHelp" title="Xem hướng dẫn tính năng các nút bấm">
-        5. Trợ giúp
-      </button>
-
       <button class="win-btn" id="btnToolClose" title="Đóng cửa sổ">
-        6. Đóng
+        5. Đóng
       </button>
     </header>
 
@@ -725,6 +811,69 @@
       </div>
     </footer>
 
+    <!-- 5. WinForms Modal Trợ giúp Hướng dẫn tính năng các nút -->
+    <div id="dlgHelpGuideOverlay" class="win-modal-overlay hidden">
+      <div class="win-modal-dialog" role="dialog" aria-labelledby="dlgHelpTitle">
+        <div class="win-modal-titlebar">
+          <span id="dlgHelpTitle">Trợ giúp - Danh sách tính năng các nút [Chuẩn hóa NĐ 30]</span>
+          <button class="win-modal-close-x" id="btnCloseHelpX" title="Đóng">✕</button>
+        </div>
+        <div class="win-modal-body">
+          <table class="win-help-table">
+            <thead>
+              <tr>
+                <th style="width: 170px;">Tên nút trên thanh công cụ</th>
+                <th>Chức năng chi tiết</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span class="win-btn-tag">1. Chuẩn hóa vào Word</span></td>
+                <td>
+                  <strong>Quét và tái cấu trúc văn bản đang mở trong Word:</strong><br />
+                  - Tự động nhận diện Quốc hiệu, Tiêu ngữ, Tên cơ quan, Số ký hiệu, Địa danh/Ngày tháng, Trích yếu, Thân bài, Nơi nhận và Chữ ký.<br />
+                  - Định dạng bảng tiêu đề 2 cột không viền có gạch ngang chuẩn NĐ 30/2020/NĐ-CP.<br />
+                  - Thiết lập căn lề chuẩn A4 (Trên 20, Dưới 20, Trái 30, Phải 15mm), phông Times New Roman cỡ 13pt.
+                </td>
+              </tr>
+              <tr>
+                <td><span class="win-btn-tag">2. Chèn mẫu vào Word</span></td>
+                <td>
+                  <strong>Chèn khung văn bản mẫu hoàn chỉnh mới:</strong><br />
+                  - Chèn ngay cấu trúc văn bản chuẩn theo <em>Loại văn bản</em> đang chọn (Công văn, Hợp đồng, Biên bản, Tờ trình) vào tài liệu Word để bắt đầu soạn thảo ngay.<br />
+                  - Điền sẵn đầy đủ thông tin Tên công trình, Gói thầu, Địa điểm, Đại diện các bên đã nhập trên Form.
+                </td>
+              </tr>
+              <tr>
+                <td><span class="win-btn-tag">3. Đồng bộ về Taskpane</span></td>
+                <td>
+                  <strong>Chuyển dữ liệu về Add-in Word:</strong><br />
+                  - Lưu và đồng bộ dữ liệu các ô nhập (Cơ quan ban hành, Dự án, Gói thầu, Địa điểm, Bên A, Bên B...) về bảng điều khiển (Taskpane) của Add-in Word.
+                </td>
+              </tr>
+              <tr>
+                <td><span class="win-btn-tag">4. Xóa trắng Form</span></td>
+                <td>
+                  <strong>Làm mới nhập liệu:</strong><br />
+                  - Đặt lại tất cả các ô nhập liệu về trạng thái mặc định ban đầu để bắt đầu soạn văn bản mới.
+                </td>
+              </tr>
+              <tr>
+                <td><span class="win-btn-tag">5. Đóng</span></td>
+                <td>
+                  <strong>Đóng cửa sổ:</strong><br />
+                  - Đóng cửa sổ Chuẩn hóa Thể thức để quay lại màn hình Word.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="win-modal-actions">
+          <button class="win-btn win-btn-primary" id="btnCloseHelpOk" style="min-width: 80px;">Đóng</button>
+        </div>
+      </div>
+    </div>
+
   </div>
 
   <script>
@@ -943,23 +1092,13 @@
     }
 
     function showHelpGuide() {
-      alert(
-        "HƯỚNG DẪN TÍNH NĂNG CÁC NÚT TRÊN CỬA SỔ CHUẨN HÓA THỂ THỨC (NĐ 30):\n\n" +
-        "1. Nút [1. Chuẩn hóa vào Word]:\n" +
-        "   - Quét toàn bộ nội dung văn bản trong tài liệu Word đang mở.\n" +
-        "   - Tự động nhận diện Quốc hiệu, Tiêu ngữ, Cơ quan, Số hiệu, Trích yếu, Thân bài, Nơi nhận và Chữ ký.\n" +
-        "   - Tái cấu trúc chuẩn 100% theo Nghị định 30/2020/NĐ-CP: Bảng tiêu ngữ 2 cột không viền có gạch ngang, số ký hiệu tự động, trích yếu, căn lề trang A4 (Trên 20, Dưới 20, Trái 30, Phải 15mm), phông Times New Roman 13pt, bảng Nơi nhận & Chữ ký 2 bên cân đối.\n\n" +
-        "2. Nút [2. Chèn mẫu vào Word]:\n" +
-        "   - Chèn ngay một bộ khung mẫu văn bản hoàn chỉnh theo đúng Loại văn bản đang chọn (Công văn, Hợp đồng, Biên bản, Tờ trình) vào tài liệu Word để bạn bắt đầu soạn thảo ngay mà không phải thiết lập thủ công.\n\n" +
-        "3. Nút [3. Đồng bộ về Taskpane]:\n" +
-        "   - Lưu và chuyển toàn bộ thông tin bạn vừa nhập trên cửa sổ này (Tên công trình, Gói thầu, Địa điểm, Cơ quan ban hành, Đại diện Bên A/B...) về Form của Add-in Word.\n\n" +
-        "4. Nút [4. Xóa trắng Form]:\n" +
-        "   - Đặt lại tất cả các ô nhập liệu về trạng thái ban đầu mặc định.\n\n" +
-        "5. Nút [5. Trợ giúp]:\n" +
-        "   - Mở bảng hướng dẫn chi tiết tính năng của từng nút bấm.\n\n" +
-        "6. Nút [6. Đóng]:\n" +
-        "   - Đóng cửa sổ chuẩn hóa thể thức."
-      );
+      const modal = document.getElementById("dlgHelpGuideOverlay");
+      if (modal) modal.classList.remove("hidden");
+    }
+
+    function closeHelpGuide() {
+      const modal = document.getElementById("dlgHelpGuideOverlay");
+      if (modal) modal.classList.add("hidden");
     }
 
     window.addEventListener("DOMContentLoaded", () => {
@@ -1015,8 +1154,22 @@
       document.getElementById("btnToolInsertTemplate")?.addEventListener("click", sendInsertTemplateToWord);
       document.getElementById("btnToolSyncToTaskpane")?.addEventListener("click", sendSyncToTaskpane);
       document.getElementById("btnToolClear")?.addEventListener("click", clearForm);
-      document.getElementById("btnToolHelp")?.addEventListener("click", showHelpGuide);
+      
+      // Mở Trợ giúp từ MenuStrip trên cùng (kế bên Thư viện mẫu)
       document.getElementById("menuItemHelp")?.addEventListener("click", showHelpGuide);
+
+      // Đóng modal Trợ giúp
+      document.getElementById("btnCloseHelpX")?.addEventListener("click", closeHelpGuide);
+      document.getElementById("btnCloseHelpOk")?.addEventListener("click", closeHelpGuide);
+      document.getElementById("dlgHelpGuideOverlay")?.addEventListener("click", (e) => {
+        if (e.target.id === "dlgHelpGuideOverlay") closeHelpGuide();
+      });
+
+      // Phím tắt Esc để đóng modal
+      window.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") closeHelpGuide();
+      });
+
       document.getElementById("btnToolClose")?.addEventListener("click", () => window.close());
     });
   </script>
