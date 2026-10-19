@@ -11,7 +11,8 @@
     "clear-cache": "powershell -Command \"Stop-Process -Name WINWORD -Force -ErrorAction SilentlyContinue; Remove-Item -Path ($env:LOCALAPPDATA + '\\Microsoft\\Office\\16.0\\Wef\\*') -Recurse -Force -ErrorAction SilentlyContinue; Write-Host 'Đã xóa sạch Office cache!'\"",
     "certs": "npx office-addin-dev-certs install",
     "validate": "npx office-addin-manifest validate manifest.xml",
-    "check-machine": "node scripts/detect-machine.js"
+    "check-machine": "node scripts/detect-machine.js",
+    "push": "powershell -ExecutionPolicy Bypass -File scripts/git-push.ps1"
   },
   "keywords": [
     "office-add-in",
