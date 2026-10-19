@@ -593,7 +593,7 @@
   function openExternalManagerModal() {
     try {
       const cboScope = document.getElementById('cboScopeExternal');
-      if (cboScope) cboScope.value = 'non-gxd';
+      if (cboScope) cboScope.value = 'missing-text';
 
       const txtSearch = document.getElementById('txtSearchExternal');
       if (txtSearch) txtSearch.value = '';
