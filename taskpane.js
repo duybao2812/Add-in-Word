@@ -1857,6 +1857,25 @@ function formatCurrency(num) {
 }
 
 /**
+ * Định dạng số có dấu chấm hàng nghìn nhảy theo thời gian thực (real-time)
+ */
+function formatDots(val) {
+  if (val === null || val === undefined || val === "") return "";
+  const num = typeof val === "number" ? Math.round(val) : parseInt(String(val).replace(/[^\d]/g, ""), 10);
+  if (isNaN(num)) return "";
+  return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+}
+
+/**
+ * Phân tích chuỗi số có dấu chấm thành số nguyên thuần
+ */
+function parseDots(val) {
+  if (!val) return 0;
+  const clean = String(val).replace(/[^\d]/g, "");
+  return parseInt(clean, 10) || 0;
+}
+
+/**
  * Đọc số tiền thành chữ tiếng Việt chuẩn xác
  */
 function convertNumberToVietnameseWords(n) {
@@ -1941,8 +1960,27 @@ let selectedGridRowIndex = -1;
  * Mở Cửa sổ phần mềm độc lập chạy song song với Microsoft Word
  */
 function openStandaloneDialogWindow() {
-  const dialogUrl = new URL("dialog.html?v=2.6.0", window.location.href).href;
+  const projName = document.getElementById("txtProjectName")?.value.trim() || "";
+  const bidPackage = document.getElementById("txtBiddingPackage")?.value.trim() || "";
+  const projLocation = document.getElementById("txtProjectLocation")?.value.trim() || "";
+
+  const queryParams = new URLSearchParams({
+    v: "2.7.0",
+    project: projName,
+    package: bidPackage,
+    location: projLocation
+  });
+  const dialogUrl = new URL(`dialog.html?${queryParams.toString()}`, window.location.href).href;
   const features = "width=1040,height=720,left=120,top=60,resizable=yes,scrollbars=yes,status=no,toolbar=no,menubar=no,location=no";
+
+  const syncToModalInputs = () => {
+    const dlgProj = document.getElementById("txtDlgProjectName");
+    const dlgPack = document.getElementById("txtDlgBiddingPackage");
+    const dlgLoc = document.getElementById("txtDlgProjectLocation");
+    if (dlgProj) dlgProj.value = projName;
+    if (dlgPack) dlgPack.value = bidPackage;
+    if (dlgLoc) dlgLoc.value = projLocation;
+  };
 
   let standaloneWin = null;
   try {
@@ -1959,6 +1997,7 @@ function openStandaloneDialogWindow() {
           const dlgOverlay = document.getElementById("dlgPriceScheduleOverlay");
           if (dlgOverlay) {
             dlgOverlay.classList.remove("hidden");
+            syncToModalInputs();
             loadPriceTemplateData("thi-cong");
           }
           setStatus("Cảnh báo: Không thể mở cửa sổ độc lập (Popup blocked). Đã mở cửa sổ nội bộ.");
@@ -1977,6 +2016,7 @@ function openStandaloneDialogWindow() {
       const dlgOverlay = document.getElementById("dlgPriceScheduleOverlay");
       if (dlgOverlay) {
         dlgOverlay.classList.remove("hidden");
+        syncToModalInputs();
         loadPriceTemplateData("thi-cong");
       }
     }
@@ -2116,10 +2156,18 @@ async function handleDialogMessage(data) {
       txtVal.value = data.formattedString;
     }
     const txtProj = document.getElementById("txtProjectName");
-    if (txtProj && data.projectName && !txtProj.value) {
+    if (txtProj && data.projectName) {
       txtProj.value = data.projectName;
     }
-    setStatus(`Đã nhận tổng giá trị từ cửa sổ độc lập: ${data.formattedString}`);
+    const txtPack = document.getElementById("txtBiddingPackage");
+    if (txtPack && data.biddingPackage) {
+      txtPack.value = data.biddingPackage;
+    }
+    const txtLoc = document.getElementById("txtProjectLocation");
+    if (txtLoc && data.projectLocation) {
+      txtLoc.value = data.projectLocation;
+    }
+    setStatus(`Đã nhận tổng giá trị từ Bảng giá: ${data.formattedString}`);
   } else if (data.action === "INSERT_WORD_TABLE") {
     await insertPriceTableToWordFromData(data);
   }
@@ -2161,13 +2209,21 @@ async function insertPriceTableToWordFromData(payload) {
   const items = payload.items || [];
   if (items.length === 0) return;
 
-  const projectName = payload.projectName || "Công trình xây dựng";
+  const projectName = payload.projectName || "";
+  const biddingPackage = payload.biddingPackage || "";
+  const projectLocation = payload.projectLocation || "";
   const templateName = payload.templateName || "Bảng giá hợp đồng";
   const vatRate = payload.vatRate || 10;
   const subtotal = payload.subtotal || 0;
   const vatAmount = payload.vatAmount || 0;
   const grandTotal = payload.grandTotal || 0;
   const inWords = payload.inWords || convertNumberToVietnameseWords(grandTotal);
+
+  let subtitleParts = [templateName];
+  if (projectName) subtitleParts.push(`Công trình: ${projectName}`);
+  if (biddingPackage) subtitleParts.push(`Gói thầu: ${biddingPackage}`);
+  if (projectLocation) subtitleParts.push(`Địa điểm: ${projectLocation}`);
+  const subtitleStr = `(${subtitleParts.join(" - ")})`;
 
   setStatus("Đang chèn bảng giá từ cửa sổ độc lập vào Word...");
 
@@ -2185,7 +2241,7 @@ async function insertPriceTableToWordFromData(payload) {
       pTitle.spaceBefore = 14;
       pTitle.spaceAfter = 2;
 
-      const pSub = body.insertParagraph(`(Kèm theo ${templateName} - Dự án: ${projectName})`, Word.InsertLocation.end);
+      const pSub = body.insertParagraph(subtitleStr, Word.InsertLocation.end);
       pSub.font.name = "Times New Roman";
       pSub.font.size = 12;
       pSub.font.italic = true;
@@ -2409,13 +2465,13 @@ function renderPriceGrid() {
         <input type="text" class="win-grid-input" data-field="name" value="${item.name || ""}" />
       </td>
       <td class="text-center">
-        <input type="text" class="win-grid-input text-center" data-field="unit" value="${item.unit || "gói"}" />
+        <input type="text" list="unitOptionsListTaskpane" class="win-grid-input text-center" data-field="unit" value="${item.unit || "gói"}" placeholder="Chọn/nhập" />
       </td>
       <td class="text-right">
         <input type="number" step="any" class="win-grid-input text-right" data-field="qty" value="${item.qty || 0}" />
       </td>
       <td class="text-right">
-        <input type="number" step="1000" class="win-grid-input text-right" data-field="price" value="${item.price || 0}" />
+        <input type="text" class="win-grid-input text-right" data-field="price" value="${formatDots(item.price || 0)}" placeholder="0" />
       </td>
       <td class="text-right" style="font-weight: 600; font-family: Consolas, monospace; color: #003399;">
         ${formatCurrency(amount)}
@@ -2436,8 +2492,13 @@ function renderPriceGrid() {
       const field = e.target.dataset.field;
       if (!field) return;
 
-      if (field === "qty" || field === "price") {
-        currentPriceItems[index][field] = parseFloat(e.target.value) || 0;
+      if (field === "price") {
+        const rawDigits = e.target.value.replace(/[^\d]/g, "");
+        const numVal = parseInt(rawDigits, 10) || 0;
+        e.target.value = formatDots(rawDigits);
+        currentPriceItems[index].price = numVal;
+      } else if (field === "qty") {
+        currentPriceItems[index].qty = parseFloat(e.target.value) || 0;
       } else {
         currentPriceItems[index][field] = e.target.value;
       }
@@ -2520,6 +2581,18 @@ function applyPriceTotalToForm() {
     txtVal.value = formattedStr;
   }
 
+  // Đồng bộ 3 ô thông tin công trình về Form chính
+  const dlgProj = document.getElementById("txtDlgProjectName")?.value.trim() || "";
+  const dlgPack = document.getElementById("txtDlgBiddingPackage")?.value.trim() || "";
+  const dlgLoc = document.getElementById("txtDlgProjectLocation")?.value.trim() || "";
+
+  const txtProj = document.getElementById("txtProjectName");
+  if (txtProj && dlgProj) txtProj.value = dlgProj;
+  const txtPack = document.getElementById("txtBiddingPackage");
+  if (txtPack && dlgPack) txtPack.value = dlgPack;
+  const txtLoc = document.getElementById("txtProjectLocation");
+  if (txtLoc && dlgLoc) txtLoc.value = dlgLoc;
+
   // Đóng dialog và thông báo
   const dlgOverlay = document.getElementById("dlgPriceScheduleOverlay");
   if (dlgOverlay) dlgOverlay.classList.add("hidden");
@@ -2543,9 +2616,17 @@ async function insertPriceTableToWord() {
     return;
   }
 
-  const projectName = document.getElementById("txtDlgProjectName")?.value.trim() || "Công trình xây dựng";
+  const projectName = document.getElementById("txtDlgProjectName")?.value.trim() || "";
+  const biddingPackage = document.getElementById("txtDlgBiddingPackage")?.value.trim() || "";
+  const projectLocation = document.getElementById("txtDlgProjectLocation")?.value.trim() || "";
   const cboType = document.getElementById("cboPriceTemplateType");
   const typeText = cboType ? cboType.options[cboType.selectedIndex].text : "Bảng giá hợp đồng";
+
+  let subtitleParts = [typeText];
+  if (projectName) subtitleParts.push(`Công trình: ${projectName}`);
+  if (biddingPackage) subtitleParts.push(`Gói thầu: ${biddingPackage}`);
+  if (projectLocation) subtitleParts.push(`Địa điểm: ${projectLocation}`);
+  const subtitleStr = `(${subtitleParts.join(" - ")})`;
 
   let subtotal = 0;
   currentPriceItems.forEach(item => {
@@ -2574,7 +2655,7 @@ async function insertPriceTableToWord() {
       pTitle.spaceBefore = 14;
       pTitle.spaceAfter = 2;
 
-      const pSub = body.insertParagraph(`(Kèm theo ${typeText} - Dự án: ${projectName})`, Word.InsertLocation.end);
+      const pSub = body.insertParagraph(subtitleStr, Word.InsertLocation.end);
       pSub.font.name = "Times New Roman";
       pSub.font.size = 12;
       pSub.font.italic = true;

@@ -24,12 +24,17 @@
       width: 100%;
       height: 100%;
       overflow: hidden;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      font-family: "Segoe UI", Tahoma, "MS Shell Dlg 2", "Microsoft Sans Serif", sans-serif;
       font-size: 12px;
       line-height: 1.35;
       color: #000000;
       background-color: #F0F0F0;
       user-select: none;
+    }
+
+    button, input, select, textarea {
+      font-family: "Segoe UI", Tahoma, "MS Shell Dlg 2", "Microsoft Sans Serif", sans-serif;
+      font-size: 12px;
     }
 
     #window-root {
@@ -346,14 +351,15 @@
 
     <!-- 2. ToolStrip -->
     <div class="win-toolstrip">
-      <button class="win-btn" id="btnToolAdd"><span>➕</span> Thêm dòng</button>
-      <button class="win-btn" id="btnToolDelete"><span>➖</span> Xóa dòng</button>
-      <button class="win-btn" id="btnToolReset"><span>🔄</span> Nạp lại mẫu</button>
+      <button class="win-btn" id="btnToolAdd">1. Thêm dòng</button>
+      <button class="win-btn" id="btnToolDelete">2. Xóa dòng</button>
+      <button class="win-btn" id="btnToolReset">3. Nạp lại mẫu</button>
       <div class="win-separator"></div>
-      <button class="win-btn win-btn-primary" id="btnToolInsertWord"><span>📥</span> Chèn vào Word</button>
-      <button class="win-btn" id="btnToolSyncForm"><span>💾</span> Lấy giá trị về Form</button>
+      <button class="win-btn win-btn-primary" id="btnToolInsertWord">4. Chèn vào Word</button>
+      <button class="win-btn" id="btnToolSyncForm">5. Lấy về Form</button>
       <div class="win-separator"></div>
-      <button class="win-btn" id="btnToolExportCsv"><span>📊</span> Xuất file CSV</button>
+      <button class="win-btn" id="btnToolExportCsv">6. Xuất CSV</button>
+      <button class="win-btn" id="btnToolClose">7. Đóng</button>
     </div>
 
     <!-- 3. Nội dung Form -->
@@ -374,28 +380,72 @@
           <div class="form-col">
             <label class="form-label" for="cboVatRate">Thuế suất VAT:</label>
             <select id="cboVatRate" class="win-combobox">
-              <option value="10" selected>10% (Chuẩn)</option>
-              <option value="8">8% (Giảm thuế)</option>
-              <option value="0">0% (Không chịu thuế)</option>
+              <option value="10" selected>10%</option>
+              <option value="8">8%</option>
+              <option value="0">0%</option>
             </select>
+          </div>
+        </div>
+
+        <!-- Tách thành 3 ô riêng biệt: Tên công trình, Tên gói thầu, Địa điểm -->
+        <div class="form-grid" style="margin-top: 6px;">
+          <div class="form-col">
+            <label class="form-label" for="txtProjectName">Tên công trình:</label>
+            <input type="text" id="txtProjectName" class="win-textbox" placeholder="VD: Tòa nhà Văn phòng TechCenter" />
+          </div>
+          <div class="form-col">
+            <label class="form-label" for="txtBiddingPackage">Tên gói thầu:</label>
+            <input type="text" id="txtBiddingPackage" class="win-textbox" placeholder="VD: Gói thầu số 02: Thi công xây dựng và hoàn thiện" />
+          </div>
+          <div class="form-col">
+            <label class="form-label" for="txtProjectLocation">Địa điểm thực hiện:</label>
+            <input type="text" id="txtProjectLocation" class="win-textbox" placeholder="VD: Lô E2, Khu Công nghệ cao, TP. Thủ Đức, TP. HCM" />
           </div>
         </div>
 
         <div class="form-grid" style="margin-top: 6px;">
           <div class="form-col">
-            <label class="form-label" for="txtProjectName">Tên công trình / Gói thầu:</label>
-            <input type="text" id="txtProjectName" class="win-textbox" value="Công trình Tòa nhà Văn phòng TechCenter" />
-          </div>
-          <div class="form-col">
-            <label class="form-label" for="txtOwnerName">Chủ đầu tư / Bên mua (Bên A):</label>
+            <label class="form-label" for="txtOwnerName">Chủ đầu tư (Bên A):</label>
             <input type="text" id="txtOwnerName" class="win-textbox" value="CÔNG TY CỔ PHẦN ĐẦU TƯ BẤT ĐỘNG SẢN AN GIA" />
           </div>
           <div class="form-col">
-            <label class="form-label" for="txtContractorName">Nhà thầu / Bên thi công (Bên B):</label>
+            <label class="form-label" for="txtContractorName">Nhà thầu (Bên B):</label>
             <input type="text" id="txtContractorName" class="win-textbox" value="CÔNG TY TNHH XÂY DỰNG HUỲNH BẢO" />
           </div>
         </div>
       </fieldset>
+
+      <!-- Datalist gợi ý đơn vị tính cho vật tư, ca máy, nhân công -->
+      <datalist id="unitOptionsList">
+        <option value="m">Mét (m)</option>
+        <option value="m2">Mét vuông (m2)</option>
+        <option value="m3">Mét khối (m3)</option>
+        <option value="kg">Kilôgam (kg)</option>
+        <option value="tấn">Tấn</option>
+        <option value="tạ">Tạ</option>
+        <option value="bộ">Bộ</option>
+        <option value="cái">Cái</option>
+        <option value="chiếc">Chiếc</option>
+        <option value="cây">Cây</option>
+        <option value="cuộn">Cuộn</option>
+        <option value="thùng">Thùng</option>
+        <option value="bao">Bao</option>
+        <option value="lít">Lít</option>
+        <option value="can">Can</option>
+        <option value="tấm">Tấm</option>
+        <option value="hộp">Hộp</option>
+        <option value="ca">Ca máy</option>
+        <option value="giờ">Giờ máy</option>
+        <option value="ngày">Ngày máy</option>
+        <option value="tháng">Tháng</option>
+        <option value="chuyến">Chuyến xe</option>
+        <option value="lượt">Lượt</option>
+        <option value="công">Ngày công</option>
+        <option value="gói">Trọn gói</option>
+        <option value="hệ thống">Hệ thống</option>
+        <option value="lần">Lần</option>
+        <option value="điểm">Điểm</option>
+      </datalist>
 
       <!-- GroupBox: DataGridView Bảng giá -->
       <div class="win-datagrid-box">
@@ -405,10 +455,10 @@
               <tr>
                 <th style="width: 35px; text-align: center;">STT</th>
                 <th style="width: 250px;">Nội dung công việc / Hàng hóa vật tư</th>
-                <th style="width: 55px; text-align: center;">ĐVT</th>
+                <th style="width: 75px; text-align: center;">ĐVT</th>
                 <th style="width: 65px; text-align: right;">Khối lượng</th>
-                <th style="width: 100px; text-align: right;">Đơn giá (VNĐ)</th>
-                <th style="width: 120px; text-align: right;">Thành tiền (VNĐ)</th>
+                <th style="width: 110px; text-align: right;">Đơn giá (VNĐ)</th>
+                <th style="width: 125px; text-align: right;">Thành tiền (VNĐ)</th>
                 <th style="width: 85px;">Ghi chú</th>
               </tr>
             </thead>
@@ -444,17 +494,17 @@
     <!-- 4. Thanh nút bấm đáy -->
     <div class="win-bottom-bar">
       <div style="color: #005499; font-weight: 500; font-size: 11px;">
-        💡 Cửa sổ độc lập chạy song song với Microsoft Word
+        Cửa sổ độc lập chạy song song với Microsoft Word
       </div>
       <div style="display: flex; gap: 6px;">
         <button class="win-btn win-btn-primary" id="btnBottomInsertWord">
-          <span>📥</span> Chèn bảng giá vào Word
+          1. Chèn vào Word
         </button>
         <button class="win-btn" id="btnBottomSyncForm">
-          <span>💾</span> Lấy giá trị về Form
+          2. Lấy về Form
         </button>
         <button class="win-btn" id="btnBottomClose">
-          <span>❌</span> Đóng cửa sổ
+          3. Đóng cửa sổ
         </button>
       </div>
     </div>
@@ -490,6 +540,19 @@
     function formatCurrency(num) {
       if (isNaN(num)) return "0";
       return Math.round(num).toLocaleString("vi-VN");
+    }
+
+    function formatDots(val) {
+      if (val === undefined || val === null || val === "") return "";
+      const clean = val.toString().replace(/[^\d]/g, "");
+      if (!clean) return "";
+      return parseInt(clean, 10).toLocaleString("vi-VN");
+    }
+
+    function parseDots(val) {
+      if (!val) return 0;
+      const clean = val.toString().replace(/[^\d]/g, "");
+      return clean ? parseInt(clean, 10) : 0;
     }
 
     function convertNumberToVietnameseWords(n) {
@@ -591,9 +654,9 @@
         tr.innerHTML = `
           <td class="text-center" style="font-weight: 600; color: #555555;">${index + 1}</td>
           <td><input type="text" class="win-grid-input" data-idx="${index}" data-field="name" value="${item.name || ""}" /></td>
-          <td class="text-center"><input type="text" class="win-grid-input text-center" data-idx="${index}" data-field="unit" value="${item.unit || "gói"}" /></td>
+          <td class="text-center"><input type="text" list="unitOptionsList" class="win-grid-input text-center" data-idx="${index}" data-field="unit" value="${item.unit || "gói"}" placeholder="Chọn/nhập" /></td>
           <td class="text-right"><input type="number" step="any" class="win-grid-input text-right" data-idx="${index}" data-field="qty" value="${item.qty || 0}" /></td>
-          <td class="text-right"><input type="number" step="1000" class="win-grid-input text-right" data-idx="${index}" data-field="price" value="${item.price || 0}" /></td>
+          <td class="text-right"><input type="text" class="win-grid-input text-right" data-idx="${index}" data-field="price" value="${formatDots(item.price || 0)}" placeholder="0" /></td>
           <td class="text-right" style="font-weight: 600; font-family: Consolas, monospace; color: #003399;">${formatCurrency(amount)}</td>
           <td><input type="text" class="win-grid-input" data-idx="${index}" data-field="note" value="${item.note || ""}" /></td>
         `;
@@ -637,14 +700,19 @@
       document.getElementById("valWords").textContent = convertNumberToVietnameseWords(grandTotal);
     }
 
-    // Lắng nghe thay đổi dữ liệu trong bảng
+    // Lắng nghe thay đổi dữ liệu trong bảng - Tự động nhảy dấu chấm tiền tệ thời gian thực
     document.getElementById("gridBody")?.addEventListener("input", (e) => {
       const idx = parseInt(e.target.dataset.idx, 10);
       const field = e.target.dataset.field;
       if (isNaN(idx) || !field || !gridItems[idx]) return;
 
-      if (field === "qty" || field === "price") {
-        gridItems[idx][field] = parseFloat(e.target.value) || 0;
+      if (field === "price") {
+        const rawVal = e.target.value;
+        const numVal = parseDots(rawVal);
+        gridItems[idx].price = numVal;
+        e.target.value = formatDots(numVal);
+      } else if (field === "qty") {
+        gridItems[idx].qty = parseFloat(e.target.value) || 0;
       } else {
         gridItems[idx][field] = e.target.value;
       }
@@ -677,7 +745,7 @@
       setStatus("Đã xóa dòng.");
     }
 
-    // Đồng bộ giá trị về Form Taskpane chính
+    // Đồng bộ giá trị về Form Taskpane chính (Đồng bộ cả 3 ô Tên công trình, Gói thầu, Địa điểm)
     function sendSyncToTaskpane() {
       let subtotal = 0;
       gridItems.forEach(item => {
@@ -690,7 +758,9 @@
         action: "SYNC_TOTAL",
         grandTotal: grandTotal,
         formattedString: `${formatCurrency(grandTotal)} VNĐ (${inWords})`,
-        projectName: document.getElementById("txtProjectName")?.value || ""
+        projectName: document.getElementById("txtProjectName")?.value || "",
+        biddingPackage: document.getElementById("txtBiddingPackage")?.value || "",
+        projectLocation: document.getElementById("txtProjectLocation")?.value || ""
       };
 
       if (broadcast) {
@@ -725,6 +795,8 @@
       const payload = {
         action: "INSERT_WORD_TABLE",
         projectName: document.getElementById("txtProjectName")?.value || "Công trình xây dựng",
+        biddingPackage: document.getElementById("txtBiddingPackage")?.value || "",
+        projectLocation: document.getElementById("txtProjectLocation")?.value || "",
         templateName: document.getElementById("cboTemplateType")?.options[document.getElementById("cboTemplateType").selectedIndex].text || "Bảng giá hợp đồng",
         vatRate: vatRate,
         subtotal: subtotal,
@@ -774,10 +846,25 @@
       document.getElementById("btnToolSyncForm")?.addEventListener("click", sendSyncToTaskpane);
       document.getElementById("btnBottomSyncForm")?.addEventListener("click", sendSyncToTaskpane);
       document.getElementById("btnToolExportCsv")?.addEventListener("click", exportToCsv);
+      document.getElementById("btnToolClose")?.addEventListener("click", () => window.close());
       document.getElementById("btnBottomClose")?.addEventListener("click", () => window.close());
 
       document.getElementById("cboTemplateType")?.addEventListener("change", (e) => loadTemplate(e.target.value));
       document.getElementById("cboVatRate")?.addEventListener("change", recalculate);
+
+      // Đọc thông số Tên công trình, Gói thầu, Địa điểm từ Add-in truyền sang qua URL
+      try {
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.has("project") && urlParams.get("project")) {
+          document.getElementById("txtProjectName").value = urlParams.get("project");
+        }
+        if (urlParams.has("package") && urlParams.get("package")) {
+          document.getElementById("txtBiddingPackage").value = urlParams.get("package");
+        }
+        if (urlParams.has("location") && urlParams.get("location")) {
+          document.getElementById("txtProjectLocation").value = urlParams.get("location");
+        }
+      } catch (_) {}
 
       // Khởi tạo bảng mẫu mặc định
       loadTemplate("thi-cong");

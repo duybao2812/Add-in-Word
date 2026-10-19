@@ -482,8 +482,7 @@
         <!-- Title bar -->
         <div class="win-dialog-titlebar">
           <div class="win-dialog-title" id="dlgTitle">
-            <span class="win-dialog-icon">📋</span>
-            <span>Bảng giá ký hợp đồng - [FormBaoGia]</span>
+            <span>[FormBaoGia] Bảng giá ký hợp đồng</span>
           </div>
           <div class="win-dialog-controlbox">
             <button class="win-dialog-btn-min" title="Thu nhỏ">_</button>
@@ -495,21 +494,17 @@
         <div class="win-dialog-content">
           <!-- Top bar inside dialog -->
           <div class="win-dialog-top">
-            <div class="form-row" style="margin-bottom: 6px;">
-              <label class="form-label" for="cboPriceTemplateType">Mẫu bảng giá áp dụng:</label>
-              <select id="cboPriceTemplateType" class="win-combobox" style="height: 25px;">
-                <option value="thi-cong" selected>Bảng giá hợp đồng thi công xây dựng công trình</option>
-                <option value="mua-ban">Bảng giá hợp đồng mua bán vật tư, thiết bị</option>
-                <option value="dich-vu">Bảng giá hợp đồng cung cấp dịch vụ kỹ thuật</option>
-              </select>
-            </div>
-            <div class="form-row-grid" style="margin-bottom: 0;">
+            <div class="form-row-grid" style="margin-bottom: 6px;">
               <div class="form-col">
-                <label class="form-label" for="txtDlgProjectName">Tên công trình / Gói thầu / Dự án:</label>
-                <input type="text" id="txtDlgProjectName" class="win-textbox" style="height: 25px;" value="Công trình Tòa nhà Văn phòng TechCenter" />
+                <label class="form-label" for="cboPriceTemplateType">Mẫu bảng giá áp dụng:</label>
+                <select id="cboPriceTemplateType" class="win-combobox" style="height: 25px;">
+                  <option value="thi-cong" selected>Bảng giá thi công xây dựng công trình</option>
+                  <option value="mua-ban">Bảng giá hợp đồng mua bán vật tư, thiết bị</option>
+                  <option value="dich-vu">Bảng giá hợp đồng cung cấp dịch vụ kỹ thuật</option>
+                </select>
               </div>
-              <div class="form-col" style="flex: 0 0 110px; max-width: 120px;">
-                <label class="form-label" for="cboDlgVatRate">Thuế suất VAT:</label>
+              <div class="form-col" style="flex: 0 0 100px; max-width: 110px;">
+                <label class="form-label" for="cboDlgVatRate">Thuế VAT:</label>
                 <select id="cboDlgVatRate" class="win-combobox" style="height: 25px;">
                   <option value="10" selected>10%</option>
                   <option value="8">8%</option>
@@ -517,14 +512,62 @@
                 </select>
               </div>
             </div>
+
+            <!-- Tách thành 3 ô riêng biệt: Tên công trình, Tên gói thầu, Địa điểm -->
+            <div class="form-row" style="margin-bottom: 4px;">
+              <label class="form-label" for="txtDlgProjectName">Tên công trình:</label>
+              <input type="text" id="txtDlgProjectName" class="win-textbox" style="height: 25px;" placeholder="VD: Tòa nhà Văn phòng TechCenter" />
+            </div>
+            <div class="form-row-grid" style="margin-bottom: 0;">
+              <div class="form-col">
+                <label class="form-label" for="txtDlgBiddingPackage">Tên gói thầu:</label>
+                <input type="text" id="txtDlgBiddingPackage" class="win-textbox" style="height: 25px;" placeholder="VD: Gói thầu số 02: Thi công xây lắp" />
+              </div>
+              <div class="form-col">
+                <label class="form-label" for="txtDlgProjectLocation">Địa điểm thực hiện:</label>
+                <input type="text" id="txtDlgProjectLocation" class="win-textbox" style="height: 25px;" placeholder="VD: TP. Hồ Chí Minh" />
+              </div>
+            </div>
           </div>
+
+          <!-- Datalist gợi ý đơn vị tính -->
+          <datalist id="unitOptionsListTaskpane">
+            <option value="m">Mét (m)</option>
+            <option value="m2">Mét vuông (m2)</option>
+            <option value="m3">Mét khối (m3)</option>
+            <option value="kg">Kilôgam (kg)</option>
+            <option value="tấn">Tấn</option>
+            <option value="tạ">Tạ</option>
+            <option value="bộ">Bộ</option>
+            <option value="cái">Cái</option>
+            <option value="chiếc">Chiếc</option>
+            <option value="cây">Cây</option>
+            <option value="cuộn">Cuộn</option>
+            <option value="thùng">Thùng</option>
+            <option value="bao">Bao</option>
+            <option value="lít">Lít</option>
+            <option value="can">Can</option>
+            <option value="tấm">Tấm</option>
+            <option value="hộp">Hộp</option>
+            <option value="ca">Ca máy</option>
+            <option value="giờ">Giờ máy</option>
+            <option value="ngày">Ngày máy</option>
+            <option value="tháng">Tháng</option>
+            <option value="chuyến">Chuyến xe</option>
+            <option value="lượt">Lượt</option>
+            <option value="công">Ngày công</option>
+            <option value="gói">Trọn gói</option>
+            <option value="hệ thống">Hệ thống</option>
+            <option value="lần">Lần</option>
+            <option value="điểm">Điểm</option>
+          </datalist>
 
           <!-- DataGridView Container -->
           <div class="win-datagrid-container">
             <div class="win-datagrid-toolbar">
-              <button class="win-btn win-btn-xs" id="btnAddGridRow"><span>➕</span> Thêm dòng</button>
-              <button class="win-btn win-btn-xs" id="btnDeleteGridRow"><span>➖</span> Xóa dòng</button>
-              <button class="win-btn win-btn-xs" id="btnResetGridRows"><span>🔄</span> Nạp lại mẫu</button>
+              <button class="win-btn win-btn-xs" id="btnAddGridRow">1. Thêm dòng</button>
+              <button class="win-btn win-btn-xs" id="btnDeleteGridRow">2. Xóa dòng</button>
+              <button class="win-btn win-btn-xs" id="btnResetGridRows">3. Nạp lại mẫu</button>
             </div>
             
             <div class="win-datagrid-scroll">
@@ -532,11 +575,11 @@
                 <thead>
                   <tr>
                     <th style="width: 32px; text-align: center;">STT</th>
-                    <th style="width: 160px;">Tên công việc / Hàng hóa vật tư</th>
-                    <th style="width: 50px; text-align: center;">ĐVT</th>
+                    <th style="width: 150px;">Tên công việc / Hàng hóa vật tư</th>
+                    <th style="width: 65px; text-align: center;">ĐVT</th>
                     <th style="width: 55px; text-align: right;">KL/SL</th>
-                    <th style="width: 85px; text-align: right;">Đơn giá</th>
-                    <th style="width: 95px; text-align: right;">Thành tiền</th>
+                    <th style="width: 90px; text-align: right;">Đơn giá</th>
+                    <th style="width: 100px; text-align: right;">Thành tiền</th>
                     <th style="width: 70px;">Ghi chú</th>
                   </tr>
                 </thead>
@@ -571,13 +614,13 @@
         <!-- Dialog Footer Actions -->
         <div class="win-dialog-footer">
           <button class="win-btn win-btn-primary" id="btnInsertTableToWord" title="Chèn toàn bộ bảng giá này vào tài liệu Word đang mở">
-            <span>📥</span> Chèn bảng giá vào Word
+            1. Chèn vào Word
           </button>
           <button class="win-btn" id="btnApplyTotalToForm" title="Cập nhật tổng số tiền này vào ô Giá trị hợp đồng trên Form chính">
-            <span>💾</span> Lấy giá trị về Form
+            2. Lấy về Form
           </button>
           <button class="win-btn" id="btnCloseDialogBottom">
-            <span>❌</span> Đóng
+            3. Đóng
           </button>
         </div>
       </div>
