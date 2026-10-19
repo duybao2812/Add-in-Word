@@ -24,8 +24,8 @@
     <div id="viewMainMenu" class="win-view">
       <!-- ToolStrip của Menu Chính -->
       <header class="win-toolstrip" role="toolbar" aria-label="Thanh công cụ Menu">
-        <button class="win-toolstrip-btn" id="btnReloadMenu" title="Nạp lại giao diện">
-          <span>🔄</span> Nạp lại
+        <button class="win-toolstrip-btn" id="btnReloadMenu" title="Làm mới giao diện">
+          Làm mới
         </button>
       </header>
 
@@ -44,51 +44,31 @@
 
         <!-- GROUPBOX 2: MENU CÁC NÚT CHỌN CHỨC NĂNG -->
         <fieldset class="win-groupbox">
-          <legend class="win-legend">DANH MỤC CHỨC NĂNG HỆ THỐNG</legend>
+          <legend class="win-legend">DANH MỤC CHỨC NĂNG</legend>
           <div class="win-menu-list">
-            <!-- NÚT CHÍNH: QUY CHUẨN NĐ 30 -->
-            <button class="win-menu-card-btn win-menu-card-primary" id="btnNavStandardize" type="button" title="Mở giao diện Chuẩn hóa thể thức văn bản hành chính theo NĐ 30">
-              <span class="win-menu-card-icon">⚡</span>
-              <div class="win-menu-card-info">
-                <span class="win-menu-card-title">QUY CHUẨN NĐ 30 / 2020 / NĐ-CP</span>
-                <span class="win-menu-card-desc">Chuẩn hóa thể thức, phông chữ, tiêu ngữ, căn lề, trích yếu văn bản</span>
-              </div>
+            <!-- NÚT 1: CHUẨN HÓA NĐ 30 -->
+            <button class="win-menu-btn win-menu-btn-primary" id="btnNavStandardize" type="button" title="Chuẩn hóa thể thức văn bản hành chính theo NĐ 30">
+              1. Chuẩn hóa thể thức (NĐ 30)
             </button>
 
-            <!-- NÚT 2: BẢNG GIÁ DỰ TOÁN (CỬA SỔ RIÊNG BIỆT) -->
-            <button class="win-menu-card-btn" id="btnNavPriceDialog" type="button" title="Mở cửa sổ phần mềm độc lập để nhập liệu bảng giá hợp đồng">
-              <span class="win-menu-card-icon">🗔</span>
-              <div class="win-menu-card-info">
-                <span class="win-menu-card-title">BẢNG GIÁ DỰ TOÁN KÝ HỢP ĐỒNG</span>
-                <span class="win-menu-card-desc">Cửa sổ Form WinForms độc lập tính toán chi phí, chèn bảng vào Word</span>
-              </div>
+            <!-- NÚT 2: BẢNG GIÁ DỰ TOÁN -->
+            <button class="win-menu-btn" id="btnNavPriceDialog" type="button" title="Mở cửa sổ bảng giá dự toán hợp đồng">
+              2. Bảng giá dự toán hợp đồng
             </button>
 
-            <!-- NÚT 3: BÓC TÁCH OCR FILE (AI QWEN2.5-VL-3B LOCAL) -->
-            <button class="win-menu-card-btn ocr-btn" id="btnNavOcrDialog" type="button" title="Mở cửa sổ trích xuất dữ liệu tài liệu PDF scan, bảng biểu, hợp đồng bằng AI Qwen2.5-VL-3B Local">
-              <span class="win-menu-card-icon">🔍</span>
-              <div class="win-menu-card-info">
-                <span class="win-menu-card-title">BÓC TÁCH OCR TÀI LIỆU (AI QWEN2.5-VL-3B)</span>
-                <span class="win-menu-card-desc">Bóc tách PDF scan, ảnh hợp đồng, bảng biểu bằng AI local và chèn sang Word</span>
-              </div>
+            <!-- NÚT 3: BÓC TÁCH OCR FILE -->
+            <button class="win-menu-btn" id="btnNavOcrDialog" type="button" title="Mở cửa sổ bóc tách OCR tài liệu AI">
+              3. Bóc tách OCR tài liệu
             </button>
 
-            <!-- NÚT 3: CHÈN MẪU VĂN BẢN MỚI -->
-            <button class="win-menu-card-btn" id="btnNavInsertTemplate" type="button" title="Chèn trực tiếp khung mẫu văn bản hành chính vào tài liệu Word">
-              <span class="win-menu-card-icon">📄</span>
-              <div class="win-menu-card-info">
-                <span class="win-menu-card-title">CHÈN MẪU VĂN BẢN MỚI</span>
-                <span class="win-menu-card-desc">Mẫu Công văn, Hợp đồng kinh tế, Biên bản, Tờ trình theo thể thức chuẩn</span>
-              </div>
+            <!-- NÚT 4: CHÈN MẪU VĂN BẢN MỚI -->
+            <button class="win-menu-btn" id="btnNavInsertTemplate" type="button" title="Chèn khung mẫu văn bản hành chính vào Word">
+              4. Chèn mẫu văn bản mới
             </button>
 
-            <!-- NÚT 4: HƯỚNG DẪN QUY CHUẨN THỂ THỨC -->
-            <button class="win-menu-card-btn" id="btnNavHelpND30" type="button" title="Tra cứu nhanh các quy định thể thức văn bản theo Nghị định 30/2020/NĐ-CP">
-              <span class="win-menu-card-icon">📘</span>
-              <div class="win-menu-card-info">
-                <span class="win-menu-card-title">HƯỚNG DẪN QUY CHUẨN THỂ THỨC</span>
-                <span class="win-menu-card-desc">Quy định chi tiết về phông chữ, cỡ chữ, căn lề và bố cục theo NĐ 30</span>
-              </div>
+            <!-- NÚT 5: HƯỚNG DẪN QUY CHUẨN THỂ THỨC -->
+            <button class="win-menu-btn" id="btnNavHelpND30" type="button" title="Tra cứu quy chuẩn thể thức theo NĐ 30">
+              5. Hướng dẫn quy chuẩn thể thức
             </button>
           </div>
         </fieldset>
@@ -113,12 +93,12 @@
 
       <!-- 1. WinForms ToolStrip đỉnh của Form Thể thức (Chỉ giữ Quay về Menu và Test cửa sổ) -->
       <header class="win-toolstrip" role="toolbar" aria-label="Thanh công cụ">
-        <button class="win-toolstrip-btn win-btn-back" id="btnBackToMenu" title="Quay về menu chính (Giữ nguyên toàn bộ dữ liệu đã nhập)">
-          <span>⬅️</span> Quay về Menu
+        <button class="win-toolstrip-btn win-btn-back" id="btnBackToMenu" title="Quay về menu chính">
+          Quay về Menu
         </button>
         <div class="win-toolstrip-separator"></div>
-        <button class="win-toolstrip-btn" id="btnOpenDemoDialog" title="Mở cửa sổ demo nhập liệu bảng giá hợp đồng (WinForms Form Dialog)">
-          <span>🗔</span> Test cửa sổ
+        <button class="win-toolstrip-btn" id="btnOpenDemoDialog" title="Mở cửa sổ bảng giá hợp đồng">
+          Bảng giá dự toán
         </button>
       </header>
 

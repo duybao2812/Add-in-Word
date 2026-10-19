@@ -22,7 +22,7 @@ body {
   width: 100%;
   height: 100%;
   overflow-x: hidden;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-family: "Segoe UI", Tahoma, "MS Shell Dlg 2", "Microsoft Sans Serif", sans-serif;
   font-size: 12px;
   line-height: 1.35;
   color: #000000;
@@ -31,6 +31,11 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: geometricPrecision;
+}
+
+button, input, select, textarea {
+  font-family: "Segoe UI", Tahoma, "MS Shell Dlg 2", "Microsoft Sans Serif", sans-serif;
+  font-size: 12px;
 }
 
 #app-root {
@@ -164,6 +169,47 @@ body {
   display: flex;
   flex-direction: column;
   gap: 6px;
+}
+
+/* Nút danh mục chuẩn WinForms cổ điển (tối giản, phẳng, 0px radius, font Windows) */
+.win-menu-btn {
+  display: flex;
+  align-items: center;
+  height: 35px;
+  width: 100%;
+  padding: 0 12px;
+  background-color: #FFFFFF;
+  border: 1px solid #7F9DB9;
+  color: #000000;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  user-select: none;
+  outline: none;
+  border-radius: 0px !important;
+  transition: background-color 0.1s, border-color 0.1s;
+}
+
+.win-menu-btn:hover {
+  background-color: #E5F1FB;
+  border-color: #0078D7;
+  color: #004578;
+}
+
+.win-menu-btn:active {
+  background-color: #CCE4F7;
+  border-color: #005499;
+}
+
+.win-menu-btn.win-menu-btn-primary {
+  border-left: 4px solid #005499;
+  background-color: #FAFAFA;
+}
+
+.win-menu-btn.win-menu-btn-primary:hover {
+  background-color: #E5F1FB;
 }
 
 .win-menu-card-btn {
