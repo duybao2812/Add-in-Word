@@ -315,8 +315,39 @@
     .win-modal-body {
       padding: 10px 12px;
       background: #F0F0F0;
-      max-height: 420px;
       overflow-y: auto;
+      flex: 1 1 auto;
+      min-height: 0;
+    }
+
+    #dlgHelpGuideOverlay .win-modal-body {
+      max-height: 420px;
+    }
+
+    #dlgAddTemplateDialog {
+      width: 860px;
+      max-width: 96vw;
+      height: 88vh;
+      max-height: 94vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 2px 2px 12px rgba(0, 0, 0, 0.5);
+    }
+
+    #dlgAddTemplateDialog .win-modal-body {
+      flex: 1 1 0 !important;
+      min-height: 0 !important;
+      max-height: none !important;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      padding: 6px 10px;
+      gap: 5px;
+    }
+
+    #dlgAddTemplateDialog .win-modal-actions {
+      flex-shrink: 0;
+      margin-top: 0;
     }
 
     .win-help-table {
@@ -535,7 +566,7 @@
 
     <!-- 6. WinForms Modal Thêm Mẫu Văn Bản Mới Vào Hệ Thống (Dynamic List, Dynamic Tables & Full ND30) -->
     <div id="dlgAddTemplateOverlay" class="win-modal-overlay hidden" style="display: none;">
-      <div class="win-modal-dialog" id="dlgAddTemplateDialog" role="dialog" aria-labelledby="dlgAddTitle" style="width: 850px; max-width: 96vw; height: 88vh; max-height: 94vh; display: flex; flex-direction: column;">
+      <div class="win-modal-dialog" id="dlgAddTemplateDialog" role="dialog" aria-labelledby="dlgAddTitle" style="width: 860px; max-width: 96vw; height: 88vh; max-height: 94vh; display: flex; flex-direction: column;">
         
         <!-- Thanh tiêu đề chuẩn WinForms có nút Maximize / Restore bên cạnh nút Đóng [X] -->
         <div class="win-modal-titlebar" style="flex-shrink: 0;">
@@ -546,32 +577,32 @@
           </div>
         </div>
 
-        <!-- Thân Modal: Phân bổ không gian linh hoạt, không cuộn toàn trang mà cuộn riêng vùng điều khoản -->
-        <div class="win-modal-body" style="padding: 8px 12px; flex: 1 1 auto; display: flex; flex-direction: column; overflow: hidden; gap: 6px; background: #F0F0F0;">
+        <!-- Thân Modal: Chiếm toàn bộ chiều cao linh hoạt, không để dư khoảng trống dưới -->
+        <div class="win-modal-body" style="padding: 6px 10px; flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; overflow: hidden; gap: 5px; background: #F0F0F0;">
 
-          <!-- Phân vùng 1: Thông tin hành chính & Pháp lý (Gọn gàng, cố định phía trên) -->
-          <div style="background: #FFFFFF; border: 1px solid #7F9DB9; padding: 8px 10px; flex-shrink: 0;">
-            <div style="font-weight: 600; color: #003399; font-size: 11.5px; border-bottom: 1px solid #D0D0D0; padding-bottom: 3px; margin-bottom: 6px;">
+          <!-- Phân vùng 1: Thông tin hành chính & Pháp lý (Thiết kế tinh gọn, tiết kiệm chiều cao) -->
+          <div style="background: #FFFFFF; border: 1px solid #7F9DB9; padding: 5px 8px; flex-shrink: 0;">
+            <div style="font-weight: 600; color: #003399; font-size: 11px; border-bottom: 1px solid #D0D0D0; padding-bottom: 2px; margin-bottom: 4px;">
               I. THÔNG TIN HÀNH CHÍNH &amp; PHÁP LÝ (THEO NGHỊ ĐỊNH 30)
             </div>
 
-            <div style="display: grid; grid-template-columns: 1fr 1fr; column-gap: 12px; row-gap: 6px;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; column-gap: 10px; row-gap: 3px;">
               <!-- Cột trái -->
               <div>
-                <label for="txtNewTplTitle" style="font-weight: 600; display: block; margin-bottom: 2px;">Tên mẫu văn bản (*):</label>
-                <input type="text" id="txtNewTplTitle" placeholder="VD: Hợp đồng tư vấn thiết kế và lập dự toán" style="border: 1px solid #7F9DB9; padding: 3px 6px; width: 100%;" />
+                <label for="txtNewTplTitle" style="font-weight: 600; display: block; margin-bottom: 1px; font-size: 11px;">Tên mẫu văn bản (*):</label>
+                <input type="text" id="txtNewTplTitle" placeholder="VD: Hợp đồng tư vấn thiết kế và lập dự toán" style="border: 1px solid #7F9DB9; padding: 2px 5px; height: 23px; width: 100%; font-size: 11px;" />
               </div>
 
               <!-- Cột phải -->
               <div>
-                <label for="txtNewTplDocNum" style="font-weight: 600; display: block; margin-bottom: 2px;">Số và Ký hiệu văn bản (*):</label>
-                <input type="text" id="txtNewTplDocNum" placeholder="VD: Số: 01/2026/HĐKT hoặc 15/QĐ-CTY" style="border: 1px solid #7F9DB9; padding: 3px 6px; width: 100%;" />
+                <label for="txtNewTplDocNum" style="font-weight: 600; display: block; margin-bottom: 1px; font-size: 11px;">Số và Ký hiệu văn bản (*):</label>
+                <input type="text" id="txtNewTplDocNum" placeholder="VD: Số: 01/2026/HĐKT hoặc 15/QĐ-CTY" style="border: 1px solid #7F9DB9; padding: 2px 5px; height: 23px; width: 100%; font-size: 11px;" />
               </div>
 
               <!-- Cột trái -->
               <div>
-                <label for="cboNewTplDocType" style="font-weight: 600; display: block; margin-bottom: 2px;">Loại thể thức (*):</label>
-                <select id="cboNewTplDocType" style="border: 1px solid #7F9DB9; padding: 3px 6px; background: #FFF; width: 100%;">
+                <label for="cboNewTplDocType" style="font-weight: 600; display: block; margin-bottom: 1px; font-size: 11px;">Loại thể thức (*):</label>
+                <select id="cboNewTplDocType" style="border: 1px solid #7F9DB9; padding: 2px 5px; height: 23px; background: #FFF; width: 100%; font-size: 11px;">
                   <optgroup label="1. Nhóm Hợp đồng doanh nghiệp">
                     <option value="hd-kinh-te" selected>Hợp đồng kinh tế / Thương mại / Dịch vụ</option>
                     <option value="hd-thi-cong">Hợp đồng thi công xây dựng</option>
@@ -594,70 +625,70 @@
 
               <!-- Cột phải -->
               <div>
-                <label for="txtNewTplLocation" style="font-weight: 600; display: block; margin-bottom: 2px;">Địa danh và Ngày tháng (*):</label>
-                <input type="text" id="txtNewTplLocation" placeholder="TP. Hồ Chí Minh, ngày 19 tháng 10 năm 2026" style="border: 1px solid #7F9DB9; padding: 3px 6px; width: 100%;" />
+                <label for="txtNewTplLocation" style="font-weight: 600; display: block; margin-bottom: 1px; font-size: 11px;">Địa danh và Ngày tháng (*):</label>
+                <input type="text" id="txtNewTplLocation" placeholder="TP. Hồ Chí Minh, ngày 19 tháng 10 năm 2026" style="border: 1px solid #7F9DB9; padding: 2px 5px; height: 23px; width: 100%; font-size: 11px;" />
               </div>
 
               <!-- Cột trái -->
               <div>
-                <label for="txtNewTplPartyA" id="lblPartyA" style="font-weight: 600; display: block; margin-bottom: 2px;">Bên A (Bên giao thầu / Bên sử dụng):</label>
-                <input type="text" id="txtNewTplPartyA" placeholder="VD: CÔNG TY CỔ PHẦN ĐẦU TƯ BẤT ĐỘNG SẢN AN GIA" style="border: 1px solid #7F9DB9; padding: 3px 6px; width: 100%;" />
+                <label for="txtNewTplPartyA" id="lblPartyA" style="font-weight: 600; display: block; margin-bottom: 1px; font-size: 11px;">Bên A (Bên giao thầu / Bên sử dụng):</label>
+                <input type="text" id="txtNewTplPartyA" placeholder="VD: CÔNG TY CỔ PHẦN ĐẦU TƯ BẤT ĐỘNG SẢN AN GIA" style="border: 1px solid #7F9DB9; padding: 2px 5px; height: 23px; width: 100%; font-size: 11px;" />
               </div>
 
               <!-- Cột phải -->
               <div>
-                <label for="txtNewTplPartyB" id="lblPartyB" style="font-weight: 600; display: block; margin-bottom: 2px;">Bên B (Bên nhận thầu / Đơn vị cung cấp):</label>
-                <input type="text" id="txtNewTplPartyB" placeholder="VD: CÔNG TY TNHH TƯ VẤN THIẾT KẾ KIẾN TRÚC VIỆT" style="border: 1px solid #7F9DB9; padding: 3px 6px; width: 100%;" />
+                <label for="txtNewTplPartyB" id="lblPartyB" style="font-weight: 600; display: block; margin-bottom: 1px; font-size: 11px;">Bên B (Bên nhận thầu / Đơn vị cung cấp):</label>
+                <input type="text" id="txtNewTplPartyB" placeholder="VD: CÔNG TY TNHH TƯ VẤN THIẾT KẾ KIẾN TRÚC VIỆT" style="border: 1px solid #7F9DB9; padding: 2px 5px; height: 23px; width: 100%; font-size: 11px;" />
               </div>
 
               <!-- Cột trái -->
               <div>
-                <label for="txtNewTplSigner" id="lblSigner" style="font-weight: 600; display: block; margin-bottom: 2px;">Đại diện ký / Người ký (*):</label>
-                <input type="text" id="txtNewTplSigner" placeholder="VD: Tổng Giám đốc Nguyễn Văn A" style="border: 1px solid #7F9DB9; padding: 3px 6px; width: 100%;" />
+                <label for="txtNewTplSigner" id="lblSigner" style="font-weight: 600; display: block; margin-bottom: 1px; font-size: 11px;">Đại diện ký / Người ký (*):</label>
+                <input type="text" id="txtNewTplSigner" placeholder="VD: Tổng Giám đốc Nguyễn Văn A" style="border: 1px solid #7F9DB9; padding: 2px 5px; height: 23px; width: 100%; font-size: 11px;" />
               </div>
 
               <!-- Cột phải -->
               <div>
-                <label for="txtNewTplRecipients" id="lblRecipients" style="font-weight: 600; display: block; margin-bottom: 2px;">Nơi nhận:</label>
-                <input type="text" id="txtNewTplRecipients" placeholder="VD: - Như trên; - Ban Giám đốc; - Lưu: VT, ĐV." style="border: 1px solid #7F9DB9; padding: 3px 6px; width: 100%;" />
+                <label for="txtNewTplRecipients" id="lblRecipients" style="font-weight: 600; display: block; margin-bottom: 1px; font-size: 11px;">Nơi nhận:</label>
+                <input type="text" id="txtNewTplRecipients" placeholder="VD: - Như trên; - Ban Giám đốc; - Lưu: VT, ĐV." style="border: 1px solid #7F9DB9; padding: 2px 5px; height: 23px; width: 100%; font-size: 11px;" />
               </div>
             </div>
 
             <!-- Dòng trích yếu toàn chiều ngang -->
-            <div style="margin-top: 6px;">
-              <label for="txtNewTplSubject" id="lblSubject" style="font-weight: 600; display: block; margin-bottom: 2px;">Trích yếu / Tiêu đề văn bản (*):</label>
-              <input type="text" id="txtNewTplSubject" placeholder="VD: V/v tư vấn giám sát chất lượng và tiến độ thi công công trình" style="border: 1px solid #7F9DB9; padding: 3px 6px; width: 100%;" />
+            <div style="margin-top: 3px;">
+              <label for="txtNewTplSubject" id="lblSubject" style="font-weight: 600; display: block; margin-bottom: 1px; font-size: 11px;">Trích yếu / Tiêu đề văn bản (*):</label>
+              <input type="text" id="txtNewTplSubject" placeholder="VD: V/v tư vấn giám sát chất lượng và tiến độ thi công công trình" style="border: 1px solid #7F9DB9; padding: 2px 5px; height: 23px; width: 100%; font-size: 11px;" />
             </div>
           </div>
 
-          <!-- Phân vùng 2: Nội dung / Các Điều khoản văn bản & Bảng giá động -->
-          <div style="background: #FFFFFF; border: 1px solid #7F9DB9; padding: 8px 10px; display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; overflow: hidden;">
-            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #D0D0D0; padding-bottom: 4px; margin-bottom: 6px; flex-shrink: 0;">
+          <!-- Phân vùng 2: Nội dung / Các Điều khoản văn bản & Bảng giá động (Tối đa hóa không gian hiển thị) -->
+          <div style="background: #FFFFFF; border: 1px solid #7F9DB9; padding: 6px 8px; display: flex; flex-direction: column; flex: 1 1 auto; min-height: 250px; overflow: hidden;">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #D0D0D0; padding-bottom: 4px; margin-bottom: 4px; flex-shrink: 0;">
               <span style="font-weight: 600; color: #003399; font-size: 11.5px;">
                 II. NỘI DUNG / CÁC ĐIỀU KHOẢN VĂN BẢN &amp; BẢNG GIÁ ĐỘNG
               </span>
               <div style="display: flex; gap: 6px; align-items: center;">
-                <button type="button" class="win-btn win-btn-primary" id="btnAddTextArticleTop" style="font-weight: 600;">
+                <button type="button" class="win-btn win-btn-primary" id="btnAddTextArticleTop" style="font-weight: 600; height: 22px; padding: 1px 8px;">
                   + Thêm điều khoản (Chữ)
                 </button>
-                <button type="button" class="win-btn" id="btnAddTableArticleTop" style="background: #E8F4EC; border-color: #2E7D32; color: #1B5E20; font-weight: 600;">
+                <button type="button" class="win-btn" id="btnAddTableArticleTop" style="background: #E8F4EC; border-color: #2E7D32; color: #1B5E20; font-weight: 600; height: 22px; padding: 1px 8px;">
                   + Thêm bảng giá / Phụ lục
                 </button>
               </div>
             </div>
 
-            <!-- Container cuộn dọc riêng biệt cho danh sách điều khoản & bảng giá -->
-            <div id="dynamicArticlesContainer" style="flex: 1 1 auto; overflow-y: auto; background: #F8F8F8; border: 1px solid #CCCCCC; padding: 6px; display: flex; flex-direction: column; gap: 8px; min-height: 120px;">
+            <!-- Container cuộn dọc riêng biệt cho danh sách điều khoản & bảng giá (Được cấp toàn bộ không gian dọc) -->
+            <div id="dynamicArticlesContainer" style="flex: 1 1 auto; overflow-y: auto; background: #F8F8F8; border: 1px solid #CCCCCC; padding: 6px; display: flex; flex-direction: column; gap: 6px; min-height: 180px;">
               <!-- Các dòng điều khoản và khối bảng giá được sinh động bằng JavaScript -->
             </div>
 
             <!-- Thanh công cụ chân Phân vùng 2 -->
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 6px; flex-shrink: 0;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px; flex-shrink: 0;">
               <div style="display: flex; gap: 6px;">
-                <button type="button" class="win-btn" id="btnAddTextArticleBottom" style="font-size: 11px;">
+                <button type="button" class="win-btn" id="btnAddTextArticleBottom" style="font-size: 11px; height: 22px; padding: 1px 8px;">
                   + Thêm điều khoản (Chữ)
                 </button>
-                <button type="button" class="win-btn" id="btnAddTableArticleBottom" style="font-size: 11px; background: #E8F4EC; border-color: #2E7D32; color: #1B5E20;">
+                <button type="button" class="win-btn" id="btnAddTableArticleBottom" style="font-size: 11px; background: #E8F4EC; border-color: #2E7D32; color: #1B5E20; height: 22px; padding: 1px 8px;">
                   + Thêm bảng giá / Phụ lục
                 </button>
               </div>
@@ -666,12 +697,12 @@
           </div>
 
           <!-- Dòng ghi chú nhỏ tối ưu không gian -->
-          <div style="font-size: 11px; color: #333; background: #E9F4FE; border: 1px solid #B8D6FB; padding: 4px 8px; flex-shrink: 0;">
+          <div style="font-size: 11px; color: #333; background: #E9F4FE; border: 1px solid #B8D6FB; padding: 3px 6px; flex-shrink: 0;">
             💡 <strong>Tự động hóa:</strong> Hỗ trợ điều khoản chữ và bảng giá động (tự tính Thành tiền = SL x Đơn giá &amp; hàm SUM). Bấm [🔼/🔽] để hoán đổi vị trí điều khoản nhanh chóng!
           </div>
         </div>
 
-        <!-- CỐ ĐỊNH THANH NÚT BẤM CHỨC NĂNG Ở DƯỚI ĐÁY CỬA SỔ -->
+        <!-- CỐ ĐỊNH THANH NÚT BẤM CHỨC NĂNG Ở SÁT ĐÁY CỬA SỔ (KHÔNG BỊ DƯ KHOẢNG TRẮNG NÀO Ở DƯỚI) -->
         <div class="win-modal-actions" style="gap: 6px; flex-shrink: 0; padding: 6px 12px; background: #E1E1E1; border-top: 1px solid #B5B5B5;">
           <button class="win-btn win-btn-primary" id="btnSaveNewTemplate" style="min-width: 160px; height: 26px; font-weight: 600;">1. Lưu &amp; Cập nhật hệ thống</button>
           <button class="win-btn" id="btnCancelNewTemplate" style="min-width: 85px; height: 26px;">2. Hủy bỏ</button>
@@ -1346,7 +1377,9 @@
       setupBlockControlEvents(row);
       container.appendChild(row);
       updateArticleCountLabel();
-      row.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      if (!defaultTitle && !defaultContent) {
+        container.scrollTop = container.scrollHeight;
+      }
     }
 
     // 4. Thêm khối Bảng giá / Phụ lục (Dynamic Table Grid)
@@ -1424,7 +1457,9 @@
 
       container.appendChild(block);
       updateArticleCountLabel();
-      block.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      if (!defaultTitle && !defaultRows) {
+        container.scrollTop = container.scrollHeight;
+      }
     }
 
     // 5. Thêm dòng đơn trong Bảng giá
@@ -1640,6 +1675,11 @@
         addTextArticleRow("Điều 1: PHẠM VI CÔNG VIỆC VÀ YÊU CẦU", "Bên B cam kết thực hiện đúng tiêu chuẩn kỹ thuật, quy trình và tiến độ theo yêu cầu của Bên A.");
         addTextArticleRow("Điều 2: GIÁ TRỊ VÀ PHƯƠNG THỨC THANH TOÁN", "Giá trị thanh toán theo tiến độ từng đợt nghiệm thu thực tế sau khi có biên bản xác nhận hợp lệ.");
       }
+
+      // Đảm bảo thanh cuộn luôn ở vị trí đầu tiên
+      const modalBody = document.querySelector("#dlgAddTemplateDialog .win-modal-body");
+      if (modalBody) modalBody.scrollTop = 0;
+      if (container) container.scrollTop = 0;
 
       document.getElementById("txtNewTplTitle")?.focus();
     }
